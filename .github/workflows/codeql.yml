@@ -23,4 +23,17 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
+      # upload: never — code scanning nativo (aba Security) requer GitHub
+      # Advanced Security, indisponível em repositório privado de conta
+      # pessoal (ver docs/evidence/NEX-003_GITHUB_REPO_SETUP.md). A análise
+      # continua a correr em cada push/PR; os resultados ficam disponíveis
+      # como artifact para inspeção manual em vez de alertas na aba Security.
       - uses: github/codeql-action/analyze@v3
+        with:
+          upload: never
+          output: sarif-results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: sarif-results
+          retention-days: 30

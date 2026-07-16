@@ -42,6 +42,14 @@ A action `actions/dependency-review-action` falhou no primeiro PR com o mesmo mo
 - `analyze` (CodeQL) falhou com `Resource not accessible by integration` / `CodeQL job status was configuration error` ao tentar obter informação do workflow run — faltava `actions: read`. Corrigido em `codeql.yml`.
 - Ambos não relacionados com GHAS; são permissões padrão de `GITHUB_TOKEN` por job.
 
+## Risco residual: CodeQL code scanning (upload de alertas)
+
+Após corrigir as permissões, `analyze` voltou a falhar, agora com: _"Code scanning is not enabled for this repository. Please enable code scanning in the repository settings."_ — terceira ocorrência da mesma limitação: **code scanning (upload de resultados para a aba Security) também requer GitHub Advanced Security em repositórios privados de conta pessoal.**
+
+**Mitigação aplicada:** `codeql-action/analyze` configurado com `upload: never` e `output: sarif-results`; o SARIF resultante é publicado como artifact da run (`actions/upload-artifact`, retenção 30 dias) em vez de tentar escrever na aba Security. A análise estática continua a correr em todo push/PR — só a persistência nativa de alertas fica indisponível.
+
+**Resumo do padrão GHAS neste repositório:** secret scanning nativo, dependency review e code scanning nativo estão todos bloqueados pela mesma causa (GitHub Advanced Security não disponível para repositório privado de conta pessoal). Mitigado com Gitleaks (CI), Dependabot (alerts/security updates) e CodeQL com upload em artifact, respetivamente. Decisão de upgrade de plano permanece pendente e não foi tomada nem inventada.
+
 ## Resultado
 
 - `npm run verify`: aprovado.
