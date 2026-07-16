@@ -1,5 +1,7 @@
 # 08 — Produção e operação
 
+> Matriz detalhada de ambientes, segredos, owners e rotação: `docs/ENVIRONMENTS_AND_SECRETS.md`.
+
 ## Ambientes
 
 - Local: Supabase local e dados sintéticos.
