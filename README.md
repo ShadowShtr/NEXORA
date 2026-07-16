@@ -36,8 +36,9 @@ Este repositório é uma **base de execução orientada por tarefas para Claude 
 5. `docs/03_ARCHITECTURE.md`
 6. `docs/04_DATA_MODEL.md`
 7. `docs/05_SECURITY_PRIVACY.md`
-8. `TASKS.md`
-9. O ficheiro do épico correspondente em `tasks/epics/`
+8. `docs/ENVIRONMENTS_AND_SECRETS.md`
+9. `TASKS.md`
+10. O ficheiro do épico correspondente em `tasks/epics/`
 
 ## Arranque local
 

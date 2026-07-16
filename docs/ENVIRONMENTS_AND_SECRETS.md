@@ -1,0 +1,50 @@
+# Ambientes e segredos
+
+Documento de referência para `NEX-004`. Mantém-se atualizado sempre que uma tarefa introduzir uma nova variável de ambiente (registar aqui como parte da Definição de Pronto dessa tarefa).
+
+## Matriz de ambientes
+
+| Ambiente     | Onde corre                           | Projeto Supabase                                          | Projeto Vercel             | Dados                                                    | Quem acede                                            |
+| ------------ | ------------------------------------ | --------------------------------------------------------- | -------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
+| **Local**    | Máquina do developer (`npm run dev`) | Supabase CLI local (`supabase start`)                     | — (não aplicável)          | Sintéticos/seed (`supabase/seed.sql`), nunca dados reais | Quem tiver o repositório clonado                      |
+| **Preview**  | Deploy automático por PR (Vercel)    | Projeto Supabase de preview/dev, **separado** de produção | Preview deployment por PR  | Sintéticos, nunca dados de clientes reais                | Owner do repositório; link de preview é privado ao PR |
+| **Produção** | `main` → deploy Vercel de produção   | Projeto Supabase de produção, isolado                     | Projeto Vercel de produção | Dados reais de clientes                                  | Apenas owner (`ShadowShtr`) nesta fase solo           |
+
+**Regra fixa (`08_OPERATIONS.md`):** nunca reutilizar a service role de produção em preview ou local.
+
+## Owner de segredos
+
+Nesta fase (profissional independente, projeto solo), o owner único de todos os segredos é a conta **ShadowShtr** (GitHub e Supabase). Quando a NEXORA passar a ter equipa, este documento deve ser atualizado com RACI explícito antes de conceder acesso a mais pessoas — não antecipar essa estrutura agora (fora de escopo da primeira vertical, ver `CLAUDE.md`).
+
+## Matriz de segredos e variáveis
+
+| Variável                               | Âmbito          | Propósito                                                                                   | Onde vive                                                                            | Rotação                                                                                                                                    | Estado                                                                             |
+| -------------------------------------- | --------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`                  | Público         | URL base da app para links (agenda, ICS, WhatsApp)                                          | `.env.local` (dev); Vercel env vars por ambiente                                     | N/A (não é segredo)                                                                                                                        | Ativo                                                                              |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Público         | Endpoint do projeto Supabase                                                                | `.env.local`; Vercel env vars por ambiente                                           | Muda só se o projeto Supabase for recriado                                                                                                 | Ativo                                                                              |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Público         | Chave publishable (anon) do Supabase, uso client-side                                       | `.env.local`; Vercel env vars por ambiente                                           | Rotação manual no dashboard Supabase se houver suspeita de abuso                                                                           | Ativo                                                                              |
+| `SUPABASE_SERVICE_ROLE_KEY`            | **Server-only** | Bypassa RLS; usada apenas em código server-side (`src/lib/supabase/server.ts`)              | `.env.local` (nunca commitado); Vercel env var **server-only**, nunca `NEXT_PUBLIC_` | A cada 90 dias ou imediatamente em caso de suspeita de exposição (ver runbook "service role comprometida" em `08_OPERATIONS.md`)           | Ativo — **nunca expor ao browser**                                                 |
+| `APP_TIMEZONE`                         | Público         | Timezone de apresentação (`Europe/Lisbon`)                                                  | `.env.local`; Vercel env vars                                                        | N/A (não é segredo)                                                                                                                        | Ativo                                                                              |
+| `BOOKING_TOKEN_PEPPER`                 | **Server-only** | Pepper para hash dos tokens de link público de marcação                                     | `.env.local`; Vercel env var server-only                                             | Só rodar com plano de migração — rotacionar invalida todos os links públicos ativos; requer aviso prévio às clientes com marcação pendente | Ativo (schema pronto; uso pleno chega com `NEX-071`)                               |
+| `EMAIL_FROM`                           | Server-only     | Remetente dos e-mails opcionais à cliente                                                   | Vercel env var por ambiente                                                          | N/A (não é segredo, mas não deve mudar sem atualizar SPF/DKIM)                                                                             | Planeado — introduzido em `NEX-074`                                                |
+| `EMAIL_PROVIDER_API_KEY`               | **Server-only** | Autenticação do provedor de e-mail                                                          | Vercel env var server-only                                                           | Conforme política do provedor; rotacionar em suspeita de abuso                                                                             | Planeado — introduzido em `NEX-074`                                                |
+| `OBSERVABILITY_DSN`                    | Server-only     | Ingestão de erros/telemetria                                                                | Vercel env var                                                                       | Rotacionar se o projeto de observabilidade for recriado                                                                                    | Planeado — introduzido em `NEX-170`                                                |
+| `RATE_LIMIT_REDIS_URL` / `_TOKEN`      | **Server-only** | Backend de rate limit persistente (serverless não pode usar memória local, ver `CLAUDE.md`) | Vercel env var server-only                                                           | Rotacionar conforme política do provedor (ex.: Upstash) em suspeita de abuso                                                               | Planeado — introduzido em `NEX-066`, avaliar necessidade real antes de provisionar |
+| `TURNSTILE_SITE_KEY`                   | Público         | Proteção anti-bot no formulário público de marcação                                         | `.env.local`; Vercel env vars                                                        | Rotacionar se o site key for comprometido                                                                                                  | Planeado — introduzido em `NEX-066`                                                |
+| `TURNSTILE_SECRET_KEY`                 | **Server-only** | Verificação server-side do desafio Turnstile                                                | Vercel env var server-only                                                           | Rotacionar se o secret key for comprometido                                                                                                | Planeado — introduzido em `NEX-066`                                                |
+
+## Regras fixas
+
+- `.env.example` contém **apenas placeholders vazios**, nunca valores reais — verificado nesta tarefa.
+- Nenhum segredo é commitado; `.gitignore` cobre `.env`, `.env.local`, `.env.*.local` (com exceção explícita de `.env.example`).
+- Segredos `server-only` nunca usam o prefixo `NEXT_PUBLIC_` (esse prefixo expõe a variável ao bundle do browser no Next.js).
+- Validação de presença/forma via `src/lib/env.ts` (Zod), no limite da aplicação — falha cedo e de forma explícita se uma variável obrigatória faltar ou tiver formato inválido.
+- Logs nunca imprimem valores de segredos (ver `CLAUDE.md`: "Nunca registe passwords, tokens, links secretos completos ou dados pessoais desnecessários").
+- Cada nova variável introduzida por uma tarefa futura deve atualizar esta tabela como parte da Definição de Pronto dessa tarefa.
+
+## Verificação executada nesta tarefa
+
+- Revisão manual de `.env.example`: só chaves vazias, sem valores.
+- `git log -p --all -- .env .env.local` → sem resultados (nunca commitados).
+- Secret scan automático (Gitleaks) já corre em CI (`NEX-003`) e não acusou segredos no histórico atual.
+- `npm run verify`: aprovado.
