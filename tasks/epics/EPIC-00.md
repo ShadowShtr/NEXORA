@@ -123,11 +123,11 @@ Implementar configurar repositório github sem expandir o escopo para funcionali
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados (parcial — ver risco residual na evidência)
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-004 — Documentar ambientes e segredos
 
