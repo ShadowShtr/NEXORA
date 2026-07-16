@@ -28,8 +28,17 @@ A API do GitHub devolveu `422 Secret scanning is not available for this reposito
 
 **Decisão de produto pendente (bloqueio registado, não inventado):** se o owner quiser secret scanning nativo com push protection em tempo real, é necessário decidir se a organização/conta migra para um plano GitHub com Advanced Security. Não avancei com essa mudança de plano/custo sem aprovação explícita.
 
+## Risco residual: Dependency Review
+
+A action `actions/dependency-review-action` falhou no primeiro PR com o mesmo motivo: _"Dependency review is not supported on this repository. Please ensure that Dependency graph is enabled along with GitHub Advanced Security"_. Mesma causa raiz do secret scanning (GHAS indisponível para repo privado de conta pessoal).
+
+**Mitigação aplicada:** `dependency-review.yml` alterado de `on: pull_request` para `on: workflow_dispatch` (manual), com comentário no ficheiro a explicar o motivo e como reativar. Evita um check permanentemente vermelho em todas as PRs sem valor real. Dependabot (alertas + security updates), já ativo, cobre parcialmente o mesmo objetivo (deteção de dependências vulneráveis), embora sem o gate automático em PR.
+
+**Checks obrigatórios finais na branch protection de `main`:** `verify` (CI), `analyze` (CodeQL), `gitleaks` (Secret Scan). `review` (Dependency Review) não é obrigatório — corre apenas manualmente.
+
 ## Resultado
 
 - `npm run verify`: aprovado.
-- Repositório privado, protegido, com Dependabot, CodeQL, Dependency Review e Gitleaks ativos como gates de PR.
+- Repositório privado, protegido, com Dependabot, CodeQL e Gitleaks ativos como gates de PR obrigatórios.
+- Dependency Review disponível manualmente (`workflow_dispatch`), bloqueado como gate automático por limitação de plano GitHub.
 - Próxima tarefa desbloqueada: `NEX-004`.
