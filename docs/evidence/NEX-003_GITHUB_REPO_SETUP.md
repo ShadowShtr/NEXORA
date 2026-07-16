@@ -36,6 +36,12 @@ A action `actions/dependency-review-action` falhou no primeiro PR com o mesmo mo
 
 **Checks obrigatórios finais na branch protection de `main`:** `verify` (CI), `analyze` (CodeQL), `gitleaks` (Secret Scan). `review` (Dependency Review) não é obrigatório — corre apenas manualmente.
 
+## Correções de permissões (primeira execução dos workflows na PR #1)
+
+- `gitleaks` falhou com `403 Resource not accessible by integration` ao listar commits da PR — faltava `pull-requests: read`. Corrigido em `secret-scan.yml`.
+- `analyze` (CodeQL) falhou com `Resource not accessible by integration` / `CodeQL job status was configuration error` ao tentar obter informação do workflow run — faltava `actions: read`. Corrigido em `codeql.yml`.
+- Ambos não relacionados com GHAS; são permissões padrão de `GITHUB_TOKEN` por job.
+
 ## Resultado
 
 - `npm run verify`: aprovado.
