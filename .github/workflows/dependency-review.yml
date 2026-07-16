@@ -1,7 +1,11 @@
 name: Dependency Review
 
+# Trigger manual apenas: a action requer GitHub Advanced Security + Dependency
+# graph, indisponíveis em repositórios privados de conta pessoal (ver
+# docs/evidence/NEX-003_GITHUB_REPO_SETUP.md). Reativar `pull_request:` se o
+# repositório passar a público ou a conta adquirir GHAS.
 on:
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

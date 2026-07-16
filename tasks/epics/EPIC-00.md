@@ -105,7 +105,7 @@ Implementar configurar repositório github sem expandir o escopo para funcionali
 
 **Critérios de aceite**
 
-- Repo privado publicado, main protegida, PR obrigatório, secret scanning e Dependabot ativados.
+- Repo privado publicado, main protegida, PR obrigatório, secret scanning e Dependabot ativados. _Nota: branch protection nativa e secret scanning/code scanning nativos requerem GitHub Pro/Advanced Security, indisponíveis no plano atual de conta pessoal — mitigado com Gitleaks, CodeQL (artifact) e convenção de processo. Ver `docs/evidence/NEX-003_GITHUB_REPO_SETUP.md`._
 - Nenhum dado de outro tenant pode ser acedido.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
@@ -123,11 +123,11 @@ Implementar configurar repositório github sem expandir o escopo para funcionali
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados (parcial — ver risco residual na evidência)
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-004 — Documentar ambientes e segredos
 
