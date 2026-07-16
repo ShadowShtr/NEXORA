@@ -1,0 +1,27 @@
+name: Feature task
+about: Trabalho funcional da NEXORA
+title: '[NEX-___] '
+labels: ['type:feature']
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objetivo
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Segurança e privacidade
+  - type: textarea
+    id: tests
+    attributes:
+      label: Testes obrigatórios
+    validations:
+      required: true

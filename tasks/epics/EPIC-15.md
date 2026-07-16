@@ -1,0 +1,253 @@
+# EPIC-15 — PWA, design e acessibilidade
+
+## Objetivo do épico
+
+Entregar **pwa, design e acessibilidade** com segurança, testes e documentação suficientes para desbloquear os épicos dependentes.
+
+## Tarefas
+
+### NEX-150 — Design system claymorphism
+
+**Dependências:** NEX-023
+
+**Objetivo**
+
+Implementar design system claymorphism sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Tokens, componentes e contraste AA.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Visual + axe.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-151 — Navegação mobile e desktop
+
+**Dependências:** NEX-150
+
+**Objetivo**
+
+Implementar navegação mobile e desktop sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Bottom nav e sidebar coerentes.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Breakpoints e teclado.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-152 — Manifest e instalação PWA
+
+**Dependências:** NEX-150
+
+**Objetivo**
+
+Implementar manifest e instalação pwa sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Ícones, standalone, theme e instruções.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Lighthouse/Android/iOS manual.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-153 — Estratégia de cache segura
+
+**Dependências:** NEX-152
+
+**Objetivo**
+
+Implementar estratégia de cache segura sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Assets somente; no-store para auth/booking token.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Inspeção service worker.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-154 — Auditoria WCAG 2.2 AA
+
+**Dependências:** NEX-151
+
+**Objetivo**
+
+Implementar auditoria wcag 2.2 aa sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Problemas críticos corrigidos.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- axe + manual screen reader/keyboard.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-155 — Performance e Web Vitals
+
+**Dependências:** NEX-151
+
+**Objetivo**
+
+Implementar performance e web vitals sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Budgets e otimização de bundle/render.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Lighthouse e p75 alvo.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`

@@ -1,0 +1,253 @@
+# EPIC-01 — Supabase, dados e isolamento
+
+## Objetivo do épico
+
+Entregar **supabase, dados e isolamento** com segurança, testes e documentação suficientes para desbloquear os épicos dependentes.
+
+## Tarefas
+
+### NEX-010 — Inicializar Supabase local
+
+**Dependências:** NEX-001
+
+**Objetivo**
+
+Implementar inicializar supabase local sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- CLI/configuração local, migration aplicada e seed sintético.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Reset local repetível.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-011 — Rever e endurecer schema inicial
+
+**Dependências:** NEX-010
+
+**Objetivo**
+
+Implementar rever e endurecer schema inicial sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Constraints, FK, índices e tipos revistos; migration imutável após aceite.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Testes SQL de invariantes.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-012 — Implementar RLS tenant-scoped
+
+**Dependências:** NEX-010
+
+**Objetivo**
+
+Implementar implementar rls tenant-scoped sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Todas as tabelas privadas têm RLS e políticas mínimas.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Tenant A/B, anon e authenticated.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-013 — Implementar provisioning de tenant/owner
+
+**Dependências:** NEX-012
+
+**Objetivo**
+
+Implementar implementar provisioning de tenant/owner sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Fluxo administrativo atómico cria tenant, profile e settings.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Rollback em falha e auditoria.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-014 — Implementar auditoria append-only
+
+**Dependências:** NEX-012
+
+**Objetivo**
+
+Implementar implementar auditoria append-only sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Ações críticas geram log seguro e imutável pela UI.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- Tentativa de alteração negada.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`
+
+### NEX-015 — Criar testes automatizados de isolamento
+
+**Dependências:** NEX-012
+
+**Objetivo**
+
+Implementar criar testes automatizados de isolamento sem expandir o escopo para funcionalidades não aprovadas.
+
+**Entregáveis**
+
+- código e/ou documentação versionados;
+- validação de entrada, autorização e tratamento de erro aplicáveis;
+- atualização de testes e documentação;
+- evidência de execução dos checks.
+
+**Critérios de aceite**
+
+- Suite cobre SELECT/INSERT/UPDATE/DELETE cruzado.
+- Nenhum dado de outro tenant pode ser acedido.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Logs não contêm segredos nem PII desnecessária.
+
+**Testes obrigatórios**
+
+- CI com Supabase local.
+- `npm run verify` passa.
+
+**Segurança e privacidade**
+
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
+- Registar risco residual ou decisão temporária.
+
+**Definition of Done**
+
+- [ ] Implementação concluída
+- [ ] Testes concluídos
+- [ ] Documentação atualizada
+- [ ] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md`

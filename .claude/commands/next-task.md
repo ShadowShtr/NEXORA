@@ -1,0 +1,1 @@
+Leia `CLAUDE.md`, `TASKS.md` e `tasks/task-index.json`. Identifique a primeira tarefa pendente com dependências concluídas. Apresente plano, implemente, teste, atualize documentação/status e faça commit convencional. Não execute a tarefa seguinte no mesmo ciclo.

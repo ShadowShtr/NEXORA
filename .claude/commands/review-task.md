@@ -1,0 +1,1 @@
+Revise a tarefa informada contra os critérios do épico, segurança, privacidade, RLS, testes e documentação. Não altere código antes de apresentar findings por severidade. Depois corrija os findings confirmados e execute `npm run verify`.

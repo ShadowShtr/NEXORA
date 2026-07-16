@@ -1,0 +1,956 @@
+[
+  {
+    "id": "NEX-001",
+    "title": "Validar bootstrap e versões",
+    "epic": "EPIC-00",
+    "dependencies": [],
+    "acceptance": "Instalação reproduzível com Node 24/npm; lockfile gerado; `npm run verify` executa.",
+    "tests": "CI local, build e teste unitário.",
+    "status": "completed"
+  },
+  {
+    "id": "NEX-002",
+    "title": "Configurar proteção de qualidade",
+    "epic": "EPIC-00",
+    "dependencies": ["NEX-001"],
+    "acceptance": "ESLint/Prettier/TS strict funcionam e bloqueiam violações; hooks opcionais documentados.",
+    "tests": "Introduzir erro controlado e comprovar gate.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-003",
+    "title": "Configurar repositório GitHub",
+    "epic": "EPIC-00",
+    "dependencies": ["NEX-001"],
+    "acceptance": "Repo privado publicado, main protegida, PR obrigatório, secret scanning e Dependabot ativados.",
+    "tests": "Validar regras com PR de teste.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-004",
+    "title": "Documentar ambientes e segredos",
+    "epic": "EPIC-00",
+    "dependencies": ["NEX-001"],
+    "acceptance": "Matriz local/preview/prod, owners e rotação documentados; nenhum segredo commitado.",
+    "tests": "Secret scan e revisão manual.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-005",
+    "title": "Estabelecer ADR e processo de mudanças",
+    "epic": "EPIC-00",
+    "dependencies": ["NEX-002"],
+    "acceptance": "Template ADR usado e decisões críticas rastreáveis.",
+    "tests": "Revisão documental.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-010",
+    "title": "Inicializar Supabase local",
+    "epic": "EPIC-01",
+    "dependencies": ["NEX-001"],
+    "acceptance": "CLI/configuração local, migration aplicada e seed sintético.",
+    "tests": "Reset local repetível.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-011",
+    "title": "Rever e endurecer schema inicial",
+    "epic": "EPIC-01",
+    "dependencies": ["NEX-010"],
+    "acceptance": "Constraints, FK, índices e tipos revistos; migration imutável após aceite.",
+    "tests": "Testes SQL de invariantes.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-012",
+    "title": "Implementar RLS tenant-scoped",
+    "epic": "EPIC-01",
+    "dependencies": ["NEX-010"],
+    "acceptance": "Todas as tabelas privadas têm RLS e políticas mínimas.",
+    "tests": "Tenant A/B, anon e authenticated.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-013",
+    "title": "Implementar provisioning de tenant/owner",
+    "epic": "EPIC-01",
+    "dependencies": ["NEX-012"],
+    "acceptance": "Fluxo administrativo atómico cria tenant, profile e settings.",
+    "tests": "Rollback em falha e auditoria.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-014",
+    "title": "Implementar auditoria append-only",
+    "epic": "EPIC-01",
+    "dependencies": ["NEX-012"],
+    "acceptance": "Ações críticas geram log seguro e imutável pela UI.",
+    "tests": "Tentativa de alteração negada.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-015",
+    "title": "Criar testes automatizados de isolamento",
+    "epic": "EPIC-01",
+    "dependencies": ["NEX-012"],
+    "acceptance": "Suite cobre SELECT/INSERT/UPDATE/DELETE cruzado.",
+    "tests": "CI com Supabase local.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-020",
+    "title": "Implementar login e logout",
+    "epic": "EPIC-02",
+    "dependencies": ["NEX-013"],
+    "acceptance": "Login por e-mail/password, erros genéricos e redirect seguro.",
+    "tests": "E2E sucesso/falha.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-021",
+    "title": "Implementar recuperação de palavra-passe",
+    "epic": "EPIC-02",
+    "dependencies": ["NEX-020"],
+    "acceptance": "Fluxo seguro, token único, expiry e redirect allowlist.",
+    "tests": "E2E e abuso básico.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-022",
+    "title": "Proteger rotas privadas",
+    "epic": "EPIC-02",
+    "dependencies": ["NEX-020"],
+    "acceptance": "Claims validadas no servidor; utilizador sem profile bloqueado.",
+    "tests": "Testes de sessão falsificada.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-023",
+    "title": "Implementar shell responsivo autenticado",
+    "epic": "EPIC-02",
+    "dependencies": ["NEX-022"],
+    "acceptance": "Menu mobile/desktop conforme especificação; foco e teclado.",
+    "tests": "Axe + Playwright mobile/desktop.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-030",
+    "title": "Criar motor de wizard persistente",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-022"],
+    "acceptance": "Passos guardam progresso e permitem voltar.",
+    "tests": "Unit + E2E refresh/reentrada.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-031",
+    "title": "Passo negócio e morada fixa",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-030"],
+    "acceptance": "Validação simples, telefone normalizado e Maps URL segura.",
+    "tests": "Validação e acessibilidade.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-032",
+    "title": "Passo horários de trabalho",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-030"],
+    "acceptance": "Dias, início/fim e almoço com defaults.",
+    "tests": "Casos inválidos e limites.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-033",
+    "title": "Passo serviços iniciais",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-030"],
+    "acceptance": "Criação repetida de nome/preço/duração/categoria.",
+    "tests": "Persistência e duplicados.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-034",
+    "title": "Passo regras recomendadas",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-030"],
+    "acceptance": "Aplicar defaults com um toque e permitir edição.",
+    "tests": "E2E recomendações.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-035",
+    "title": "Passo publicar link e QR Code",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-031", "NEX-033", "NEX-034"],
+    "acceptance": "Slug único, preview, publicar e QR local.",
+    "tests": "Slug collision e QR decode.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-036",
+    "title": "Teste de usabilidade do onboarding",
+    "epic": "EPIC-03",
+    "dependencies": ["NEX-035"],
+    "acceptance": "Fluxo concluído sem linguagem técnica e em tempo alvo definido.",
+    "tests": "Sessão observada/documentada.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-040",
+    "title": "CRUD de categorias",
+    "epic": "EPIC-04",
+    "dependencies": ["NEX-012", "NEX-023"],
+    "acceptance": "Criar, ordenar, ocultar, renomear e mover.",
+    "tests": "RLS, validação, E2E.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-041",
+    "title": "CRUD de serviços",
+    "epic": "EPIC-04",
+    "dependencies": ["NEX-040"],
+    "acceptance": "Nome, preço, duração, categoria, ativo.",
+    "tests": "Cêntimos, duração e duplicados.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-042",
+    "title": "CRUD de pacotes",
+    "epic": "EPIC-04",
+    "dependencies": ["NEX-041"],
+    "acceptance": "Nome, itens, preço e duração derivada.",
+    "tests": "Sem item duplicado; preço válido.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-043",
+    "title": "Regras de combinação pacote/extras",
+    "epic": "EPIC-04",
+    "dependencies": ["NEX-042"],
+    "acceptance": "Carrinho bloqueia duplicações e recalcula.",
+    "tests": "Unitários de combinações.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-044",
+    "title": "Interface extremamente simples de catálogo",
+    "epic": "EPIC-04",
+    "dependencies": ["NEX-043"],
+    "acceptance": "Criação em poucos campos, feedback e estados vazios.",
+    "tests": "Axe + teste mobile.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-050",
+    "title": "Criar página pública por slug",
+    "epic": "EPIC-05",
+    "dependencies": ["NEX-035"],
+    "acceptance": "Dados públicos mínimos, morada, contacto e booking integrado.",
+    "tests": "Tenant suspenso/não publicado.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-051",
+    "title": "Criar pré-cadastro temporário",
+    "epic": "EPIC-05",
+    "dependencies": ["NEX-050"],
+    "acceptance": "Nome/telefone obrigatórios; e-mail opcional; nada em clients antes do booking.",
+    "tests": "Abandono sem poluir clientes.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-052",
+    "title": "Implementar draft e recuperação",
+    "epic": "EPIC-05",
+    "dependencies": ["NEX-051"],
+    "acceptance": "Draft até 24h, token hash, payload protegido; mesmo dispositivo sem e-mail.",
+    "tests": "Expiry, token inválido e limpeza.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-053",
+    "title": "Criar seletor Serviços/Pacotes",
+    "epic": "EPIC-05",
+    "dependencies": ["NEX-043", "NEX-050"],
+    "acceptance": "Checkboxes, categorias, pacotes e extras.",
+    "tests": "Mobile, teclado, cálculo.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-054",
+    "title": "Criar carrinho fixo",
+    "epic": "EPIC-05",
+    "dependencies": ["NEX-053"],
+    "acceptance": "Quantidade, duração, total e continuar; sem float.",
+    "tests": "Unit + visual.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-060",
+    "title": "Modelar horários e exceções",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-011", "NEX-032"],
+    "acceptance": "Normal, almoço, bloqueios, férias e especial.",
+    "tests": "Integração DB.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-061",
+    "title": "Implementar gerador de slots timezone-aware",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-060"],
+    "acceptance": "Slots respeitam step, duração, buffer, notice e window.",
+    "tests": "DST Europe/Lisbon.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-062",
+    "title": "Implementar consulta pública de disponibilidade",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-061", "NEX-054"],
+    "acceptance": "API retorna apenas slots válidos e limites de intervalo.",
+    "tests": "Validação/rate limit contract.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-063",
+    "title": "Implementar constraint de não sobreposição",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-011"],
+    "acceptance": "GiST impede dupla reserva em estados ativos.",
+    "tests": "Teste concorrente SQL.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-064",
+    "title": "Implementar booking transacional/idempotente",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-063", "NEX-051"],
+    "acceptance": "Cliente upsert, snapshots, appointment, reminder e token em transação.",
+    "tests": "Concorrência, rollback e idempotência.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-065",
+    "title": "Tratar SLOT_TAKEN na UX",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-064"],
+    "acceptance": "Mensagem clara, refresh de slots e carrinho preservado.",
+    "tests": "E2E corrida de reservas.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-066",
+    "title": "Rate limit e bot protection",
+    "epic": "EPIC-06",
+    "dependencies": ["NEX-064"],
+    "acceptance": "Rate limit distribuído e proteção escalonável sem memória local.",
+    "tests": "Teste 429 e bypass legítimo.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-070",
+    "title": "Criar ecrã final de confirmação",
+    "epic": "EPIC-07",
+    "dependencies": ["NEX-064"],
+    "acceptance": "Confirmação curta com três ações.",
+    "tests": "E2E.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-071",
+    "title": "Criar link público seguro",
+    "epic": "EPIC-07",
+    "dependencies": ["NEX-064"],
+    "acceptance": "Token hash, vista mínima, revogação e respostas uniformes.",
+    "tests": "Enumeração e logs.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-072",
+    "title": "Gerar ficheiro ICS",
+    "epic": "EPIC-07",
+    "dependencies": ["NEX-071"],
+    "acceptance": "Timezone, duração, morada e UID estável.",
+    "tests": "Import em Google/Apple/Outlook.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-073",
+    "title": "Implementar abrir localização",
+    "epic": "EPIC-07",
+    "dependencies": ["NEX-071"],
+    "acceptance": "Link seguro e fallback de morada.",
+    "tests": "URL validation.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-074",
+    "title": "Implementar e-mail opcional",
+    "epic": "EPIC-07",
+    "dependencies": ["NEX-071"],
+    "acceptance": "Adapter, template e retry; booking não depende de entrega.",
+    "tests": "Mock provider, falha e redaction.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-080",
+    "title": "Dashboard combinado",
+    "epic": "EPIC-08",
+    "dependencies": ["NEX-023", "NEX-064"],
+    "acceptance": "Próxima cliente, cartões e lista do dia.",
+    "tests": "Queries tenant-scoped e timezone.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-081",
+    "title": "Cartões de marcação",
+    "epic": "EPIC-08",
+    "dependencies": ["NEX-080"],
+    "acceptance": "Horário, cliente, itens, valor, estados e duas ações rápidas.",
+    "tests": "Axe/mobile.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-082",
+    "title": "Visualizações dia/semana/mês",
+    "epic": "EPIC-08",
+    "dependencies": ["NEX-080"],
+    "acceptance": "Navegação eficiente e responsiva.",
+    "tests": "E2E datas e DST.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-083",
+    "title": "Resumo/lista de horários livres",
+    "epic": "EPIC-08",
+    "dependencies": ["NEX-061", "NEX-080"],
+    "acceptance": "Contagem e drawer/lista sem poluir agenda.",
+    "tests": "Consistência com motor.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-084",
+    "title": "Detalhes, cancelar e reagendar",
+    "epic": "EPIC-08",
+    "dependencies": ["NEX-081"],
+    "acceptance": "Ações internas com confirmação e auditoria.",
+    "tests": "Permissões e conflitos.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-085",
+    "title": "Marcação manual completa",
+    "epic": "EPIC-08",
+    "dependencies": ["NEX-041", "NEX-061", "NEX-080"],
+    "acceptance": "Cliente, itens, slot, valor, observação.",
+    "tests": "Conflito e cliente existente.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-090",
+    "title": "Lista e pesquisa de clientes",
+    "epic": "EPIC-09",
+    "dependencies": ["NEX-064", "NEX-023"],
+    "acceptance": "Busca por nome/telefone, paginação e empty state.",
+    "tests": "RLS/performance.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-091",
+    "title": "Ficha completa da cliente",
+    "epic": "EPIC-09",
+    "dependencies": ["NEX-090"],
+    "acceptance": "Resumo, histórico, preferências, faltas, valores.",
+    "tests": "Privacidade e acesso.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-092",
+    "title": "Sugestão/deduplicação no booking manual",
+    "epic": "EPIC-09",
+    "dependencies": ["NEX-090", "NEX-085"],
+    "acceptance": "Sugestões sem expor dados cruzados.",
+    "tests": "Telefones equivalentes.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-093",
+    "title": "Observações privadas",
+    "epic": "EPIC-09",
+    "dependencies": ["NEX-091"],
+    "acceptance": "Editar com auditoria e limites.",
+    "tests": "XSS/log redaction.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-094",
+    "title": "Fotografias privadas",
+    "epic": "EPIC-09",
+    "dependencies": ["NEX-091"],
+    "acceptance": "Upload seguro, signed URL e exclusão.",
+    "tests": "MIME/tamanho/EXIF/storage RLS.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-095",
+    "title": "Política configurável de faltas",
+    "epic": "EPIC-09",
+    "dependencies": ["NEX-091"],
+    "acceptance": "Registar, alertar, aprovação ou bloqueio temporário.",
+    "tests": "Estados e reversão.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-100",
+    "title": "Gerar lembrete 24h",
+    "epic": "EPIC-10",
+    "dependencies": ["NEX-064"],
+    "acceptance": "Reminder criado no booking e ajustado ao reagendar.",
+    "tests": "Timezone e recorrência.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-101",
+    "title": "Lista de lembretes pendentes",
+    "epic": "EPIC-10",
+    "dependencies": ["NEX-100", "NEX-080"],
+    "acceptance": "Pendentes, overdue e concluídos com badges.",
+    "tests": "Query e paginação.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-102",
+    "title": "Gerar deep link WhatsApp",
+    "epic": "EPIC-10",
+    "dependencies": ["NEX-101"],
+    "acceptance": "E.164 e texto URL-encoded; app/web.",
+    "tests": "Telemóvel/desktop e caracteres.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-103",
+    "title": "Registar aberto e marcado enviado",
+    "epic": "EPIC-10",
+    "dependencies": ["NEX-102"],
+    "acceptance": "Estados manuais sem alegar entrega/leitura.",
+    "tests": "Auditoria e idempotência.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-104",
+    "title": "Personalizar template simples",
+    "epic": "EPIC-10",
+    "dependencies": ["NEX-102"],
+    "acceptance": "Placeholders allowlisted e preview.",
+    "tests": "Injection/URL length.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-110",
+    "title": "Modal de conclusão rápida",
+    "epic": "EPIC-11",
+    "dependencies": ["NEX-081"],
+    "acceptance": "Valor final e cash/MBWAY/pending em poucos toques.",
+    "tests": "Axe, cêntimos, estados.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-111",
+    "title": "Tela Ver mais e extras",
+    "epic": "EPIC-11",
+    "dependencies": ["NEX-110"],
+    "acceptance": "Serviço existente ou ajuste manual.",
+    "tests": "Cálculo e snapshot.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-112",
+    "title": "Descontos fixos/percentuais",
+    "epic": "EPIC-11",
+    "dependencies": ["NEX-111"],
+    "acceptance": "Motivo opcional, limites e total nunca negativo.",
+    "tests": "Property tests/casos extremos.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-113",
+    "title": "Transação de conclusão",
+    "epic": "EPIC-11",
+    "dependencies": ["NEX-110"],
+    "acceptance": "Appointment/payment/audit atualizados atomically.",
+    "tests": "Rollback e retry.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-114",
+    "title": "Área de pagamentos pendentes",
+    "epic": "EPIC-11",
+    "dependencies": ["NEX-113"],
+    "acceptance": "Lista, contacto e marcar pago.",
+    "tests": "Reconciliação e idempotência.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-115",
+    "title": "Reabrir/corrigir com auditoria",
+    "epic": "EPIC-11",
+    "dependencies": ["NEX-113"],
+    "acceptance": "Alterações preservam before/after e motivo.",
+    "tests": "Permissão e relatório.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-120",
+    "title": "Gerador de recorrências",
+    "epic": "EPIC-12",
+    "dependencies": ["NEX-061", "NEX-085"],
+    "acceptance": "Frequências aprovadas e quantidade.",
+    "tests": "DST e fim de mês.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-121",
+    "title": "Detetar conflitos e alternativas",
+    "epic": "EPIC-12",
+    "dependencies": ["NEX-120"],
+    "acceptance": "Lista todas as colisões e slots próximos.",
+    "tests": "Casos múltiplos.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-122",
+    "title": "Criar série atomicamente",
+    "epic": "EPIC-12",
+    "dependencies": ["NEX-121"],
+    "acceptance": "Nenhuma série parcial sem confirmação explícita.",
+    "tests": "Rollback.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-123",
+    "title": "Editar escopo da série",
+    "epic": "EPIC-12",
+    "dependencies": ["NEX-122"],
+    "acceptance": "Esta, futuras ou toda a série.",
+    "tests": "Integridade/auditoria.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-124",
+    "title": "Bloqueios completos",
+    "epic": "EPIC-12",
+    "dependencies": ["NEX-060", "NEX-082"],
+    "acceptance": "Pontual, semanal, dia, intervalo e férias.",
+    "tests": "Impacto em slots.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-125",
+    "title": "Horários especiais",
+    "epic": "EPIC-12",
+    "dependencies": ["NEX-124"],
+    "acceptance": "Abrir dia fechado/prolongar e mostrar publicamente.",
+    "tests": "Precedência de regras.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-130",
+    "title": "Dashboard financeiro",
+    "epic": "EPIC-13",
+    "dependencies": ["NEX-113"],
+    "acceptance": "Dia/semana/mês, métodos, pendentes, extras, descontos, ticket.",
+    "tests": "Reconciliação.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-131",
+    "title": "Filtros por período",
+    "epic": "EPIC-13",
+    "dependencies": ["NEX-130"],
+    "acceptance": "Hoje, semana, mês e personalizado com timezone.",
+    "tests": "Limites e DST.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-132",
+    "title": "Exportar CSV",
+    "epic": "EPIC-13",
+    "dependencies": ["NEX-131"],
+    "acceptance": "UTF-8, colunas documentadas, proteção CSV injection.",
+    "tests": "Snapshot e Excel import.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-133",
+    "title": "Exportar Excel",
+    "epic": "EPIC-13",
+    "dependencies": ["NEX-131"],
+    "acceptance": "Workbook legível e totais.",
+    "tests": "Reconciliação.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-134",
+    "title": "Exportar PDF",
+    "epic": "EPIC-13",
+    "dependencies": ["NEX-131"],
+    "acceptance": "Layout sem sobreposição e totals.",
+    "tests": "Visual regression.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-135",
+    "title": "Regras de retenção/exportação",
+    "epic": "EPIC-13",
+    "dependencies": ["NEX-132", "NEX-133", "NEX-134"],
+    "acceptance": "Limites, logging e acesso seguro.",
+    "tests": "Large range/authorization.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-140",
+    "title": "Central de definições em cartões",
+    "epic": "EPIC-14",
+    "dependencies": ["NEX-023", "NEX-035"],
+    "acceptance": "Negócio, agenda, marcações, lembretes, pagamentos, aparência, dados.",
+    "tests": "Axe/mobile.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-141",
+    "title": "Defaults e “usar recomendações”",
+    "epic": "EPIC-14",
+    "dependencies": ["NEX-140"],
+    "acceptance": "Configuração rápida sem termos técnicos.",
+    "tests": "Reset/undo.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-142",
+    "title": "Pré-visualização da página pública",
+    "epic": "EPIC-14",
+    "dependencies": ["NEX-140"],
+    "acceptance": "Mudanças visuais sem publicar acidentalmente.",
+    "tests": "Draft/publish.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-143",
+    "title": "Confirmações e desfazer",
+    "epic": "EPIC-14",
+    "dependencies": ["NEX-140"],
+    "acceptance": "Ações destrutivas confirmam; ações reversíveis oferecem undo.",
+    "tests": "E2E.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-144",
+    "title": "Ajuda contextual curta",
+    "epic": "EPIC-14",
+    "dependencies": ["NEX-140"],
+    "acceptance": "Explicação sob demanda, sem tour obrigatório.",
+    "tests": "Usabilidade.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-150",
+    "title": "Design system claymorphism",
+    "epic": "EPIC-15",
+    "dependencies": ["NEX-023"],
+    "acceptance": "Tokens, componentes e contraste AA.",
+    "tests": "Visual + axe.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-151",
+    "title": "Navegação mobile e desktop",
+    "epic": "EPIC-15",
+    "dependencies": ["NEX-150"],
+    "acceptance": "Bottom nav e sidebar coerentes.",
+    "tests": "Breakpoints e teclado.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-152",
+    "title": "Manifest e instalação PWA",
+    "epic": "EPIC-15",
+    "dependencies": ["NEX-150"],
+    "acceptance": "Ícones, standalone, theme e instruções.",
+    "tests": "Lighthouse/Android/iOS manual.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-153",
+    "title": "Estratégia de cache segura",
+    "epic": "EPIC-15",
+    "dependencies": ["NEX-152"],
+    "acceptance": "Assets somente; no-store para auth/booking token.",
+    "tests": "Inspeção service worker.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-154",
+    "title": "Auditoria WCAG 2.2 AA",
+    "epic": "EPIC-15",
+    "dependencies": ["NEX-151"],
+    "acceptance": "Problemas críticos corrigidos.",
+    "tests": "axe + manual screen reader/keyboard.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-155",
+    "title": "Performance e Web Vitals",
+    "epic": "EPIC-15",
+    "dependencies": ["NEX-151"],
+    "acceptance": "Budgets e otimização de bundle/render.",
+    "tests": "Lighthouse e p75 alvo.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-160",
+    "title": "Data map e subprocessadores",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-004", "NEX-011"],
+    "acceptance": "Fluxos, regiões, DPA e owners documentados.",
+    "tests": "Revisão privacy.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-161",
+    "title": "Retenção e limpeza de drafts",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-052"],
+    "acceptance": "Job/processo remove expirados e audita falhas.",
+    "tests": "Teste de expiração.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-162",
+    "title": "Exportar dados da cliente",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-091"],
+    "acceptance": "Export tenant-scoped e minimizado.",
+    "tests": "Authorization/privacy.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-163",
+    "title": "Apagar/anonimizar cliente",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-091", "NEX-094"],
+    "acceptance": "Workflow preserva obrigações e remove storage.",
+    "tests": "Referential/restore considerations.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-164",
+    "title": "Headers/CSP completos",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-023"],
+    "acceptance": "Nonce CSP e políticas verificadas sem quebrar app.",
+    "tests": "Header tests.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-165",
+    "title": "Hardening uploads",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-094"],
+    "acceptance": "Validação real, quotas, EXIF e signed URLs.",
+    "tests": "Ficheiros adversariais.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-166",
+    "title": "Threat model atualizado e security review",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-115", "NEX-135", "NEX-164"],
+    "acceptance": "Ameaças e risco residual atualizados.",
+    "tests": "Review independente.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-167",
+    "title": "Pentest proporcional",
+    "epic": "EPIC-16",
+    "dependencies": ["NEX-166"],
+    "acceptance": "Escopo crítico testado e findings tratados.",
+    "tests": "Retest documentado.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-170",
+    "title": "Logs estruturados e redaction",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-004"],
+    "acceptance": "Correlation ID e allowlist; sem PII sensível.",
+    "tests": "Log tests.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-171",
+    "title": "Métricas e alertas",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-170"],
+    "acceptance": "Booking, conflitos, 5xx, auth, reminders, exports.",
+    "tests": "Alert test.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-172",
+    "title": "Deploy Vercel e Supabase separados",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-003", "NEX-010"],
+    "acceptance": "Preview/prod com secrets separados e smoke test.",
+    "tests": "Deploy rehearsal.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-173",
+    "title": "Backups e restore test",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-172"],
+    "acceptance": "Política real documentada e restore comprovado.",
+    "tests": "Evidence.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-174",
+    "title": "Runbooks de incidentes",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-171", "NEX-173"],
+    "acceptance": "Runbooks mínimos e contactos.",
+    "tests": "Tabletop exercise.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-175",
+    "title": "Load/concurrency test",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-064", "NEX-155"],
+    "acceptance": "Booking e availability sob carga alvo.",
+    "tests": "Relatório p95/p99.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-176",
+    "title": "Checklist beta privado",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-154", "NEX-167", "NEX-175"],
+    "acceptance": "Todos os gates de beta satisfeitos.",
+    "tests": "Go/no-go review.",
+    "status": "pending"
+  },
+  {
+    "id": "NEX-177",
+    "title": "Lançamento e monitorização inicial",
+    "epic": "EPIC-17",
+    "dependencies": ["NEX-176"],
+    "acceptance": "Produção controlada, owner e rollback prontos.",
+    "tests": "Smoke + 24h monitoring.",
+    "status": "pending"
+  }
+]

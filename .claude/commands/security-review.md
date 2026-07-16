@@ -1,0 +1,1 @@
+Faça revisão de segurança focada em autenticação, autorização, RLS, booking concorrente, tokens públicos, uploads, financeiro, logs, secrets e supply chain. Atualize `docs/05_SECURITY_PRIVACY.md` e o risk register com evidências e risco residual.
