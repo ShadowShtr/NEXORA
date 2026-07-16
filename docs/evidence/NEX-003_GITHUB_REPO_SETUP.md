@@ -14,11 +14,7 @@
 2. `gh api -X PUT repos/ShadowShtr/NEXORA/vulnerability-alerts` → Dependabot alerts ativos.
 3. `gh api -X PUT repos/ShadowShtr/NEXORA/automated-security-fixes` → Dependabot security updates ativos.
 4. Adicionado `.github/workflows/secret-scan.yml` (Gitleaks) — ver risco residual abaixo.
-5. Branch protection em `main` (aplicada após esta PR abrir e os checks correrem pela primeira vez):
-   - PR obrigatório antes de merge (`required_pull_request_reviews`, `required_approving_review_count: 0` — força PR mas não exige um segundo revisor humano, inexistente neste projeto solo).
-   - Status checks obrigatórios: `verify` (CI), `analyze` (CodeQL), `gitleaks` (Secret Scan), `review` (Dependency Review, só em PR).
-   - `enforce_admins: true` — a regra aplica-se também ao owner; merges passam a ser feitos via `gh pr merge`, nunca `git push` direto.
-   - Force-push e deleção de `main` bloqueados.
+5. Tentativa de branch protection em `main` — **bloqueada pelo plano GitHub** (ver risco residual dedicado abaixo). Fluxo PR obrigatório mantido por convenção, não por enforcement técnico.
 
 ## Risco residual: secret scanning nativo do GitHub
 
@@ -50,9 +46,18 @@ Após corrigir as permissões, `analyze` voltou a falhar, agora com: _"Code scan
 
 **Resumo do padrão GHAS neste repositório:** secret scanning nativo, dependency review e code scanning nativo estão todos bloqueados pela mesma causa (GitHub Advanced Security não disponível para repositório privado de conta pessoal). Mitigado com Gitleaks (CI), Dependabot (alerts/security updates) e CodeQL com upload em artifact, respetivamente. Decisão de upgrade de plano permanece pendente e não foi tomada nem inventada.
 
+## Risco residual: branch protection não aplicável (plano GitHub)
+
+Ao tentar aplicar `PUT /repos/ShadowShtr/NEXORA/branches/main/protection`, a API devolveu `403 Upgrade to GitHub Pro or make this repository public to enable this feature`. **Motivo:** branch protection em repositórios privados de conta pessoal também requer GitHub Pro (plano pago), não apenas GHAS.
+
+**Decisão confirmada com o owner:** manter o repositório privado, **sem** enforcement técnico de branch protection no GitHub. O fluxo branch por tarefa → PR → merge via `gh` CLI (`CLAUDE.md`, `CONTRIBUTING.md`) continua a ser seguido **por convenção/disciplina de processo**, não por bloqueio técnico do GitHub. Nada impede tecnicamente um push direto a `main`, mas essa ação não será tomada.
+
+Se o owner decidir subscrever GitHub Pro no futuro, a proteção real pode ser aplicada com o mesmo payload documentado acima (`required_status_checks`: `verify`, `analyze`, `gitleaks`; `enforce_admins: true`; `required_approving_review_count: 0`).
+
 ## Resultado
 
 - `npm run verify`: aprovado.
-- Repositório privado, protegido, com Dependabot, CodeQL e Gitleaks ativos como gates de PR obrigatórios.
-- Dependency Review disponível manualmente (`workflow_dispatch`), bloqueado como gate automático por limitação de plano GitHub.
+- Repositório privado; Dependabot, CodeQL (upload em artifact) e Gitleaks ativos como checks de CI em cada PR/push, mas **não tecnicamente obrigatórios** para merge (branch protection indisponível no plano atual).
+- Dependency Review disponível manualmente (`workflow_dispatch`), limitação de plano GitHub.
+- Fluxo branch+PR+merge mantido por convenção de processo a partir desta tarefa.
 - Próxima tarefa desbloqueada: `NEX-004`.
