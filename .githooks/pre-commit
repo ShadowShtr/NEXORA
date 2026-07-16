@@ -1,0 +1,12 @@
+#!/bin/sh
+# Optional local quality gate. Enable with:
+#   git config core.hooksPath .githooks
+# Mirrors the checks CI enforces on every push/PR (see .github/workflows/ci.yml).
+
+set -e
+
+npm run format
+npm run lint
+npm run typecheck
+
+echo "Pre-commit checks passed."

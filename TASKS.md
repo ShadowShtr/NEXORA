@@ -14,7 +14,7 @@
 ### EPIC-00 — Governança e fundação do repositório
 
 - [x] **NEX-001** — Validar bootstrap e versões _(depende: Nenhuma)_
-- [ ] **NEX-002** — Configurar proteção de qualidade _(depende: NEX-001)_
+- [x] **NEX-002** — Configurar proteção de qualidade _(depende: NEX-001)_
 - [ ] **NEX-003** — Configurar repositório GitHub _(depende: NEX-001)_
 - [ ] **NEX-004** — Documentar ambientes e segredos _(depende: NEX-001)_
 - [ ] **NEX-005** — Estabelecer ADR e processo de mudanças _(depende: NEX-002)_
