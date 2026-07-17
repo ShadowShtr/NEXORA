@@ -37,7 +37,7 @@
 
 ### EPIC-03 — Onboarding guiado da dona
 
-- [ ] **NEX-030** — Criar motor de wizard persistente _(depende: NEX-022)_
+- [x] **NEX-030** — Criar motor de wizard persistente _(depende: NEX-022)_
 - [ ] **NEX-031** — Passo negócio e morada fixa _(depende: NEX-030)_
 - [ ] **NEX-032** — Passo horários de trabalho _(depende: NEX-030)_
 - [ ] **NEX-033** — Passo serviços iniciais _(depende: NEX-030)_
