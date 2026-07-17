@@ -1,20 +1,9 @@
 import { z } from 'zod';
+import { priceEurosSchema } from '@/lib/validation/money';
 
 export const serviceItemSchema = z.object({
   name: z.string().trim().min(1, 'Indique o nome do serviço.').max(120),
-  priceEuros: z
-    .string()
-    .trim()
-    .min(1, 'Indique o preço.')
-    .transform((value, ctx) => {
-      const normalized = value.replace(',', '.');
-      const parsed = Number.parseFloat(normalized);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        ctx.addIssue({ code: 'custom', message: 'Indique um preço válido.' });
-        return z.NEVER;
-      }
-      return Math.round(parsed * 100);
-    }),
+  priceEuros: priceEurosSchema,
   durationMinutes: z.coerce
     .number()
     .int('Indique a duração em minutos.')

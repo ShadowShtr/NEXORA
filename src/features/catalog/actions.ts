@@ -11,9 +11,15 @@ import {
   renameCategorySchema,
   type CategoryListItem,
 } from '@/features/catalog/domain/category';
+import {
+  createServiceSchema,
+  serviceIdSchema,
+  updateServiceSchema,
+} from '@/features/catalog/domain/service';
 import type { Result } from '@/lib/result';
 
-const DUPLICATE_NAME_MESSAGE = 'Já existe uma categoria com esse nome.';
+const DUPLICATE_CATEGORY_NAME_MESSAGE = 'Já existe uma categoria com esse nome.';
+const DUPLICATE_SERVICE_NAME_MESSAGE = 'Já existe um serviço com esse nome.';
 
 export async function createCategory(
   _prevState: Result<null> | null,
@@ -50,7 +56,10 @@ export async function createCategory(
 
   if (error) {
     if (error.code === '23505') {
-      return { ok: false, error: { code: 'VALIDATION_ERROR', message: DUPLICATE_NAME_MESSAGE } };
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: DUPLICATE_CATEGORY_NAME_MESSAGE },
+      };
     }
     return {
       ok: false,
@@ -91,7 +100,10 @@ export async function renameCategory(
 
   if (error) {
     if (error.code === '23505') {
-      return { ok: false, error: { code: 'VALIDATION_ERROR', message: DUPLICATE_NAME_MESSAGE } };
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: DUPLICATE_CATEGORY_NAME_MESSAGE },
+      };
     }
     return {
       ok: false,
@@ -189,6 +201,145 @@ export async function moveCategory(
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível reordenar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/dashboard/servicos');
+  return { ok: true, value: null };
+}
+
+export async function createService(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = createServiceSchema.safeParse({
+    name: formData.get('name'),
+    priceEuros: formData.get('priceEuros'),
+    durationMinutes: formData.get('durationMinutes'),
+    categoryId: formData.get('categoryId'),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique os dados do serviço.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from('services').insert({
+    tenant_id: tenantId,
+    category_id: parsed.data.categoryId,
+    name: parsed.data.name,
+    price_cents: parsed.data.priceEuros,
+    duration_minutes: parsed.data.durationMinutes,
+  });
+
+  if (error) {
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: DUPLICATE_SERVICE_NAME_MESSAGE },
+      };
+    }
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/dashboard/servicos');
+  return { ok: true, value: null };
+}
+
+export async function updateService(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = updateServiceSchema.safeParse({
+    id: formData.get('id'),
+    name: formData.get('name'),
+    priceEuros: formData.get('priceEuros'),
+    durationMinutes: formData.get('durationMinutes'),
+    categoryId: formData.get('categoryId'),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique os dados do serviço.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('services')
+    .update({
+      name: parsed.data.name,
+      price_cents: parsed.data.priceEuros,
+      duration_minutes: parsed.data.durationMinutes,
+      category_id: parsed.data.categoryId,
+    })
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: DUPLICATE_SERVICE_NAME_MESSAGE },
+      };
+    }
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/dashboard/servicos');
+  return { ok: true, value: null };
+}
+
+export async function toggleServiceActive(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = serviceIdSchema.safeParse({ id: formData.get('id') });
+  if (!parsed.success) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Serviço inválido.' } };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: service } = await supabase
+    .from('services')
+    .select('is_active')
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (!service) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Serviço não encontrado.' } };
+  }
+
+  const { error } = await supabase
+    .from('services')
+    .update({ is_active: !service.is_active })
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
   }
 
