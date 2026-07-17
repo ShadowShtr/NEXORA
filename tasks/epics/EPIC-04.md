@@ -23,29 +23,29 @@ Implementar crud de categorias sem expandir o escopo para funcionalidades não a
 
 **Critérios de aceite**
 
-- Criar, ordenar, ocultar, renomear e mover.
-- Nenhum dado de outro tenant pode ser acedido.
+- Criar, ordenar, ocultar, renomear e mover. Página `/dashboard/servicos` (`src/features/catalog/CategoriesManager.tsx`): criar categoria, renomear inline, ocultar/mostrar (`is_visible`, controla também a visibilidade no catálogo público — `NEX-012`), mover para cima/para baixo (troca `sort_order` com o vizinho, `src/features/catalog/domain/category.ts#findSwapTarget`). Sem eliminar (não pedido nos critérios; `services.category_id` é `on delete restrict`, pelo que ocultar é a operação não destrutiva correta em vez de apagar).
+- Nenhum dado de outro tenant pode ser acedido. `service_categories` já coberta pela política RLS genérica tenant-scoped (`0001_initial.sql`) — sem migração nova nesta tarefa.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- RLS, validação, E2E.
+- RLS, validação, E2E. `tests/unit/category.test.ts` (11 testes): validação de nome, lógica de `findSwapTarget`. `tests/integration/catalog-rls.test.ts` (6 testes, contra BD real): dono vê a própria categoria; dono de outro tenant não vê; `anon` vê categoria visível (política pública de catálogo) mas não uma oculta; dono não consegue inserir/atualizar categoria de outro tenant (`42501`, 0 linhas); nome duplicado no mesmo tenant rejeitado (`23505`). `tests/e2e/catalog-categories.spec.ts` (6 testes, chromium + webkit-mobile): Axe; criar; nome duplicado com erro amigável; renomear; ocultar/mostrar; reordenar com os botões ↑/↓.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície — reutiliza RLS existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado via `tests/integration/catalog-rls.test.ts`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-041 — CRUD de serviços
 
