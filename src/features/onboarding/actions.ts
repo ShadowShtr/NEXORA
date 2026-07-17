@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { nextStep, previousStep } from '@/features/onboarding/domain/wizard';
 import { businessStepSchema } from '@/features/onboarding/domain/business-step';
+import { hoursStepSchema, parseHoursFormData } from '@/features/onboarding/domain/hours-step';
 import type { Result } from '@/lib/result';
 
 async function moveStep(direction: 'next' | 'previous') {
@@ -97,6 +98,61 @@ export async function submitBusinessStep(
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
+  }
+
+  revalidatePath('/onboarding');
+  return { ok: true, value: null };
+}
+
+export async function submitHoursStep(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = hoursStepSchema.safeParse({ days: parseHoursFormData(formData) });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique os horários introduzidos.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const rows = parsed.data.days.map((day) => ({
+    tenant_id: tenantId,
+    day_of_week: day.dayOfWeek,
+    is_open: day.isOpen,
+    opens_at: day.isOpen ? day.opensAt : null,
+    closes_at: day.isOpen ? day.closesAt : null,
+    lunch_starts_at: day.isOpen && day.lunchStartsAt ? day.lunchStartsAt : null,
+    lunch_ends_at: day.isOpen && day.lunchEndsAt ? day.lunchEndsAt : null,
+  }));
+
+  const { error: upsertError } = await supabase
+    .from('business_hours')
+    .upsert(rows, { onConflict: 'tenant_id,day_of_week' });
+  if (upsertError) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  const { data: settings } = await supabase
+    .from('business_settings')
+    .select('onboarding_step')
+    .eq('tenant_id', tenantId)
+    .single();
+  if (settings) {
+    await supabase
+      .from('business_settings')
+      .update({ onboarding_step: nextStep(settings.onboarding_step) })
+      .eq('tenant_id', tenantId);
   }
 
   revalidatePath('/onboarding');

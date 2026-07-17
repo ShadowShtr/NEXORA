@@ -105,29 +105,29 @@ Implementar passo horários de trabalho sem expandir o escopo para funcionalidad
 
 **Critérios de aceite**
 
-- Dias, início/fim e almoço com defaults.
+- Dias, início/fim e almoço com defaults. Formulário pré-preenchido com um horário recomendado (dias úteis 09:00–19:00 com almoço 13:00–14:00, sábado 09:00–13:00, domingo fechado) — a dona só revê e confirma, ou ajusta.
 - Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. 7 dias num só ecrã (é o desenho do passo 2 do wizard), horários só aparecem quando o dia está marcado como aberto.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Casos inválidos e limites.
+- Casos inválidos e limites. `tests/unit/hours-step.test.ts` (10 testes: defaults válidos, fim antes/igual ao início, dia fechado com campos vazios, só um limite de almoço preenchido, fim de almoço antes do início, dia aberto sem almoço, limites 00:00/23:59, exatamente 7 dias, merge com defaults, truncagem de `HH:MM:SS`→`HH:MM`). `tests/e2e/onboarding-hours-step.spec.ts` (6 testes): Axe, defaults corretos no ecrã, aceitar defaults persiste as 7 linhas na BD, fim antes do início rejeitado, só um limite de almoço rejeitado, "Voltar" funciona sem exigir dados válidos. Chromium + webkit-mobile.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. Convenção `day_of_week` (0=domingo..6=sábado, `Date.getDay()`) não estava documentada em lado nenhum — adotada e registada em comentário no código, já que o motor de disponibilidade (`NEX-060`/`061`) provavelmente vai calcular isto a partir de `Date` nativo.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-033 — Passo serviços iniciais
 

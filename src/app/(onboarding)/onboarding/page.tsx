@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { goToNextStep, goToPreviousStep } from '@/features/onboarding/actions';
 import { STEP_TITLES, TOTAL_STEPS } from '@/features/onboarding/domain/wizard';
 import { BusinessStep } from '@/features/onboarding/BusinessStep';
+import { HoursStep } from '@/features/onboarding/HoursStep';
+import { DEFAULT_HOURS, mergeHoursWithDefaults } from '@/features/onboarding/domain/hours-step';
 
 export default async function OnboardingPage() {
   const { tenantId } = await requireProfile();
@@ -18,9 +20,18 @@ export default async function OnboardingPage() {
   const step = settings?.onboarding_step ?? 1;
   const title = STEP_TITLES[step - 1];
 
+  let hoursDays = DEFAULT_HOURS;
+  if (step === 2) {
+    const { data: hoursRows } = await supabase
+      .from('business_hours')
+      .select('day_of_week, is_open, opens_at, closes_at, lunch_starts_at, lunch_ends_at')
+      .eq('tenant_id', tenantId);
+    hoursDays = mergeHoursWithDefaults(hoursRows ?? []);
+  }
+
   return (
     <main className="shell centered">
-      <Card className="auth-card">
+      <Card className="wizard-card">
         <p className="eyebrow">
           Passo {step} de {TOTAL_STEPS}
         </p>
@@ -37,6 +48,8 @@ export default async function OnboardingPage() {
               mapsUrl: settings?.maps_url ?? '',
             }}
           />
+        ) : step === 2 ? (
+          <HoursStep initialDays={hoursDays} />
         ) : (
           <>
             <p>Esta etapa fica disponível numa próxima atualização.</p>

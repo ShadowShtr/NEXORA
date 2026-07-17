@@ -39,7 +39,7 @@
 
 - [x] **NEX-030** — Criar motor de wizard persistente _(depende: NEX-022)_
 - [x] **NEX-031** — Passo negócio e morada fixa _(depende: NEX-030)_
-- [ ] **NEX-032** — Passo horários de trabalho _(depende: NEX-030)_
+- [x] **NEX-032** — Passo horários de trabalho _(depende: NEX-030)_
 - [ ] **NEX-033** — Passo serviços iniciais _(depende: NEX-030)_
 - [ ] **NEX-034** — Passo regras recomendadas _(depende: NEX-030)_
 - [ ] **NEX-035** — Passo publicar link e QR Code _(depende: NEX-031,NEX-033,NEX-034)_

@@ -11,6 +11,7 @@
 - Tokens públicos armazenados como SHA-256, nunca em texto claro.
 - `created_at` e `updated_at` em entidades mutáveis; `updated_at` é mantido por trigger de base de dados (`set_updated_at`), não pela aplicação.
 - `audit_logs` é append-only, enforced por trigger `BEFORE UPDATE/DELETE` (`NEX-014`, `0004_audit_logs_immutable.sql`) — RLS sozinha não bastava porque `service_role` tem `BYPASSRLS`. Consequência: um tenant com histórico de auditoria não pode ser `DELETE`d (só soft delete via `tenant_status='deleted'`); `audit_logs.tenant_id` é `on delete restrict`, não `set null`.
+- `business_hours.day_of_week` segue a convenção `Date.getDay()` do JavaScript: `0` = domingo, `6` = sábado. Não estava especificado em lado nenhum antes de `NEX-032`; adotado porque o motor de disponibilidade (`NEX-060`/`061`) deve calcular isto a partir de `Date` nativo.
 
 ## Entidades principais
 
