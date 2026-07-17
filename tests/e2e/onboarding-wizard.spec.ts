@@ -5,6 +5,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
+import { completeBusinessStep } from './support/onboarding';
 
 test.describe('onboarding wizard engine (NEX-030)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
@@ -34,7 +35,7 @@ test.describe('onboarding wizard engine (NEX-030)', () => {
   });
 
   test('advancing persists across reload and re-entry', async ({ page }) => {
-    await page.getByRole('button', { name: 'Seguinte' }).click();
+    await completeBusinessStep(page);
     await expect(page.getByText('Passo 2 de 5')).toBeVisible();
 
     await page.reload();
@@ -47,7 +48,7 @@ test.describe('onboarding wizard engine (NEX-030)', () => {
   });
 
   test('allows going back to a previous step', async ({ page }) => {
-    await page.getByRole('button', { name: 'Seguinte' }).click();
+    await completeBusinessStep(page);
     await expect(page.getByText('Passo 2 de 5')).toBeVisible();
 
     await page.getByRole('button', { name: 'Seguinte' }).click();
