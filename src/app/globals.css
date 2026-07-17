@@ -127,6 +127,12 @@ a:focus-visible {
   color: var(--danger);
   font-weight: 700;
 }
+.wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
 label {
   display: grid;
   gap: 0.45rem;
