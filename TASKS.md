@@ -25,7 +25,7 @@
 - [x] **NEX-011** — Rever e endurecer schema inicial _(depende: NEX-010)_
 - [x] **NEX-012** — Implementar RLS tenant-scoped _(depende: NEX-010)_
 - [x] **NEX-013** — Implementar provisioning de tenant/owner _(depende: NEX-012)_
-- [ ] **NEX-014** — Implementar auditoria append-only _(depende: NEX-012)_
+- [x] **NEX-014** — Implementar auditoria append-only _(depende: NEX-012)_
 - [ ] **NEX-015** — Criar testes automatizados de isolamento _(depende: NEX-012)_
 
 ### EPIC-02 — Autenticação e sessão da dona

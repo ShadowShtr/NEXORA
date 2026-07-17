@@ -187,29 +187,29 @@ Implementar implementar auditoria append-only sem expandir o escopo para funcion
 
 **Critérios de aceite**
 
-- Ações críticas geram log seguro e imutável pela UI.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Ações críticas geram log seguro e imutável pela UI. `provision_tenant_owner` (`NEX-013`) já grava em `audit_logs`; esta tarefa garante que, uma vez gravado, nada — nem a própria aplicação com `service_role` — consegue alterar ou apagar o registo.
+- Nenhum dado de outro tenant pode ser acedido. RLS já restringia `SELECT` ao próprio tenant; sem alterações necessárias aqui.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. _Sem UI nesta tarefa._
+- Logs não contêm segredos nem PII desnecessária. _Sem alteração ao conteúdo gravado; mantém-se o padrão de `NEX-013` (`metadata` só com identificadores/slug)._
 
 **Testes obrigatórios**
 
-- Tentativa de alteração negada.
+- Tentativa de alteração negada. `tests/integration/audit-log-immutability.test.ts` (4 testes): insert permitido, update negado, delete negado, e hard-delete do tenant referenciado também negado (efeito colateral correto da correção de FK abaixo).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. RLS por si só não bastava: `service_role` tem `BYPASSRLS`, logo só um trigger `BEFORE UPDATE/DELETE` garante imutabilidade real. Efeito colateral encontrado e corrigido: `audit_logs.tenant_id` tinha `on delete set null`, o que gera um `UPDATE` interno bloqueado pelo próprio trigger — mudado para `on delete restrict`, coerente com o facto de remoção de tenant já ser soft-delete (`tenant_status='deleted'`) neste produto.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-015 — Criar testes automatizados de isolamento
 
