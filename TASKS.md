@@ -21,7 +21,7 @@
 
 ### EPIC-01 — Supabase, dados e isolamento
 
-- [ ] **NEX-010** — Inicializar Supabase local _(depende: NEX-001)_
+- [x] **NEX-010** — Inicializar Supabase local _(depende: NEX-001)_
 - [ ] **NEX-011** — Rever e endurecer schema inicial _(depende: NEX-010)_
 - [ ] **NEX-012** — Implementar RLS tenant-scoped _(depende: NEX-010)_
 - [ ] **NEX-013** — Implementar provisioning de tenant/owner _(depende: NEX-012)_
