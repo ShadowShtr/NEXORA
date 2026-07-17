@@ -7,6 +7,7 @@ import { nextStep, previousStep } from '@/features/onboarding/domain/wizard';
 import { businessStepSchema } from '@/features/onboarding/domain/business-step';
 import { hoursStepSchema, parseHoursFormData } from '@/features/onboarding/domain/hours-step';
 import { serviceItemSchema } from '@/features/onboarding/domain/services-step';
+import { rulesStepSchema } from '@/features/onboarding/domain/rules-step';
 import type { Result } from '@/lib/result';
 
 async function moveStep(direction: 'next' | 'previous') {
@@ -275,6 +276,66 @@ export async function submitHoursStep(
       .from('business_settings')
       .update({ onboarding_step: nextStep(settings.onboarding_step) })
       .eq('tenant_id', tenantId);
+  }
+
+  revalidatePath('/onboarding');
+  return { ok: true, value: null };
+}
+
+export async function submitRulesStep(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = rulesStepSchema.safeParse({
+    slotIntervalMinutes: formData.get('slotIntervalMinutes'),
+    bufferMinutes: formData.get('bufferMinutes'),
+    minNoticeHours: formData.get('minNoticeHours'),
+    bookingWindowDays: formData.get('bookingWindowDays'),
+    cancellationNoticeHours: formData.get('cancellationNoticeHours'),
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique as regras selecionadas.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: settings, error: readError } = await supabase
+    .from('business_settings')
+    .select('onboarding_step')
+    .eq('tenant_id', tenantId)
+    .single();
+  if (readError || !settings) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  const { error: updateError } = await supabase
+    .from('business_settings')
+    .update({
+      slot_interval_minutes: parsed.data.slotIntervalMinutes,
+      buffer_minutes: parsed.data.bufferMinutes,
+      min_notice_hours: parsed.data.minNoticeHours,
+      booking_window_days: parsed.data.bookingWindowDays,
+      cancellation_notice_hours: parsed.data.cancellationNoticeHours,
+      onboarding_step: nextStep(settings.onboarding_step),
+    })
+    .eq('tenant_id', tenantId);
+
+  if (updateError) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
   }
 
   revalidatePath('/onboarding');

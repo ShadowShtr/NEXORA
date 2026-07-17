@@ -9,6 +9,8 @@ import { HoursStep } from '@/features/onboarding/HoursStep';
 import { DEFAULT_HOURS, mergeHoursWithDefaults } from '@/features/onboarding/domain/hours-step';
 import { ServicesStep } from '@/features/onboarding/ServicesStep';
 import type { ServiceListItem } from '@/features/onboarding/domain/services-step';
+import { RulesStep } from '@/features/onboarding/RulesStep';
+import { RECOMMENDED_RULES } from '@/features/onboarding/domain/rules-step';
 
 export default async function OnboardingPage() {
   const { tenantId } = await requireProfile();
@@ -76,6 +78,19 @@ export default async function OnboardingPage() {
           <HoursStep initialDays={hoursDays} />
         ) : step === 3 ? (
           <ServicesStep services={services} />
+        ) : step === 4 ? (
+          <RulesStep
+            initialValues={{
+              slotIntervalMinutes:
+                settings?.slot_interval_minutes ?? RECOMMENDED_RULES.slotIntervalMinutes,
+              bufferMinutes: settings?.buffer_minutes ?? RECOMMENDED_RULES.bufferMinutes,
+              minNoticeHours: settings?.min_notice_hours ?? RECOMMENDED_RULES.minNoticeHours,
+              bookingWindowDays:
+                settings?.booking_window_days ?? RECOMMENDED_RULES.bookingWindowDays,
+              cancellationNoticeHours:
+                settings?.cancellation_notice_hours ?? RECOMMENDED_RULES.cancellationNoticeHours,
+            }}
+          />
         ) : (
           <>
             <p>Esta etapa fica disponível numa próxima atualização.</p>
