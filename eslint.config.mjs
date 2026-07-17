@@ -18,6 +18,12 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
+      // Server Actions bound via useActionState must keep the (prevState, formData)
+      // signature even when a given action's body needs neither — underscore-prefix
+      // is the existing convention (e.g. submitBusinessStep's _prevState) for marking
+      // that intentionally, but only trailing-unused args were actually exempted
+      // without this option.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
 ]);

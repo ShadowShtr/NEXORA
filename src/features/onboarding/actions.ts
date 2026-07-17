@@ -6,6 +6,7 @@ import { requireProfile } from '@/lib/auth/require-profile';
 import { nextStep, previousStep } from '@/features/onboarding/domain/wizard';
 import { businessStepSchema } from '@/features/onboarding/domain/business-step';
 import { hoursStepSchema, parseHoursFormData } from '@/features/onboarding/domain/hours-step';
+import { serviceItemSchema } from '@/features/onboarding/domain/services-step';
 import type { Result } from '@/lib/result';
 
 async function moveStep(direction: 'next' | 'previous') {
@@ -101,6 +102,127 @@ export async function submitBusinessStep(
   }
 
   revalidatePath('/onboarding');
+  return { ok: true, value: null };
+}
+
+export async function addService(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = serviceItemSchema.safeParse({
+    name: formData.get('name'),
+    priceEuros: formData.get('priceEuros'),
+    durationMinutes: formData.get('durationMinutes'),
+    categoryName: formData.get('categoryName'),
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique os dados do serviço.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: existingCategory } = await supabase
+    .from('service_categories')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('name', parsed.data.categoryName)
+    .maybeSingle();
+
+  let categoryId: string | undefined = existingCategory?.id;
+  if (!categoryId) {
+    const { data: created, error: createError } = await supabase
+      .from('service_categories')
+      .insert({ tenant_id: tenantId, name: parsed.data.categoryName })
+      .select('id')
+      .single();
+
+    if (createError) {
+      if (createError.code === '23505') {
+        // Race with a concurrent submit that created the same category first.
+        const { data: retry } = await supabase
+          .from('service_categories')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .eq('name', parsed.data.categoryName)
+          .single();
+        categoryId = retry?.id;
+      } else {
+        return {
+          ok: false,
+          error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+        };
+      }
+    } else {
+      categoryId = created.id;
+    }
+  }
+
+  if (!categoryId) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  const { error: insertError } = await supabase.from('services').insert({
+    tenant_id: tenantId,
+    category_id: categoryId,
+    name: parsed.data.name,
+    price_cents: parsed.data.priceEuros,
+    duration_minutes: parsed.data.durationMinutes,
+  });
+
+  if (insertError) {
+    if (insertError.code === '23505') {
+      return {
+        ok: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `Já existe um serviço chamado "${parsed.data.name}".`,
+        },
+      };
+    }
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/onboarding');
+  return { ok: true, value: null };
+}
+
+export async function advanceServicesStep(
+  _prevState: Result<null> | null,
+  _formData: FormData,
+): Promise<Result<null>> {
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { count } = await supabase
+    .from('services')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId);
+
+  if (!count || count < 1) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Adicione pelo menos um serviço antes de continuar.',
+      },
+    };
+  }
+
+  await moveStep('next');
   return { ok: true, value: null };
 }
 

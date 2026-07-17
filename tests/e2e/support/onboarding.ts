@@ -35,3 +35,24 @@ export async function completeBusinessStep(page: Page, overrides: BusinessStepOv
 export async function completeHoursStep(page: Page) {
   await page.getByRole('button', { name: 'Seguinte' }).click();
 }
+
+type ServiceItemOverrides = Partial<{
+  name: string;
+  priceEuros: string;
+  durationMinutes: string;
+  categoryName: string;
+}>;
+
+export async function addServiceItem(page: Page, overrides: ServiceItemOverrides = {}) {
+  await page.getByLabel('Nome do serviço').fill(overrides.name ?? 'Verniz gel');
+  await page.getByLabel('Preço (€)').fill(overrides.priceEuros ?? '25,00');
+  await page.getByLabel('Duração (minutos)').fill(overrides.durationMinutes ?? '60');
+  await page.getByLabel('Categoria').fill(overrides.categoryName ?? 'Manicure');
+  await page.getByRole('button', { name: 'Adicionar serviço' }).click();
+}
+
+// Step 3 requires at least one service before "Seguinte" succeeds.
+export async function completeServicesStep(page: Page, overrides: ServiceItemOverrides = {}) {
+  await addServiceItem(page, overrides);
+  await page.getByRole('button', { name: 'Seguinte' }).click();
+}
