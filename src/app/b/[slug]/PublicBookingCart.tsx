@@ -120,7 +120,7 @@ export function PublicBookingCart({
                     checked={selectedIds.has(pkg.id)}
                     onChange={() => toggle(pkg.id)}
                   />
-                  <span>
+                  <span className="public-package-name">
                     {pkg.name}
                     <br />
                     <small className="public-service-meta">{pkg.itemNames}</small>

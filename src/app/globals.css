@@ -118,6 +118,7 @@ a:focus-visible {
 }
 .stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 .auth-card {
@@ -264,7 +265,8 @@ a:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
   border-bottom: 1px solid var(--pink-100);
   padding-bottom: 0.75rem;
 }
@@ -287,10 +289,19 @@ a:focus-visible {
 }
 .public-service-choice {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   font-weight: 600;
   cursor: pointer;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.public-package-name {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.public-service-choice .public-service-meta {
+  white-space: normal;
 }
 .public-service-choice input[type='checkbox'] {
   min-height: auto;
@@ -299,8 +310,6 @@ a:focus-visible {
   accent-color: var(--pink-500);
 }
 .public-summary {
-  position: sticky;
-  bottom: 1rem;
   border: 2px solid var(--pink-300);
 }
 .public-summary-total {

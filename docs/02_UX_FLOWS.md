@@ -47,6 +47,22 @@ flowchart TD
   K --> F
 ```
 
+### Estado da demonstração pública (`/b/{slug}`)
+
+A página pública de demonstração (`src/app/b/[slug]/`, fora do processo formal de
+tarefas — ver `docs/evidence/`) implementa por agora só uma parte do Fluxo B:
+escolha de serviços/pacotes com carrinho (total e duração ao vivo) e confirmação via
+WhatsApp com a lista escolhida. Fases ainda por implementar, pela ordem completa do
+Fluxo B acima:
+
+1. **Cadastro** — nome + telemóvel (+ e-mail opcional) antes de escolher serviços.
+2. Serviços/Pacotes + carrinho — **já implementado** na demonstração.
+3. **Escolha do dia** e do horário disponível (depende do motor de disponibilidade,
+   `EPIC-06`, ainda não construído).
+4. Observação opcional + resumo final + confirmação (reserva atómica).
+
+A versão formal e testada desta página fica para `NEX-050` em diante.
+
 ## Fluxo C — Agenda diária
 
 1. Dona abre o painel.
