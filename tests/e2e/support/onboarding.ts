@@ -29,3 +29,9 @@ export async function completeBusinessStep(page: Page, overrides: BusinessStepOv
   await fillBusinessStep(page, overrides);
   await page.getByRole('button', { name: 'Seguinte' }).click();
 }
+
+// Step 2 loads pre-filled with valid recommended defaults (NEX-032) — submitting as-is
+// is enough to advance for tests that just need to get past this step.
+export async function completeHoursStep(page: Page) {
+  await page.getByRole('button', { name: 'Seguinte' }).click();
+}
