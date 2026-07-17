@@ -1,43 +1,18 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { createPackage, togglePackageActive, updatePackage } from '@/features/catalog/actions';
 import {
   derivePackageDurationMinutes,
   type PackageListItem,
 } from '@/features/catalog/domain/package';
+import { PackageCart } from '@/features/catalog/PackageCart';
 import type { ServiceListItem } from '@/features/catalog/domain/service';
 import type { Result } from '@/lib/result';
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
-}
-
-function ServiceCheckboxes({
-  services,
-  selectedIds,
-}: {
-  services: ServiceListItem[];
-  selectedIds: Set<string>;
-}) {
-  return (
-    <fieldset className="catalog-package-items">
-      <legend>Serviços incluídos</legend>
-      {services.map((service) => (
-        <label key={service.id} className="catalog-package-item">
-          <input
-            type="checkbox"
-            name="serviceIds"
-            value={service.id}
-            defaultChecked={selectedIds.has(service.id)}
-          />
-          {service.name} · {service.durationMinutes} min
-          {service.isActive ? '' : ' (inativo)'}
-        </label>
-      ))}
-    </fieldset>
-  );
 }
 
 type PackageRowProps = {
@@ -78,7 +53,7 @@ function PackageRow({ pkg, services, servicesById }: PackageRowProps) {
             required
           />
         </label>
-        <ServiceCheckboxes services={services} selectedIds={new Set(pkg.serviceIds)} />
+        <PackageCart services={services} initialServiceIds={pkg.serviceIds} />
         <Button type="submit" disabled={updatePending}>
           Guardar
         </Button>
@@ -119,6 +94,18 @@ export function PackagesManager({
   >(createPackage, null);
   const servicesById = new Map(services.map((service) => [service.id, service]));
 
+  // PackageCart keeps its own client-side state (the cart), which a successful form
+  // submission does not otherwise clear — remount it with a fresh key so the next new
+  // package starts from an empty cart instead of the previous one's selection.
+  // Adjusting state during render (not in an effect) on a change of `createState` is
+  // the pattern React recommends for this exact "reset on prop change" case.
+  const [cartResetKey, setCartResetKey] = useState(0);
+  const [lastCreateState, setLastCreateState] = useState(createState);
+  if (createState !== lastCreateState) {
+    setLastCreateState(createState);
+    if (createState?.ok) setCartResetKey((key) => key + 1);
+  }
+
   return (
     <section className="stack" aria-label="Pacotes">
       <h2>Pacotes</h2>
@@ -156,7 +143,7 @@ export function PackagesManager({
                 placeholder="45,00"
               />
             </label>
-            <ServiceCheckboxes services={services} selectedIds={new Set()} />
+            <PackageCart key={cartResetKey} services={services} initialServiceIds={[]} />
             {createState && !createState.ok ? (
               <p role="alert" className="form-error">
                 {createState.error.message}
