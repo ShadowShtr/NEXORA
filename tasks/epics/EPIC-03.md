@@ -228,29 +228,29 @@ Implementar passo publicar link e qr code sem expandir o escopo para funcionalid
 
 **Critérios de aceite**
 
-- Slug único, preview, publicar e QR local.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Slug único, preview, publicar e QR local. Passo 5/5: campo de link editável (pré-preenchido com o slug atual do tenant), pré-visualização ao vivo de `{NEXT_PUBLIC_APP_URL}/b/{slug}` (estrutura definida em `docs/01_PRODUCT_REQUIREMENTS.md` #12), QR Code gerado localmente com a biblioteca `qrcode` (computação pura no cliente, sem chamar nenhum serviço externo) e regenerado a cada alteração do slug. Publicar chama a nova função `security definer` `publish_business` (`supabase/migrations/0005_publish_business.sql`), que deriva `tenant_id` de `current_tenant_id()` (nunca de um parâmetro do cliente) e atualiza `tenants.slug`, `tenants.status = 'active'` e `business_settings.published_at`.
+- Nenhum dado de outro tenant pode ser acedido. `tenants` só tinha política `SELECT` para `authenticated` (sem `UPDATE`) — em vez de abrir uma política de `UPDATE` mais ampla, `publish_business` só pode publicar o tenant do próprio chamador; `EXECUTE` revogado de `anon`, concedido só a `authenticated` (padrão de `ADR-008`, adaptado: esta função É suposta ser chamada pela sessão normal do dono, ao contrário de `provision_tenant_owner`).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Publicar redireciona para `/dashboard`.
+- Logs não contêm segredos nem PII desnecessária. `audit_logs` regista `business.published` com o novo slug, sem dados pessoais.
 
 **Testes obrigatórios**
 
-- Slug collision e QR decode.
+- Slug collision e QR decode. `tests/unit/publish-step.test.ts` (8 testes): normalização de slug (acentos, maiúsculas, espaços/pontuação → hífens), schema Zod. `tests/integration/publish-business.test.ts` (3 testes, contra a BD real): `anon` rejeitado (`42501`); dono publica o próprio tenant (slug, `status=active`, `published_at`, audit log) sem afetar outro tenant; colisão de slug entre tenants devolve `23505`. `tests/e2e/onboarding-publish-step.spec.ts` (6 testes, chromium + webkit-mobile): Axe; preview do link correto; **QR decodificado (via `jsqr` + `pngjs`, lendo o `data:image/png` do `<img>`) confirma que codifica exatamente o link público**; colisão de slug mostra erro amigável e não avança; publicar ativa o tenant e redireciona para `/dashboard`; "Voltar" regressa ao passo 4.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova superfície: função RPC `publish_business`, com autorização e derivação de `tenant_id` conforme acima.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Verificado via teste de integração (RPC como `anon` vs. `authenticated` de tenants diferentes).
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-036 — Teste de usabilidade do onboarding
 

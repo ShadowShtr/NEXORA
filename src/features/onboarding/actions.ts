@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { nextStep, previousStep } from '@/features/onboarding/domain/wizard';
@@ -8,6 +9,7 @@ import { businessStepSchema } from '@/features/onboarding/domain/business-step';
 import { hoursStepSchema, parseHoursFormData } from '@/features/onboarding/domain/hours-step';
 import { serviceItemSchema } from '@/features/onboarding/domain/services-step';
 import { rulesStepSchema } from '@/features/onboarding/domain/rules-step';
+import { normalizeSlug, publishStepSchema } from '@/features/onboarding/domain/publish-step';
 import type { Result } from '@/lib/result';
 
 async function moveStep(direction: 'next' | 'previous') {
@@ -104,6 +106,49 @@ export async function submitBusinessStep(
 
   revalidatePath('/onboarding');
   return { ok: true, value: null };
+}
+
+export async function submitPublishStep(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = publishStepSchema.safeParse({
+    slug: normalizeSlug(String(formData.get('slug') ?? '')),
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique o link introduzido.',
+      },
+    };
+  }
+
+  await requireProfile();
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc('publish_business', { p_slug: parsed.data.slug });
+
+  if (error) {
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Este link já está a ser usado. Escolha outro.',
+        },
+      };
+    }
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível publicar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/onboarding');
+  redirect('/dashboard');
 }
 
 export async function addService(

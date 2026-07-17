@@ -1,8 +1,7 @@
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
-import { goToNextStep, goToPreviousStep } from '@/features/onboarding/actions';
+import { publicEnv } from '@/lib/env';
 import { STEP_TITLES, TOTAL_STEPS } from '@/features/onboarding/domain/wizard';
 import { BusinessStep } from '@/features/onboarding/BusinessStep';
 import { HoursStep } from '@/features/onboarding/HoursStep';
@@ -11,6 +10,7 @@ import { ServicesStep } from '@/features/onboarding/ServicesStep';
 import type { ServiceListItem } from '@/features/onboarding/domain/services-step';
 import { RulesStep } from '@/features/onboarding/RulesStep';
 import { RECOMMENDED_RULES } from '@/features/onboarding/domain/rules-step';
+import { PublishStep } from '@/features/onboarding/PublishStep';
 
 export default async function OnboardingPage() {
   const { tenantId } = await requireProfile();
@@ -31,6 +31,16 @@ export default async function OnboardingPage() {
       .select('day_of_week, is_open, opens_at, closes_at, lunch_starts_at, lunch_ends_at')
       .eq('tenant_id', tenantId);
     hoursDays = mergeHoursWithDefaults(hoursRows ?? []);
+  }
+
+  let tenantSlug = '';
+  if (step === 5) {
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('slug')
+      .eq('id', tenantId)
+      .single();
+    tenantSlug = tenant?.slug ?? '';
   }
 
   let services: ServiceListItem[] = [];
@@ -92,23 +102,7 @@ export default async function OnboardingPage() {
             }}
           />
         ) : (
-          <>
-            <p>Esta etapa fica disponível numa próxima atualização.</p>
-            <div className="wizard-actions">
-              {step > 1 ? (
-                <form action={goToPreviousStep}>
-                  <Button type="submit">Voltar</Button>
-                </form>
-              ) : (
-                <span />
-              )}
-              {step < TOTAL_STEPS ? (
-                <form action={goToNextStep}>
-                  <Button type="submit">Seguinte</Button>
-                </form>
-              ) : null}
-            </div>
-          </>
+          <PublishStep initialSlug={tenantSlug} appUrl={publicEnv.NEXT_PUBLIC_APP_URL} />
         )}
       </Card>
     </main>
