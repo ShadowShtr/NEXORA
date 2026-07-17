@@ -7,6 +7,8 @@ import { STEP_TITLES, TOTAL_STEPS } from '@/features/onboarding/domain/wizard';
 import { BusinessStep } from '@/features/onboarding/BusinessStep';
 import { HoursStep } from '@/features/onboarding/HoursStep';
 import { DEFAULT_HOURS, mergeHoursWithDefaults } from '@/features/onboarding/domain/hours-step';
+import { ServicesStep } from '@/features/onboarding/ServicesStep';
+import type { ServiceListItem } from '@/features/onboarding/domain/services-step';
 
 export default async function OnboardingPage() {
   const { tenantId } = await requireProfile();
@@ -27,6 +29,28 @@ export default async function OnboardingPage() {
       .select('day_of_week, is_open, opens_at, closes_at, lunch_starts_at, lunch_ends_at')
       .eq('tenant_id', tenantId);
     hoursDays = mergeHoursWithDefaults(hoursRows ?? []);
+  }
+
+  let services: ServiceListItem[] = [];
+  if (step === 3) {
+    const [{ data: servicesRows }, { data: categoriesRows }] = await Promise.all([
+      supabase
+        .from('services')
+        .select('id, name, price_cents, duration_minutes, category_id')
+        .eq('tenant_id', tenantId)
+        .order('created_at'),
+      supabase.from('service_categories').select('id, name').eq('tenant_id', tenantId),
+    ]);
+    const categoryNameById = new Map(
+      (categoriesRows ?? []).map((category) => [category.id, category.name]),
+    );
+    services = (servicesRows ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      priceCents: row.price_cents,
+      durationMinutes: row.duration_minutes,
+      categoryName: categoryNameById.get(row.category_id) ?? '',
+    }));
   }
 
   return (
@@ -50,6 +74,8 @@ export default async function OnboardingPage() {
           />
         ) : step === 2 ? (
           <HoursStep initialDays={hoursDays} />
+        ) : step === 3 ? (
+          <ServicesStep services={services} />
         ) : (
           <>
             <p>Esta etapa fica disponível numa próxima atualização.</p>

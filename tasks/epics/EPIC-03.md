@@ -146,29 +146,29 @@ Implementar passo serviços iniciais sem expandir o escopo para funcionalidades 
 
 **Critérios de aceite**
 
-- Criação repetida de nome/preço/duração/categoria.
+- Criação repetida de nome/preço/duração/categoria. Formulário de "adicionar serviço" fica no ecrã após cada submissão bem-sucedida, permitindo adicionar quantos serviços forem precisos antes de avançar; categoria é criada automaticamente se não existir, reaproveitada se já existir.
 - Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Lista dos serviços já adicionados + formulário de adicionar mais, sem exigir uma etapa de gestão de categorias separada nesta fase (isso é `NEX-040`).
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Persistência e duplicados.
+- Persistência e duplicados. `tests/unit/services-step.test.ts` (7 testes: conversão de preço para cêntimos, vírgula/ponto como separador decimal, nome/preço/duração/categoria inválidos, limites de duração). `tests/e2e/onboarding-services-step.spec.ts` (6 testes): Axe, exige pelo menos 1 serviço para avançar, criação repetida com 2 serviços persistidos corretamente (confirmado na BD), nome de serviço duplicado rejeitado com mensagem clara (sem duplicar na BD), categoria reaproveitada em vez de duplicada, "Voltar" funciona. Chromium + webkit-mobile.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. Ajuste de configuração ESLint: `@typescript-eslint/no-unused-vars` passou a ter `argsIgnorePattern: '^_'`, formalizando a convenção já usada (`_prevState`) para argumentos exigidos pela assinatura de `useActionState` mas não usados no corpo da função.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-034 — Passo regras recomendadas
 
