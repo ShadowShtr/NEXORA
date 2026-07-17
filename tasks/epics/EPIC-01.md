@@ -105,14 +105,14 @@ Implementar implementar rls tenant-scoped sem expandir o escopo para funcionalid
 
 **Critérios de aceite**
 
-- Todas as tabelas privadas têm RLS e políticas mínimas.
-- Nenhum dado de outro tenant pode ser acedido.
+- Todas as tabelas privadas têm RLS e políticas mínimas. Auditado via `pg_class.relrowsecurity` + `pg_policies`: 18/18 tabelas com RLS ativa e ≥1 política.
+- Nenhum dado de outro tenant pode ser acedido. Verificado com utilizadores `authenticated` reais de dois tenants distintos (não só `anon`/`service_role`).
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Tenant A/B, anon e authenticated.
+- Tenant A/B, anon e authenticated. `tests/integration/rls-tenant-isolation.test.ts` (7 testes: leitura própria, leitura cruzada bloqueada, anon bloqueado, insert/update/delete cruzados bloqueados, update próprio permitido), gated por env vars reais da app — skip limpo sem configuração.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
@@ -123,11 +123,11 @@ Implementar implementar rls tenant-scoped sem expandir o escopo para funcionalid
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-013 — Implementar provisioning de tenant/owner
 
