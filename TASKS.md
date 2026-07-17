@@ -50,7 +50,7 @@
 - [x] **NEX-040** — CRUD de categorias _(depende: NEX-012,NEX-023)_
 - [x] **NEX-041** — CRUD de serviços _(depende: NEX-040)_
 - [x] **NEX-042** — CRUD de pacotes _(depende: NEX-041)_
-- [ ] **NEX-043** — Regras de combinação pacote/extras _(depende: NEX-042)_
+- [x] **NEX-043** — Regras de combinação pacote/extras _(depende: NEX-042)_
 - [ ] **NEX-044** — Interface extremamente simples de catálogo _(depende: NEX-043)_
 
 ### EPIC-05 — Página pública e pré-cadastro

@@ -146,29 +146,31 @@ Implementar regras de combinação pacote/extras sem expandir o escopo para func
 
 **Critérios de aceite**
 
-- Carrinho bloqueia duplicações e recalcula.
-- Nenhum dado de outro tenant pode ser acedido.
+- Carrinho bloqueia duplicações e recalcula. `src/features/catalog/domain/package-cart.ts` (pura, sem UI): `addToCart` recusa um serviço já presente no carrinho (devolve `blocked: true` e o carrinho por alterar, em vez de o duplicar silenciosamente ou ignorar); `removeFromCart`; `cartTotals` soma preço e duração de todos os itens. `src/features/catalog/PackageCart.tsx` (substitui os checkboxes simples de `NEX-042` nos formulários de criar/editar pacote): escolher um serviço num `<select>` (que só lista serviços ainda não adicionados — impossível pedir um duplicado pela interface) + botão "Adicionar"; cada item tem "Remover"; resumo "Duração total · Soma dos preços" recalcula a cada alteração, antes mesmo de guardar.
+- Nenhum dado de outro tenant pode ser acedido. Sem alteração de superfície de dados nesta tarefa (mesmos `serviceIds` que `NEX-042` já validava/persistia).
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Unitários de combinações.
+- Unitários de combinações. `tests/unit/package-cart.test.ts` (10 testes): adicionar a um carrinho vazio; adicionar um segundo item diferente; **bloquear a adição do mesmo serviço duas vezes, carrinho inalterado**; não mutar o array original; remover um item existente/inexistente/o último; `cartTotals` soma corretamente, é `{0,0}` vazio, e recalcula bem depois de um "adicionar" seguido de um "remover". `tests/e2e/catalog-packages.spec.ts` ampliado com um teste dedicado: o resumo recalcula em tempo real ao adicionar/remover (0 → 60 min/25€ → 105 min/55€ → 45 min/30€), e o serviço já adicionado desaparece do seletor (reaparece ao remover).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — validação client-side de UX, a autorização/validação server-side de `serviceIds` já existia desde `NEX-042` (`createPackageSchema`/`updatePackageSchema`, RLS/FK compostas).
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
+
+**Nota de correção durante os testes:** o primeiro teste E2E do carrinho recalculado apanhou um bug real: `PackageCart` guarda o carrinho em estado local do React, que uma submissão bem-sucedida do formulário de criação não limpava — o carrinho do pacote seguinte começava com os itens do anterior. Corrigido em `PackagesManager.tsx` fazendo o `PackageCart` do formulário de criação remontar (via `key`) sempre que `createPackage` tem sucesso, ajustando o estado durante o render (não em `useEffect` — o projeto tem uma regra de lint que impede `setState` síncrono dentro de efeitos) em resposta à mudança de `createState`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-044 — Interface extremamente simples de catálogo
 

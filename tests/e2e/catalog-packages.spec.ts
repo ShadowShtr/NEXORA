@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   canUseSupabase,
   cleanupProvisionedTestUser,
@@ -17,6 +17,19 @@ function createServiceForm(page: Page) {
   return page.locator('form[aria-label="Novo serviço"]');
 }
 
+async function createServiceViaForm(
+  page: Page,
+  name: string,
+  priceEuros: string,
+  durationMinutes: string,
+) {
+  const form = createServiceForm(page);
+  await form.locator('input[name="name"]').fill(name);
+  await form.locator('input[name="priceEuros"]').fill(priceEuros);
+  await form.locator('input[name="durationMinutes"]').fill(durationMinutes);
+  await form.getByRole('button', { name: 'Criar serviço' }).click();
+}
+
 function createPackageForm(page: Page) {
   return page.locator('form[aria-label="Novo pacote"]');
 }
@@ -25,7 +38,15 @@ function packagesRegion(page: Page) {
   return page.locator('section[aria-label="Pacotes"]');
 }
 
-test.describe('catalog packages CRUD (NEX-042)', () => {
+// Adds a service to a package cart (create form or a row's edit form) via the
+// select + "Adicionar" flow (NEX-043) — the dropdown only ever lists services not
+// already in the cart, so a duplicate add is structurally unreachable through the UI.
+async function addToCart(scope: Locator, optionLabel: string) {
+  await scope.getByLabel('Escolher serviço para adicionar').selectOption({ label: optionLabel });
+  await scope.getByRole('button', { name: 'Adicionar' }).click();
+}
+
+test.describe('catalog packages CRUD (NEX-042/NEX-043)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
   let user: ProvisionedTestUser;
@@ -55,25 +76,70 @@ test.describe('catalog packages CRUD (NEX-042)', () => {
     await expect(page.getByText('Crie primeiro um serviço')).toBeVisible();
   });
 
-  test('creates a package with two services, deriving the summed duration', async ({ page }) => {
+  test('the cart recalculates totals as services are added and removed', async ({ page }) => {
     await createCategory(page, 'Manicure');
-    const servicesForm = createServiceForm(page);
-    await servicesForm.locator('input[name="name"]').fill('Verniz gel');
-    await servicesForm.locator('input[name="priceEuros"]').fill('25,00');
-    await servicesForm.locator('input[name="durationMinutes"]').fill('60');
-    await servicesForm.getByRole('button', { name: 'Criar serviço' }).click();
+    await createServiceViaForm(page, 'Verniz gel', '25,00', '60');
     await expect(
       page
         .locator('section[aria-label="Serviços"] .catalog-row')
         .first()
         .locator('input[name="name"]'),
     ).toHaveValue('Verniz gel');
+    await createServiceViaForm(page, 'Pedicure spa', '30,00', '45');
+    await expect(
+      page
+        .locator('section[aria-label="Serviços"] .catalog-row')
+        .last()
+        .locator('input[name="name"]'),
+    ).toHaveValue('Pedicure spa');
 
-    await servicesForm.locator('input[name="name"]').fill('Pedicure spa');
-    await servicesForm.locator('input[name="priceEuros"]').fill('30,00');
-    await servicesForm.locator('input[name="durationMinutes"]').fill('45');
-    await servicesForm.getByRole('button', { name: 'Criar serviço' }).click();
-    // Services list is ordered by created_at ascending — the newest is last.
+    const packageForm = createPackageForm(page);
+    await expect(packageForm.locator('.catalog-cart-total')).toHaveText(
+      'Duração total: 0 min · Soma dos preços dos serviços: 0,00 €',
+    );
+
+    await addToCart(packageForm, 'Verniz gel · 60 min');
+    await expect(packageForm.locator('.catalog-cart-total')).toHaveText(
+      'Duração total: 60 min · Soma dos preços dos serviços: 25,00 €',
+    );
+    // Already-added services drop out of the picker — no way to add a duplicate.
+    await expect(packageForm.getByLabel('Escolher serviço para adicionar')).not.toContainText(
+      'Verniz gel',
+    );
+    await expect(packageForm.getByLabel('Escolher serviço para adicionar')).toContainText(
+      'Pedicure spa',
+    );
+
+    await addToCart(packageForm, 'Pedicure spa · 45 min');
+    await expect(packageForm.locator('.catalog-cart-total')).toHaveText(
+      'Duração total: 105 min · Soma dos preços dos serviços: 55,00 €',
+    );
+    // Both services now added — the picker has nothing left to offer.
+    await expect(packageForm.getByLabel('Escolher serviço para adicionar')).toHaveCount(0);
+
+    await packageForm
+      .locator('.catalog-cart-item', { hasText: 'Verniz gel' })
+      .getByRole('button', { name: 'Remover' })
+      .click();
+    await expect(packageForm.locator('.catalog-cart-total')).toHaveText(
+      'Duração total: 45 min · Soma dos preços dos serviços: 30,00 €',
+    );
+    // Removed services become available to add again.
+    await expect(packageForm.getByLabel('Escolher serviço para adicionar')).toContainText(
+      'Verniz gel',
+    );
+  });
+
+  test('creates a package with two services, deriving the summed duration', async ({ page }) => {
+    await createCategory(page, 'Manicure');
+    await createServiceViaForm(page, 'Verniz gel', '25,00', '60');
+    await expect(
+      page
+        .locator('section[aria-label="Serviços"] .catalog-row')
+        .first()
+        .locator('input[name="name"]'),
+    ).toHaveValue('Verniz gel');
+    await createServiceViaForm(page, 'Pedicure spa', '30,00', '45');
     await expect(
       page
         .locator('section[aria-label="Serviços"] .catalog-row')
@@ -84,8 +150,8 @@ test.describe('catalog packages CRUD (NEX-042)', () => {
     const packageForm = createPackageForm(page);
     await packageForm.locator('input[name="name"]').fill('Mãos e pés');
     await packageForm.locator('input[name="priceEuros"]').fill('45,00');
-    await packageForm.getByLabel('Verniz gel · 60 min').check();
-    await packageForm.getByLabel('Pedicure spa · 45 min').check();
+    await addToCart(packageForm, 'Verniz gel · 60 min');
+    await addToCart(packageForm, 'Pedicure spa · 45 min');
     await packageForm.getByRole('button', { name: 'Criar pacote' }).click();
 
     const packageRow = packagesRegion(page).locator('.catalog-row').first();
@@ -113,11 +179,7 @@ test.describe('catalog packages CRUD (NEX-042)', () => {
 
   test('rejects a duplicate package name with a friendly error', async ({ page }) => {
     await createCategory(page, 'Manicure');
-    const servicesForm = createServiceForm(page);
-    await servicesForm.locator('input[name="name"]').fill('Verniz gel');
-    await servicesForm.locator('input[name="priceEuros"]').fill('25,00');
-    await servicesForm.locator('input[name="durationMinutes"]').fill('60');
-    await servicesForm.getByRole('button', { name: 'Criar serviço' }).click();
+    await createServiceViaForm(page, 'Verniz gel', '25,00', '60');
     await expect(
       page
         .locator('section[aria-label="Serviços"] .catalog-row')
@@ -128,13 +190,13 @@ test.describe('catalog packages CRUD (NEX-042)', () => {
     const packageForm = createPackageForm(page);
     await packageForm.locator('input[name="name"]').fill('Combo');
     await packageForm.locator('input[name="priceEuros"]').fill('20,00');
-    await packageForm.getByLabel('Verniz gel · 60 min').check();
+    await addToCart(packageForm, 'Verniz gel · 60 min');
     await packageForm.getByRole('button', { name: 'Criar pacote' }).click();
     await expect(packagesRegion(page).locator('.catalog-row')).toHaveCount(1);
 
     await packageForm.locator('input[name="name"]').fill('Combo');
     await packageForm.locator('input[name="priceEuros"]').fill('22,00');
-    await packageForm.getByLabel('Verniz gel · 60 min').check();
+    await addToCart(packageForm, 'Verniz gel · 60 min');
     await packageForm.getByRole('button', { name: 'Criar pacote' }).click();
     await expect(packageForm.locator('[role="alert"].form-error')).toContainText('Já existe');
     await expect(packagesRegion(page).locator('.catalog-row')).toHaveCount(1);
@@ -142,11 +204,7 @@ test.describe('catalog packages CRUD (NEX-042)', () => {
 
   test('activates and deactivates a package', async ({ page }) => {
     await createCategory(page, 'Manicure');
-    const servicesForm = createServiceForm(page);
-    await servicesForm.locator('input[name="name"]').fill('Verniz gel');
-    await servicesForm.locator('input[name="priceEuros"]').fill('25,00');
-    await servicesForm.locator('input[name="durationMinutes"]').fill('60');
-    await servicesForm.getByRole('button', { name: 'Criar serviço' }).click();
+    await createServiceViaForm(page, 'Verniz gel', '25,00', '60');
     await expect(
       page
         .locator('section[aria-label="Serviços"] .catalog-row')
@@ -157,7 +215,7 @@ test.describe('catalog packages CRUD (NEX-042)', () => {
     const packageForm = createPackageForm(page);
     await packageForm.locator('input[name="name"]').fill('Combo');
     await packageForm.locator('input[name="priceEuros"]').fill('20,00');
-    await packageForm.getByLabel('Verniz gel · 60 min').check();
+    await addToCart(packageForm, 'Verniz gel · 60 min');
     await packageForm.getByRole('button', { name: 'Criar pacote' }).click();
 
     const packageRow = packagesRegion(page).locator('.catalog-row').first();
