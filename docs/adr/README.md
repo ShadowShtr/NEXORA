@@ -24,13 +24,14 @@ Não é necessário ADR para detalhes de implementação reversíveis dentro do 
 
 ## Índice de ADRs aceites
 
-| ADR                                           | Título                                                | Estado |
-| --------------------------------------------- | ----------------------------------------------------- | ------ |
-| [ADR-001](ADR-001-monolito-modular.md)        | Monólito modular Next.js                              | Aceite |
-| [ADR-002](ADR-002-multitenancy.md)            | Multitenancy                                          | Aceite |
-| [ADR-003](ADR-003-whatsapp-manual.md)         | WhatsApp manual (sem API paga)                        | Aceite |
-| [ADR-004](ADR-004-money-time.md)              | Dinheiro e tempo (cêntimos, UTC)                      | Aceite |
-| [ADR-005](ADR-005-booking-concurrency.md)     | Concorrência de marcação                              | Aceite |
-| [ADR-006](ADR-006-github-plan-constraints.md) | Limitações do plano GitHub (branch protection e GHAS) | Aceite |
+| ADR                                               | Título                                                        | Estado |
+| ------------------------------------------------- | ------------------------------------------------------------- | ------ |
+| [ADR-001](ADR-001-monolito-modular.md)            | Monólito modular Next.js                                      | Aceite |
+| [ADR-002](ADR-002-multitenancy.md)                | Multitenancy                                                  | Aceite |
+| [ADR-003](ADR-003-whatsapp-manual.md)             | WhatsApp manual (sem API paga)                                | Aceite |
+| [ADR-004](ADR-004-money-time.md)                  | Dinheiro e tempo (cêntimos, UTC)                              | Aceite |
+| [ADR-005](ADR-005-booking-concurrency.md)         | Concorrência de marcação                                      | Aceite |
+| [ADR-006](ADR-006-github-plan-constraints.md)     | Limitações do plano GitHub (branch protection e GHAS)         | Aceite |
+| [ADR-007](ADR-007-supabase-dev-cloud-fallback.md) | Projeto Supabase cloud como substituto do Docker local em dev | Aceite |
 
 Atualizar esta tabela sempre que um ADR novo for aceite.

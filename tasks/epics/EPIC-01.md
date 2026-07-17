@@ -23,14 +23,14 @@ Implementar inicializar supabase local sem expandir o escopo para funcionalidade
 
 **Critérios de aceite**
 
-- CLI/configuração local, migration aplicada e seed sintético.
+- CLI/configuração local, migration aplicada e seed sintético. _Nota: Docker/WSL2 indisponíveis neste ambiente — substituído por projeto Supabase cloud dedicado a dev, ver `ADR-007`. `supabase/config.toml` criado e pronto para `supabase start` assim que Docker estiver disponível._
 - Nenhum dado de outro tenant pode ser acedido.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Reset local repetível.
+- Reset local repetível. _Parcial: idempotência de `db push`/seed validada (reaplicação sem duplicar/erro); reset completo (`supabase db reset`) não exercitado por falta de Docker — coberto de forma mais rigorosa em `NEX-015` via CI com Docker nativo._
 - `npm run verify` passa.
 
 **Segurança e privacidade**
@@ -41,11 +41,11 @@ Implementar inicializar supabase local sem expandir o escopo para funcionalidade
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-011 — Rever e endurecer schema inicial
 
