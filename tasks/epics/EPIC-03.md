@@ -64,14 +64,14 @@ Implementar passo negócio e morada fixa sem expandir o escopo para funcionalida
 
 **Critérios de aceite**
 
-- Validação simples, telefone normalizado e Maps URL segura.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Validação simples, telefone normalizado e Maps URL segura. `src/lib/phone.ts` normaliza para E.164 (Portugal como país por omissão, já suporta números já em E.164 de qualquer país). `src/lib/maps-url.ts` só aceita `https://` para uma allowlist de anfitriões conhecidos (Google/Apple Maps) — impede URL arbitrário/open-redirect no campo mostrado publicamente na página de marcação (`NEX-073`).
+- Nenhum dado de outro tenant pode ser acedido. Escrita via cliente autenticado normal (RLS), não `service_role`.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um formulário, submissão guarda e avança automaticamente.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Validação e acessibilidade.
+- Validação e acessibilidade. `tests/unit/phone.test.ts` (6 testes) + `tests/unit/maps-url.test.ts` (5 testes) para as funções puras. `tests/e2e/onboarding-business-step.spec.ts` (4 testes): 0 violações Axe; telefone local normalizado para E.164 confirmado na BD; URL de Maps não confiável rejeitado (mensagem clara, não avança); link real do Google Maps aceite e avança. Chromium + webkit-mobile.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
@@ -82,11 +82,11 @@ Implementar passo negócio e morada fixa sem expandir o escopo para funcionalida
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-032 — Passo horários de trabalho
 
