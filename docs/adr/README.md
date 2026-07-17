@@ -33,5 +33,6 @@ Não é necessário ADR para detalhes de implementação reversíveis dentro do 
 | [ADR-005](ADR-005-booking-concurrency.md)         | Concorrência de marcação                                      | Aceite |
 | [ADR-006](ADR-006-github-plan-constraints.md)     | Limitações do plano GitHub (branch protection e GHAS)         | Aceite |
 | [ADR-007](ADR-007-supabase-dev-cloud-fallback.md) | Projeto Supabase cloud como substituto do Docker local em dev | Aceite |
+| [ADR-008](ADR-008-function-privilege-defaults.md) | Revogação explícita de EXECUTE em funções `security definer`  | Aceite |
 
 Atualizar esta tabela sempre que um ADR novo for aceite.
