@@ -41,7 +41,15 @@ test.describe('login / logout (NEX-020)', () => {
 
     await expect(page).toHaveURL(/\/dashboard/);
 
-    await page.getByRole('button', { name: 'Sair' }).click();
+    // Logout lives in the app shell (NEX-023): directly in the sidebar on desktop,
+    // behind the "Mais" panel on mobile.
+    const isMobile = (page.viewportSize()?.width ?? 1280) < 761;
+    if (isMobile) {
+      await page.locator('.mobile-nav').getByRole('button', { name: 'Mais' }).click();
+      await page.locator('.mobile-nav-more').getByRole('button', { name: 'Sair' }).click();
+    } else {
+      await page.locator('.desktop-nav').getByRole('button', { name: 'Sair' }).click();
+    }
     await expect(page).toHaveURL(/\/login/);
   });
 });

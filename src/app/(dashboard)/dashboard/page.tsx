@@ -1,12 +1,10 @@
 import { Card } from '@/components/ui/Card';
-import { LogoutButton } from '@/features/auth/LogoutButton';
 
 export default function DashboardPage() {
   return (
-    <main className="shell">
+    <div className="shell">
       <p className="eyebrow">Hoje</p>
       <h1>Olá! Vamos organizar o seu dia.</h1>
-      <LogoutButton />
       <section className="dashboard-grid" aria-label="Resumo do dia">
         <Card>
           <strong>Próxima cliente</strong>
@@ -25,6 +23,6 @@ export default function DashboardPage() {
           <p>0,00 €</p>
         </Card>
       </section>
-    </main>
+    </div>
   );
 }

@@ -33,7 +33,7 @@
 - [x] **NEX-020** — Implementar login e logout _(depende: NEX-013)_
 - [x] **NEX-021** — Implementar recuperação de palavra-passe _(depende: NEX-020)_
 - [x] **NEX-022** — Proteger rotas privadas _(depende: NEX-020)_
-- [ ] **NEX-023** — Implementar shell responsivo autenticado _(depende: NEX-022)_
+- [x] **NEX-023** — Implementar shell responsivo autenticado _(depende: NEX-022)_
 
 ### EPIC-03 — Onboarding guiado da dona
 

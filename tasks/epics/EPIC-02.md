@@ -146,26 +146,26 @@ Implementar implementar shell responsivo autenticado sem expandir o escopo para 
 
 **Critérios de aceite**
 
-- Menu mobile/desktop conforme especificação; foco e teclado.
+- Menu mobile/desktop conforme especificação (`01_PRODUCT_REQUIREMENTS.md` #14): barra inferior mobile (Início/Agenda/Clientes/Serviços/Mais, "Mais" com Financeiro/Relatórios/Definições/Terminar sessão); sidebar desktop mostra tudo diretamente (amplia, não duplica — `CLAUDE.md`). Foco e teclado: skip link, `aria-current`, painel "Mais" fecha com Escape e devolve o foco ao botão.
 - Nenhum dado de outro tenant pode ser acedido.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Axe + Playwright mobile/desktop.
+- Axe + Playwright mobile/desktop. `tests/e2e/dashboard-shell.spec.ts` (5 testes): 0 violações Axe, nav correta por viewport, painel "Mais" (mobile) com fecho por Escape e retorno de foco, skip link move o foco real (não só scroll), `aria-current` correto em ambos os layouts (mesmo o escondido por CSS). Corrido em `chromium` e `webkit-mobile`.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. Axe apanhou um problema real de contraste (item de nav ativo: 4.37:1, abaixo do mínimo AA de 4.5:1) — corrigido trocando a cor do texto ativo para `var(--text)` com peso maior, mantendo o destaque sem depender só da cor. Criadas páginas mínimas "em breve" para os 6 destinos do menu ainda não implementados (`typedRoutes` exige rotas reais para `Link`); serão substituídas pelas tarefas dos respetivos épicos.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
