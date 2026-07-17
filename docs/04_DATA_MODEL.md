@@ -4,11 +4,12 @@
 
 - IDs UUID aleatórios.
 - Todos os recursos de negócio têm `tenant_id`.
+- Referências entre tabelas tenant-scoped usam FK compostas `(tenant_id, id)`, não apenas `id` — impede estruturalmente que uma linha aponte para um recurso de outro tenant, como defesa em profundidade além da RLS (`NEX-011`, `supabase/migrations/0002_harden_tenant_fk_integrity.sql`).
 - Dinheiro em `bigint`/inteiro de cêntimos.
 - Datas de evento em `timestamptz`.
 - Soft delete apenas quando necessário; preferir estados explícitos.
 - Tokens públicos armazenados como SHA-256, nunca em texto claro.
-- `created_at` e `updated_at` em entidades mutáveis.
+- `created_at` e `updated_at` em entidades mutáveis; `updated_at` é mantido por trigger de base de dados (`set_updated_at`), não pela aplicação.
 - `audit_logs` é append-only.
 
 ## Entidades principais

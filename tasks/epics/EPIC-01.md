@@ -64,14 +64,14 @@ Implementar rever e endurecer schema inicial sem expandir o escopo para funciona
 
 **Critérios de aceite**
 
-- Constraints, FK, índices e tipos revistos; migration imutável após aceite.
-- Nenhum dado de outro tenant pode ser acedido.
+- Constraints, FK, índices e tipos revistos; migration imutável após aceite. `0001_initial.sql` não foi editada — reforços entraram em `0002_harden_tenant_fk_integrity.sql`.
+- Nenhum dado de outro tenant pode ser acedido. FKs entre tabelas tenant-scoped passaram a compostas `(tenant_id, id)`, fechando uma lacuna onde a integridade cross-tenant dependia só de RLS.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Testes SQL de invariantes.
+- Testes SQL de invariantes. `tests/integration/schema-invariants.test.ts` (7 testes), gated por `TEST_DATABASE_URL` — skip limpo sem BD (não quebra `npm run verify` sem Postgres disponível).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
@@ -82,11 +82,11 @@ Implementar rever e endurecer schema inicial sem expandir o escopo para funciona
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-012 — Implementar RLS tenant-scoped
 
