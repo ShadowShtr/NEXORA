@@ -23,29 +23,29 @@ Implementar implementar login e logout sem expandir o escopo para funcionalidade
 
 **Critérios de aceite**
 
-- Login por e-mail/password, erros genéricos e redirect seguro.
+- Login por e-mail/password, erros genéricos e redirect seguro. `signInWithPassword` via server action; mensagem de erro única e genérica independentemente da causa (não revela se o e-mail existe); redirect fixo para `/dashboard` (sem parâmetro `next`, sem superfície de open redirect).
 - Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um ecrã, uma decisão (entrar), erro inline com `role="alert"`.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- E2E sucesso/falha.
+- E2E sucesso/falha. `tests/e2e/login.spec.ts`: credenciais inválidas → erro genérico visível, sem navegação; credenciais válidas → login, redirect para `/dashboard`, logout → redirect para `/login`. Corrido em `chromium` e `webkit-mobile` contra o projeto Supabase dev, com utilizador provisionado real (`tests/e2e/support/provisioned-user.ts`, reutilizável pelas próximas tarefas do épico).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. E2E ainda não corre em CI (`ci.yml` não tem step `test:e2e`; exigiria instalar browsers e configurar `NEXT_PUBLIC_SUPABASE_*`/`SUPABASE_SERVICE_ROLE_KEY` como secrets do GitHub Actions apontando ao projeto dev). Decisão de infraestrutura não tomada sem confirmação do owner — ver evidência.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-021 — Implementar recuperação de palavra-passe
 

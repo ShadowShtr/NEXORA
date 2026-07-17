@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typedRoutes: true,
+  // Playwright's webServer drives the dev server from 127.0.0.1; without this, Next.js
+  // blocks the HMR cross-origin request as a dev-only safety default (not a security
+  // control affected by this — production builds don't run the dev HMR endpoint).
+  allowedDevOrigins: ['127.0.0.1'],
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
