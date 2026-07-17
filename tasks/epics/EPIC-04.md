@@ -64,29 +64,29 @@ Implementar crud de serviços sem expandir o escopo para funcionalidades não ap
 
 **Critérios de aceite**
 
-- Nome, preço, duração, categoria, ativo.
-- Nenhum dado de outro tenant pode ser acedido.
+- Nome, preço, duração, categoria, ativo. `src/features/catalog/ServicesManager.tsx`: criar e editar nome/preço/duração/categoria (select das categorias existentes, incluindo ocultas — ocultar é sobre visibilidade pública, não impede uso interno), ativar/desativar (`is_active`, controla também a visibilidade no catálogo público). Preço partilha o parser euros→cêntimos com o passo de serviços do onboarding (`src/lib/validation/money.ts#priceEurosSchema`, extraído nesta tarefa para não duplicar a lógica).
+- Nenhum dado de outro tenant pode ser acedido. `services` já coberta pela política RLS genérica tenant-scoped — sem migração nova.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Cêntimos, duração e duplicados.
+- Cêntimos, duração e duplicados. `tests/unit/service.test.ts` (9 testes): conversão euros→cêntimos (vírgula e ponto), preço negativo/inválido rejeitado, duração fora de 5–720 rejeitada (incl. limites aceites), `categoryId` não-UUID rejeitado. `tests/integration/services-rls.test.ts` (7 testes, contra BD real): dono vê os próprios serviços; dono de outro tenant não vê; `anon` vê serviço ativo (catálogo público) mas não inativo; dono não insere com `tenant_id` de outro tenant (`42501`); nome duplicado no mesmo tenant (`23505`); duração fora do intervalo (`23514`); preço negativo (`23514`). `tests/e2e/catalog-services.spec.ts` (6 testes, chromium + webkit-mobile): Axe; mensagem de ajuda até existir categoria; criar (preço persistido em cêntimos); nome duplicado com erro amigável; editar nome/preço/categoria; ativar/desativar.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície — reutiliza RLS existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado via `tests/integration/services-rls.test.ts`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-042 — CRUD de pacotes
 
