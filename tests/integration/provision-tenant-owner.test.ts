@@ -27,7 +27,10 @@ describe.runIf(canRun)('provision_tenant_owner (NEX-013)', () => {
 
   afterAll(async () => {
     if (createdSlugs.length > 0) {
-      await admin.from('tenants').delete().in('slug', createdSlugs);
+      // Provisioned tenants have an audit_logs row (audit_logs.tenant_id is
+      // ON DELETE RESTRICT since NEX-014), so hard-deleting them would fail — soft
+      // delete instead, exactly like the product does for real tenant removal.
+      await admin.from('tenants').update({ status: 'deleted' }).in('slug', createdSlugs);
     }
     for (const id of createdUserIds) {
       await admin.auth.admin.deleteUser(id);

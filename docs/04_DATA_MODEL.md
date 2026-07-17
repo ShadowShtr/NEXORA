@@ -10,7 +10,7 @@
 - Soft delete apenas quando necessário; preferir estados explícitos.
 - Tokens públicos armazenados como SHA-256, nunca em texto claro.
 - `created_at` e `updated_at` em entidades mutáveis; `updated_at` é mantido por trigger de base de dados (`set_updated_at`), não pela aplicação.
-- `audit_logs` é append-only.
+- `audit_logs` é append-only, enforced por trigger `BEFORE UPDATE/DELETE` (`NEX-014`, `0004_audit_logs_immutable.sql`) — RLS sozinha não bastava porque `service_role` tem `BYPASSRLS`. Consequência: um tenant com histórico de auditoria não pode ser `DELETE`d (só soft delete via `tenant_status='deleted'`); `audit_logs.tenant_id` é `on delete restrict`, não `set null`.
 
 ## Entidades principais
 
