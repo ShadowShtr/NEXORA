@@ -137,6 +137,16 @@ a:focus-visible {
 .wizard-card {
   width: min(640px, 100%);
 }
+.publish-preview {
+  word-break: break-all;
+  color: var(--muted);
+}
+.publish-qr {
+  border-radius: 1rem;
+  background: white;
+  padding: 0.75rem;
+  justify-self: start;
+}
 .hours-list {
   display: grid;
   gap: 1rem;
