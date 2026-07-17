@@ -31,6 +31,7 @@ O documento `docs/reference/PROMPT_MESTRE_ARQUITETO_SAAS_CYBERSEGURANCA_PRIVACID
 - Autorize no servidor; a UI nunca é um controlo de segurança.
 - Derive `tenant_id` da sessão autenticada, nunca de input livre do cliente.
 - Use transações e constraints para invariantes de agenda e financeiro.
+- Toda função `security definer` não destinada à API pública deve revogar `EXECUTE` explicitamente de `public`, `anon` **e** `authenticated` — este projeto concede `EXECUTE` a `anon`/`authenticated` por omissão em novas funções do schema `public`, e `revoke ... from public` sozinho não remove essas concessões diretas (`ADR-008`). Cobrir com teste de integração que confirme `42501` para esses roles.
 - Nunca exponha `SUPABASE_SERVICE_ROLE_KEY` ao browser.
 - Nunca registe passwords, tokens, links secretos completos ou dados pessoais desnecessários.
 - Não implemente rate limit em memória para produção serverless.

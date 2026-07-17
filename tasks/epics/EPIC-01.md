@@ -146,29 +146,29 @@ Implementar implementar provisioning de tenant/owner sem expandir o escopo para 
 
 **Critérios de aceite**
 
-- Fluxo administrativo atómico cria tenant, profile e settings.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Fluxo administrativo atómico cria tenant, profile e settings. `provision_tenant_owner` (função `security definer`, `supabase/migrations/0003_provision_tenant_owner.sql`) cria as três linhas numa única chamada; `scripts/provision-owner.mjs` orquestra a criação do utilizador Auth + a chamada à função.
+- Nenhum dado de outro tenant pode ser acedido. Função revogada de `public`/`anon`/`authenticated`, só `service_role` pode executar — testado e corrigido (ver risco residual).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. _Sem UI nesta tarefa — fluxo é administrativo/CLI, sem cadastro público (`CLAUDE.md`)._
+- Logs não contêm segredos nem PII desnecessária. `audit_logs.metadata` regista apenas o slug, não dados pessoais.
 
 **Testes obrigatórios**
 
-- Rollback em falha e auditoria.
+- Rollback em falha e auditoria. `tests/integration/provision-tenant-owner.test.ts` (4 testes): caminho feliz com auditoria, rollback ao falhar a seguir à criação do tenant, rejeição de duplo provisioning, e confirmação de que `anon` não consegue chamar a função.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. Ver `docs/evidence/NEX-013_TENANT_PROVISIONING.md`: `revoke ... from public` não bastou — Supabase concede `EXECUTE` a `anon`/`authenticated` por omissão em funções novas do schema `public`; corrigido com revokes explícitos.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-014 — Implementar auditoria append-only
 
