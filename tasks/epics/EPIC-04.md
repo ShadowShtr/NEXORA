@@ -105,29 +105,29 @@ Implementar crud de pacotes sem expandir o escopo para funcionalidades não apro
 
 **Critérios de aceite**
 
-- Nome, itens, preço e duração derivada.
-- Nenhum dado de outro tenant pode ser acedido.
+- Nome, itens, preço e duração derivada. `src/features/catalog/PackagesManager.tsx`: criar/editar nome, preço (direto, tal como serviços) e itens (checkboxes dos serviços do tenant); duração **nunca guardada**, sempre calculada como soma das durações dos serviços incluídos (`docs/04_DATA_MODEL.md` #61 — `packages` não tem coluna de duração), via `derivePackageDurationMinutes()`. Ativar/desativar (`is_active`, controla visibilidade no catálogo público).
+- Nenhum dado de outro tenant pode ser acedido. `packages`/`package_services` já cobertas pela política RLS genérica tenant-scoped — sem migração nova.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Sem item duplicado; preço válido.
+- Sem item duplicado; preço válido. "Sem item duplicado" já garantido pela BD: `package_services` tem chave primária composta `(package_id, service_id)` (`0001_initial.sql`) — inserir o mesmo serviço duas vezes no mesmo pacote é fisicamente impossível via checkbox (cada valor só pode estar marcado uma vez), e confirmado a nível de API por teste direto. `tests/unit/package.test.ts` (8 testes): schema (nome, preço negativo, lista de serviços vazia rejeitada, id não-UUID) e `derivePackageDurationMinutes` (soma, lista vazia, id em falta ignorado). `tests/integration/packages-rls.test.ts` (7 testes, contra BD real): dono vê os próprios pacotes/itens; dono de outro tenant não vê; `anon` vê pacote ativo (catálogo público) mas não inativo; nome duplicado (`23505`); preço negativo (`23514`); item duplicado no mesmo pacote (`23505`, chave composta); item a referenciar serviço doutro tenant rejeitado pela FK composta tenant-scoped (`23503`, `NEX-011`). `tests/e2e/catalog-packages.spec.ts` (5 testes, chromium + webkit-mobile): Axe; mensagem de ajuda sem serviços; criar pacote com 2 serviços confirmando preço em cêntimos e duração somada (105 min = 60+45); nome duplicado com erro amigável; ativar/desativar.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície — reutiliza RLS existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado via `tests/integration/packages-rls.test.ts`, incluindo a FK composta tenant-scoped de `NEX-011` a impedir referenciar serviços de outro tenant.
+- Registar risco residual ou decisão temporária. `createPackage`/`updatePackage` fazem 2–3 escritas sequenciais (pacote + itens) sem transação — sem RPC dedicada disponível via cliente autenticado normal; em falha a meio, há compensação (apagar o pacote recém-criado) para `createPackage`, mas `updatePackage` pode, em falha rara a meio, deixar um pacote sem itens. Risco aceite para este MVP de dono único/baixa concorrência; registado para eventual RPC transacional se vier a ser um problema real.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-043 — Regras de combinação pacote/extras
 

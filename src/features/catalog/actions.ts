@@ -16,10 +16,17 @@ import {
   serviceIdSchema,
   updateServiceSchema,
 } from '@/features/catalog/domain/service';
+import {
+  createPackageSchema,
+  packageIdSchema,
+  updatePackageSchema,
+} from '@/features/catalog/domain/package';
 import type { Result } from '@/lib/result';
 
 const DUPLICATE_CATEGORY_NAME_MESSAGE = 'Já existe uma categoria com esse nome.';
 const DUPLICATE_SERVICE_NAME_MESSAGE = 'Já existe um serviço com esse nome.';
+const DUPLICATE_PACKAGE_NAME_MESSAGE = 'Já existe um pacote com esse nome.';
+const PACKAGE_SAVE_ERROR_MESSAGE = 'Não foi possível guardar o pacote. Tente novamente.';
 
 export async function createCategory(
   _prevState: Result<null> | null,
@@ -333,6 +340,165 @@ export async function toggleServiceActive(
   const { error } = await supabase
     .from('services')
     .update({ is_active: !service.is_active })
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/dashboard/servicos');
+  return { ok: true, value: null };
+}
+
+export async function createPackage(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = createPackageSchema.safeParse({
+    name: formData.get('name'),
+    priceEuros: formData.get('priceEuros'),
+    serviceIds: formData.getAll('serviceIds'),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique os dados do pacote.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: created, error: packageError } = await supabase
+    .from('packages')
+    .insert({ tenant_id: tenantId, name: parsed.data.name, price_cents: parsed.data.priceEuros })
+    .select('id')
+    .single();
+
+  if (packageError) {
+    if (packageError.code === '23505') {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: DUPLICATE_PACKAGE_NAME_MESSAGE },
+      };
+    }
+    return { ok: false, error: { code: 'INTERNAL_ERROR', message: PACKAGE_SAVE_ERROR_MESSAGE } };
+  }
+
+  const { error: itemsError } = await supabase.from('package_services').insert(
+    parsed.data.serviceIds.map((serviceId) => ({
+      tenant_id: tenantId,
+      package_id: created.id,
+      service_id: serviceId,
+    })),
+  );
+
+  if (itemsError) {
+    // Compensate: no transactions available over the JS client — remove the
+    // package rather than leave an item-less pacote behind.
+    await supabase.from('packages').delete().eq('id', created.id).eq('tenant_id', tenantId);
+    return { ok: false, error: { code: 'INTERNAL_ERROR', message: PACKAGE_SAVE_ERROR_MESSAGE } };
+  }
+
+  revalidatePath('/dashboard/servicos');
+  return { ok: true, value: null };
+}
+
+export async function updatePackage(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = updatePackageSchema.safeParse({
+    id: formData.get('id'),
+    name: formData.get('name'),
+    priceEuros: formData.get('priceEuros'),
+    serviceIds: formData.getAll('serviceIds'),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues[0]?.message ?? 'Verifique os dados do pacote.',
+      },
+    };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { error: packageError } = await supabase
+    .from('packages')
+    .update({ name: parsed.data.name, price_cents: parsed.data.priceEuros })
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', tenantId);
+
+  if (packageError) {
+    if (packageError.code === '23505') {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: DUPLICATE_PACKAGE_NAME_MESSAGE },
+      };
+    }
+    return { ok: false, error: { code: 'INTERNAL_ERROR', message: PACKAGE_SAVE_ERROR_MESSAGE } };
+  }
+
+  const { error: deleteError } = await supabase
+    .from('package_services')
+    .delete()
+    .eq('package_id', parsed.data.id)
+    .eq('tenant_id', tenantId);
+  if (deleteError) {
+    return { ok: false, error: { code: 'INTERNAL_ERROR', message: PACKAGE_SAVE_ERROR_MESSAGE } };
+  }
+
+  const { error: itemsError } = await supabase.from('package_services').insert(
+    parsed.data.serviceIds.map((serviceId) => ({
+      tenant_id: tenantId,
+      package_id: parsed.data.id,
+      service_id: serviceId,
+    })),
+  );
+  if (itemsError) {
+    return { ok: false, error: { code: 'INTERNAL_ERROR', message: PACKAGE_SAVE_ERROR_MESSAGE } };
+  }
+
+  revalidatePath('/dashboard/servicos');
+  return { ok: true, value: null };
+}
+
+export async function togglePackageActive(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = packageIdSchema.safeParse({ id: formData.get('id') });
+  if (!parsed.success) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Pacote inválido.' } };
+  }
+
+  const { tenantId } = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: pkg } = await supabase
+    .from('packages')
+    .select('is_active')
+    .eq('id', parsed.data.id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (!pkg) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Pacote não encontrado.' } };
+  }
+
+  const { error } = await supabase
+    .from('packages')
+    .update({ is_active: !pkg.is_active })
     .eq('id', parsed.data.id)
     .eq('tenant_id', tenantId);
 
