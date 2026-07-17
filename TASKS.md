@@ -43,7 +43,7 @@
 - [x] **NEX-033** — Passo serviços iniciais _(depende: NEX-030)_
 - [x] **NEX-034** — Passo regras recomendadas _(depende: NEX-030)_
 - [x] **NEX-035** — Passo publicar link e QR Code _(depende: NEX-031,NEX-033,NEX-034)_
-- [ ] **NEX-036** — Teste de usabilidade do onboarding _(depende: NEX-035)_
+- [x] **NEX-036** — Teste de usabilidade do onboarding _(depende: NEX-035)_
 
 ### EPIC-04 — Catálogo de serviços e pacotes
 

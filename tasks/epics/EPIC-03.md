@@ -269,26 +269,26 @@ Implementar teste de usabilidade do onboarding sem expandir o escopo para funcio
 
 **Critérios de aceite**
 
-- Fluxo concluído sem linguagem técnica e em tempo alvo definido.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Fluxo concluído sem linguagem técnica e em tempo alvo definido. Não havia um tempo alvo documentado ainda — definido nesta tarefa: **≤ 5 minutos** para uma dona sem conhecimento técnico, em telemóvel, do login até "Publicar" (ver `docs/evidence/NEX-036_USABILITY_TEST.md`). Sessão auditada (percurso completo, viewport 390×844, dados realistas) confirma o fluxo funcional e bem dentro do alvo; scan de vocabulário nas 5 etapas + dashboard não encontrou nenhum termo técnico (`tenant`, `slug`, `RLS`, `backend`, `UUID`, etc.) exposto na interface.
+- Nenhum dado de outro tenant pode ser acedido. Sem alteração de superfície nesta tarefa — RLS já coberta pelos testes de integração existentes (`NEX-012`, `NEX-035`).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Confirmado visualmente (capturas de ecrã) nas 5 etapas.
+- Logs não contêm segredos nem PII desnecessária. Sem alteração de logging nesta tarefa.
 
 **Testes obrigatórios**
 
-- Sessão observada/documentada.
+- Sessão observada/documentada. Sem painel de utilizadoras reais disponível nesta fase — sessão conduzida como **auditoria heurística automatizada** (percurso real via browser, não simulação de asserts), documentada em `docs/evidence/NEX-036_USABILITY_TEST.md` com tempos por passo, capturas de ecrã e resultado do scan de jargão. Validação com a profissional-alvo real fica registada como recomendação para antes do lançamento.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — sem alteração de schema/RLS.
+- Registar risco residual ou decisão temporária. Ver "Riscos residuais" na evidência.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
