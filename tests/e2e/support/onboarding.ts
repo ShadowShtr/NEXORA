@@ -56,3 +56,9 @@ export async function completeServicesStep(page: Page, overrides: ServiceItemOve
   await addServiceItem(page, overrides);
   await page.getByRole('button', { name: 'Seguinte' }).click();
 }
+
+// Step 4 loads pre-filled with recommended values (NEX-034) — submitting as-is is
+// enough to advance for tests that just need to get past this step.
+export async function completeRulesStep(page: Page) {
+  await page.getByRole('button', { name: 'Seguinte' }).click();
+}

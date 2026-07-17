@@ -37,7 +37,8 @@ a {
   color: inherit;
 }
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -198,7 +199,8 @@ label {
   gap: 0.45rem;
   font-weight: 700;
 }
-input {
+input,
+select {
   min-height: 48px;
   border: 1px solid var(--pink-300);
   border-radius: 0.9rem;

@@ -187,14 +187,14 @@ Implementar passo regras recomendadas sem expandir o escopo para funcionalidades
 
 **Critérios de aceite**
 
-- Aplicar defaults com um toque e permitir edição.
-- Nenhum dado de outro tenant pode ser acedido.
+- Aplicar defaults com um toque e permitir edição. 5 `<select>` (intervalo da agenda, intervalo entre clientes, antecedência mínima, janela de marcação, aviso de cancelamento) já carregam com os valores recomendados de `docs/01_PRODUCT_REQUIREMENTS.md` #5 (aplicados automaticamente pelos defaults de coluna em `business_settings` desde `NEX-013`); botão "Usar recomendações" repõe todos com um clique (client-side, via `ref`, sem round-trip ao servidor); todos os campos continuam editáveis livremente antes de submeter.
+- Nenhum dado de outro tenant pode ser acedido. Validação server-side confirma que o valor pertence ao conjunto permitido de cada regra, mesmo que o `<select>` nativo já restrinja no cliente (defesa em profundidade — `CLAUDE.md`: "a UI nunca é um controlo de segurança").
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- E2E recomendações.
+- E2E recomendações. `tests/unit/rules-step.test.ts` (4 testes: defaults aceites, todos os valores permitidos de cada campo aceites, valor fora do conjunto rejeitado mesmo sendo numérico, valor não numérico rejeitado). `tests/e2e/onboarding-rules-step.spec.ts` (5 testes): Axe, valores recomendados corretos no carregamento, editar e persistir um valor diferente do recomendado, **"Usar recomendações" repõe campos editados com um toque**, "Voltar" funciona. Chromium + webkit-mobile.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
@@ -205,11 +205,11 @@ Implementar passo regras recomendadas sem expandir o escopo para funcionalidades
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-035 — Passo publicar link e QR Code
 
