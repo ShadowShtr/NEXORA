@@ -31,7 +31,7 @@
 ### EPIC-02 — Autenticação e sessão da dona
 
 - [x] **NEX-020** — Implementar login e logout _(depende: NEX-013)_
-- [ ] **NEX-021** — Implementar recuperação de palavra-passe _(depende: NEX-020)_
+- [x] **NEX-021** — Implementar recuperação de palavra-passe _(depende: NEX-020)_
 - [ ] **NEX-022** — Proteger rotas privadas _(depende: NEX-020)_
 - [ ] **NEX-023** — Implementar shell responsivo autenticado _(depende: NEX-022)_
 

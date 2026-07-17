@@ -64,29 +64,29 @@ Implementar implementar recuperação de palavra-passe sem expandir o escopo par
 
 **Critérios de aceite**
 
-- Fluxo seguro, token único, expiry e redirect allowlist.
+- Fluxo seguro, token único, expiry e redirect allowlist. Token único/expiry geridos nativamente pelo Supabase Auth (não reinventado); `redirectTo` é sempre um caminho interno fixo (`/definir-password`), nunca derivado de input — a forma mais forte de allowlist (tamanho 1). Confirmado empiricamente que reutilizar o mesmo link falha.
 - Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Ecrã de pedido → mensagem de confirmação neutra → ecrã de nova palavra-passe.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- E2E e abuso básico.
+- E2E e abuso básico. `tests/e2e/password-recovery.spec.ts`: (1) pedir recuperação para e-mail inexistente não revela isso (mesma mensagem genérica — teste de abuso básico/anti-enumeração); (2) fluxo completo com link real gerado via Admin API, define nova password, confirma redirect para `/dashboard`, confirma que **reutilizar o mesmo link falha** (token único), confirma login com a nova password. Corrido em `chromium` e `webkit-mobile`.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. Descoberta técnica registada em `ADR-009`: `@supabase/ssr` força `flowType: "pkce"` de forma não substituível, mas os links de e-mail do Supabase usam o fluxo implícito (tokens no fragmento da URL) — a deteção automática de sessão nunca funcionaria; corrigido com parsing manual do fragmento + `setSession()` explícito. Padrão a repetir em qualquer fluxo futuro baseado em link de e-mail.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-022 — Proteger rotas privadas
 
