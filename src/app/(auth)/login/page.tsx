@@ -1,10 +1,21 @@
 'use client';
 
-import { useActionState } from 'react';
+import { Suspense, useActionState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { login } from '@/features/auth/actions';
 import type { Result } from '@/lib/result';
+
+function NoProfileNotice() {
+  const searchParams = useSearchParams();
+  if (searchParams.get('error') !== 'no_profile') return null;
+  return (
+    <p role="alert" className="form-error">
+      Esta conta ainda não está configurada. Contacte o suporte.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState<Result<null> | null, FormData>(login, null);
@@ -23,6 +34,9 @@ export default function LoginPage() {
             Palavra-passe
             <input name="password" type="password" autoComplete="current-password" required />
           </label>
+          <Suspense fallback={null}>
+            <NoProfileNotice />
+          </Suspense>
           {state && !state.ok ? (
             <p role="alert" className="form-error">
               {state.error.message}

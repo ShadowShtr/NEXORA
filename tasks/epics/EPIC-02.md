@@ -105,29 +105,29 @@ Implementar proteger rotas privadas sem expandir o escopo para funcionalidades n
 
 **Critérios de aceite**
 
-- Claims validadas no servidor; utilizador sem profile bloqueado.
+- Claims validadas no servidor; utilizador sem profile bloqueado. Duas camadas: `proxy.ts` valida `getClaims()` (barato, sem BD) e redireciona para `/login` qualquer rota fora da allowlist pública; `(dashboard)/layout.tsx` revalida `getClaims()` de novo (defesa em profundidade — nunca confia num hop anterior) e verifica se existe `profile` (uma leitura à BD, escopo só às rotas que precisam, não em todas as requisições).
 - Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Mensagem clara quando a conta não está configurada.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Testes de sessão falsificada.
+- Testes de sessão falsificada. `tests/e2e/protected-routes.spec.ts` (3 testes): sem sessão → redirect para `/login`; cookie de sessão adulterado (após login real) → redirect para `/login`, não concede acesso; sessão válida mas sem `profile` → login "sucede" mas o layout expulsa e redireciona com mensagem.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Registar risco residual ou decisão temporária. Bug de build encontrado e corrigido: `useSearchParams()` na página de login quebrava `next build` (precisa de `Suspense` para pré-renderização estática) — não aparecia em `next dev`, só na build de produção; `/dashboard` passou a rota dinâmica (`ƒ`) como consequência correta de ter proteção server-side real.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-023 — Implementar shell responsivo autenticado
 
