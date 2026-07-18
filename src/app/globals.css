@@ -757,3 +757,35 @@ select {
 .appointment-card-actions .button {
   margin-top: 0;
 }
+
+.agenda-view-switcher,
+.agenda-date-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.agenda-view-switcher .button,
+.agenda-date-nav .button {
+  margin-top: 0;
+  min-width: 0;
+}
+.agenda-view-switcher a[aria-current='page'] {
+  background: var(--pink-100);
+  border-color: var(--pink-300);
+  color: var(--text);
+  font-weight: 800;
+}
+.agenda-range-label {
+  font-weight: 800;
+  padding: 0 0.5rem;
+}
+.agenda-day-groups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.agenda-day-group-label {
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}

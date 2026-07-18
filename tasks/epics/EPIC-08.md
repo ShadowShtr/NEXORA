@@ -105,29 +105,29 @@ Implementar visualizações dia/semana/mês sem expandir o escopo para funcional
 
 **Critérios de aceite**
 
-- Navegação eficiente e responsiva.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Navegação eficiente e responsiva. `resolveCalendarRange`/`shiftCalendarDate`/`formatRangeLabel` (`src/features/appointments/domain/calendar-navigation.ts`, funções puras): calculam limites de dia/semana (segunda a domingo)/mês no timezone do tenant via `fromZonedTime` (mesmo helper do motor de disponibilidade), com navegação anterior/seguinte/hoje âncorada ao início do período (evita deriva em meses de tamanhos diferentes — dia 31 + 1 mês cai em fevereiro, não março). Estado de vista/data vive na URL (`?view=&date=`), não em estado de componente cliente — página inteiramente server-rendered, `<a>` simples para navegação (`typedRoutes` exige rotas estáticas para `<Link>`, mesmo padrão já usado noutras páginas com hrefs dinâmicos).
+- Nenhum dado de outro tenant pode ser acedido. Mesmo padrão de `NEX-080`/`081`: `requireProfile()` deriva `tenantId`, toda query filtra por ele.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Três botões de vista (Dia/Semana/Mês) com `aria-current`, navegação Anterior/Seguinte/Hoje, agrupamento por dia com label em pt-PT nas vistas semana/mês.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- E2E datas e DST.
+- E2E datas e DST. `tests/unit/calendar-navigation.test.ts` (16 testes): limites de cada vista, semana começa à segunda mesmo ancorando num domingo, mês bissexto, navegação não salta mês em meses mais curtos, e — o núcleo do critério — vistas semana/mês que atravessam as transições de horário de verão de 2026 (`2026-03-29` primavera, `2026-10-25` outono) têm a duração elapsed correta (uma hora a menos/mais). `tests/e2e/agenda-calendar-views.spec.ts`: alternar entre vistas mantém a marcação de hoje visível, navegar um mês em frente esconde-a, "Hoje" traz de volta; navegação dia-a-dia atravessando `2026-03-29` mostra a marcação exatamente no dia certo, com a hora local correta.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — mesma leitura tenant-scoped já existente, só com intervalo de datas maior.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Herdado de `requireProfile()`/RLS.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-083 — Resumo/lista de horários livres
 
