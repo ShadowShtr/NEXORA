@@ -20,6 +20,7 @@ export type ResolvedBooking = {
     postalCode: string | null;
     locality: string | null;
     mapsUrl: string | null;
+    timezone: string;
   };
   items: { description: string; unitPriceCents: number; quantity: number }[];
 };
@@ -59,7 +60,7 @@ export async function resolveBookingByToken(token: string): Promise<ResolvedBook
     admin
       .from('tenants')
       .select(
-        'name, business_settings(professional_name, address_line, postal_code, locality, maps_url)',
+        'name, business_settings(professional_name, address_line, postal_code, locality, maps_url, timezone)',
       )
       .eq('id', appointment.tenant_id)
       .maybeSingle(),
@@ -88,6 +89,7 @@ export async function resolveBookingByToken(token: string): Promise<ResolvedBook
       postalCode: settings?.postal_code ?? null,
       locality: settings?.locality ?? null,
       mapsUrl: settings?.maps_url ?? null,
+      timezone: settings?.timezone ?? 'Europe/Lisbon',
     },
     items: (items ?? []).map((item) => ({
       description: item.description,

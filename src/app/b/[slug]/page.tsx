@@ -143,6 +143,7 @@ export default async function PublicBusinessPage({
         businessName={tenant.name}
         phoneE164={settings.phone_e164}
         timezone={settings.timezone}
+        locationUrl={locationUrl}
         categoryGroups={categoryGroups}
         packages={packageOptions}
       />

@@ -73,7 +73,7 @@
 
 ### EPIC-07 — Confirmação e link da marcação
 
-- [ ] **NEX-070** — Criar ecrã final de confirmação _(depende: NEX-064)_
+- [x] **NEX-070** — Criar ecrã final de confirmação _(depende: NEX-064)_
 - [x] **NEX-071** — Criar link público seguro _(depende: NEX-064)_
 - [x] **NEX-072** — Gerar ficheiro ICS _(depende: NEX-071)_
 - [x] **NEX-073** — Implementar abrir localização _(depende: NEX-071)_

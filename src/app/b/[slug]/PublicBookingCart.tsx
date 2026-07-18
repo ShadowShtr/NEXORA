@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PreRegistrationStep } from './PreRegistrationStep';
 import { SlotPicker } from './SlotPicker';
+import { BookingConfirmation } from './BookingConfirmation';
 import { resumeBookingDraft, saveBookingDraft } from './draft-actions';
 import { createPublicBooking } from './booking-actions';
 import { generateIdempotencyKey } from './domain/idempotency-key';
@@ -60,6 +61,7 @@ export function PublicBookingCart({
   businessName,
   phoneE164,
   timezone,
+  locationUrl,
   categoryGroups,
   packages,
 }: {
@@ -68,6 +70,7 @@ export function PublicBookingCart({
   businessName: string;
   phoneE164: string | null;
   timezone: string;
+  locationUrl: string | null;
   categoryGroups: CategoryGroup[];
   packages: PackageOption[];
 }) {
@@ -80,7 +83,7 @@ export function PublicBookingCart({
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
-  const [confirmedBooking, setConfirmedBooking] = useState<{ appointmentId: string } | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<{ bookingToken: string } | null>(null);
 
   // Attempt a same-device resume once, on mount. setState only ever happens inside
   // this nested async function (never directly in the effect body), and only if the
@@ -230,7 +233,12 @@ export function PublicBookingCart({
     if (window.localStorage) {
       window.localStorage.removeItem(draftStorageKey(tenantSlug));
     }
-    setConfirmedBooking({ appointmentId: result.value.appointmentId });
+    // bookingToken is only ever null on an idempotent replay (create_public_booking,
+    // NEX-064) — unreachable here since a fresh idempotencyKey is minted on every slot
+    // selection (handleSelectSlot), so this attempt can never collide with a prior one.
+    if (result.value.bookingToken) {
+      setConfirmedBooking({ bookingToken: result.value.bookingToken });
+    }
   }
 
   if (!resumeChecked) return null;
@@ -241,10 +249,7 @@ export function PublicBookingCart({
 
   if (confirmedBooking) {
     return (
-      <Card className="public-summary">
-        <p className="public-step-label">Marcação confirmada</p>
-        <p>A sua marcação foi confirmada com sucesso.</p>
-      </Card>
+      <BookingConfirmation bookingToken={confirmedBooking.bookingToken} locationUrl={locationUrl} />
     );
   }
 

@@ -23,29 +23,29 @@ Implementar criar ecrã final de confirmação sem expandir o escopo para funcio
 
 **Critérios de aceite**
 
-- Confirmação curta com três ações.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Confirmação curta com três ações. `BookingConfirmation` (`src/app/b/[slug]/BookingConfirmation.tsx`) substitui o placeholder de sucesso do carrinho público (`PublicBookingCart.tsx`) e mostra "Ver marcação" (`/marcacao/{token}`, `NEX-071`), "Adicionar ao calendário" (`.../calendar.ics`, `NEX-072`) e "Ver no mapa" (`NEX-073`, resolvido uma vez pela página-mãe e passado como prop). Nova página `/marcacao/[token]` (`src/app/marcacao/[token]/page.tsx`, Server Component) chama `resolveBookingByToken` diretamente (mesma resolução de `NEX-071`, sem round-trip HTTP a si própria) e apresenta data/hora no timezone do negócio (`date-fns-tz` + locale `pt`), itens, total e morada — a vista legível que faltava para "Ver marcação" não abrir JSON cru.
+- Nenhum dado de outro tenant pode ser acedido. Mesma resolução por hash de token de `NEX-071`; `resolveBookingByToken` estendido com `business.timezone` (necessário para formatar a data corretamente), sem novo acesso a dados de outro tenant.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Três botões diretos, mensagem curta ("A sua marcação foi confirmada com sucesso."), estado da marcação traduzido (`STATUS_LABELS`).
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- E2E.
+- E2E. `tests/e2e/public-booking-confirmation.spec.ts`: fluxo completo do carrinho até à confirmação real (reserva de verdade via `createPublicBooking`), confirma que as três ações aparecem com `href` no formato esperado, que "Ver marcação" leva a uma página legível (não JSON) com os itens/total corretos, e que "Adicionar ao calendário" serve um ficheiro `text/calendar` válido.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — `/marcacao/[token]` é só uma vista HTML sobre a mesma resolução de token pública já existente (`NEX-071`), com o mesmo 404 uniforme (`notFound()` do Next.js) para token inválido/desconhecido.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — herda a garantia de `resolveBookingByToken`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual novo.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-071 — Criar link público seguro
 
