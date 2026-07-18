@@ -81,7 +81,7 @@
 
 ### EPIC-08 — Dashboard e agenda da dona
 
-- [ ] **NEX-080** — Dashboard combinado _(depende: NEX-023,NEX-064)_
+- [x] **NEX-080** — Dashboard combinado _(depende: NEX-023,NEX-064)_
 - [ ] **NEX-081** — Cartões de marcação _(depende: NEX-080)_
 - [ ] **NEX-082** — Visualizações dia/semana/mês _(depende: NEX-080)_
 - [ ] **NEX-083** — Resumo/lista de horários livres _(depende: NEX-061,NEX-080)_

@@ -23,29 +23,29 @@ Implementar dashboard combinado sem expandir o escopo para funcionalidades não 
 
 **Critérios de aceite**
 
-- Próxima cliente, cartões e lista do dia.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Próxima cliente, cartões e lista do dia. `DashboardPage` (`src/app/(dashboard)/dashboard/page.tsx`) substitui os quatro cartões estáticos por dados reais: "Próxima cliente" (primeira marcação `confirmed`/`presence_confirmed` do dia ainda não terminada, com nome do cliente e itens), "Marcações" (contagem do dia), "Lembretes" (`reminders.status='pending'`) e "Recebido" (`payments.status='paid'` com `paid_at` hoje). Agregação isolada em `buildDashboardSummary` (`src/features/dashboard/domain/summary.ts`), função pura testável sem BD — decide "próxima" e a contagem a partir de uma lista de marcações e do instante atual, injetado como parâmetro. "Lista do dia" completa (múltiplos cartões de marcação) fica para `NEX-081`; esta tarefa entrega o resumo agregado do Fluxo C (`docs/02_UX_FLOWS.md`: "Dona abre o painel. Próxima cliente aparece em destaque.").
+- Nenhum dado de outro tenant pode ser acedido. `requireProfile()` (já usado por todo o dashboard) deriva `tenantId` da sessão; toda query filtra por ele — nunca de input do cliente. Confirmado por teste e2e com dois tenants.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Mesmos quatro cartões já existentes, agora com dados reais; "Nenhuma marcação." quando não há próxima.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- Queries tenant-scoped e timezone.
+- Queries tenant-scoped e timezone. `tests/unit/dashboard-summary.test.ts`: seleção da próxima marcação ativa (ignora `cancelled`/`no_show`/`completed`), marcação em curso ainda conta como "próxima", contagem do dia só inclui estados ativos. `tests/e2e/dashboard-summary.spec.ts` (dois tenants provisionados reais): confirma que os dados do próprio tenant aparecem e os de outro tenant nunca aparecem na mesma página, ecrã vazio mostra "Nenhuma marcação.", marcação cancelada não conta. Cálculo do "dia" usa `fromZonedTime`/`formatInTimeZone` no timezone do tenant (`business_settings.timezone`, mesmo helper do motor de disponibilidade, `NEX-061`), não o dia UTC.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — leitura autenticada de dados já tenant-scoped por RLS.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `createClient()` cookie-scoped (RLS ativa) mais filtro explícito por `tenantId` em cada query — dupla garantia, mesmo padrão de `servicos/page.tsx`.
+- Registar risco residual ou decisão temporária. "Recebido"/"Lembretes" ficam sempre em 0 até `EPIC-11` (conclusão financeira) e `NEX-100+` (lembretes automáticos) existirem — as queries já estão corretas, só não há ainda dados reais a popular essas tabelas.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-081 — Cartões de marcação
 
