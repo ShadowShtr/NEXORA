@@ -34,3 +34,39 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://example.invalid
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key-with-minimum-length
+
+  integration:
+    # NEX-015: the RLS/isolation suite under tests/integration/ needs a real Postgres +
+    # PostgREST + Auth boundary, not mocks — it exists to catch policy regressions a unit
+    # test can't. Runs against a fresh local Supabase stack (Docker, native on
+    # ubuntu-latest) instead of the shared cloud dev project, so it's deterministic and
+    # never touches real/shared data (ADR-007: local dev lacks Docker, CI doesn't).
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: supabase start
+      - name: Run integration tests against local Supabase
+        # `supabase status -o env` values come back quoted (godotenv format) — eval'ing
+        # them under `set -a` exports each one correctly for this step's child process
+        # (npm/vitest) instead of round-tripping through $GITHUB_ENV, where the literal
+        # quote characters would end up baked into the value.
+        run: |
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.secret_key=SUPABASE_SERVICE_ROLE_KEY \
+            --override-name db.url=TEST_DATABASE_URL)"
+          set +a
+          npm run test:integration
