@@ -122,6 +122,11 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
 
     await expect(page.locator('#confirmar')).toBeInViewport();
-    await expect(page.getByRole('link', { name: 'Confirmar por WhatsApp' })).toBeInViewport();
+    // WhatsApp is now an alternative contact, not the booking mechanism (NEX-065
+    // replaced it with a real slot picker + createPublicBooking) — the confirmation
+    // card is still what "Continuar" scrolls to.
+    await expect(
+      page.getByRole('link', { name: 'Prefere combinar por WhatsApp?' }),
+    ).toBeInViewport();
   });
 });

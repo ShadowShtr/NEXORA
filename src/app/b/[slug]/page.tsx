@@ -35,7 +35,9 @@ export default async function PublicBusinessPage({
   ] = await Promise.all([
     supabase
       .from('business_settings')
-      .select('professional_name, phone_e164, address_line, postal_code, locality, maps_url')
+      .select(
+        'professional_name, phone_e164, address_line, postal_code, locality, maps_url, timezone',
+      )
       .eq('tenant_id', tenant.id)
       .maybeSingle(),
     supabase
@@ -138,6 +140,7 @@ export default async function PublicBusinessPage({
         tenantSlug={slug}
         businessName={tenant.name}
         phoneE164={settings.phone_e164}
+        timezone={settings.timezone}
         categoryGroups={categoryGroups}
         packages={packageOptions}
       />

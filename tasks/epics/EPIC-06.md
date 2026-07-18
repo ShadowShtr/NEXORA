@@ -230,29 +230,30 @@ Implementar tratar slot_taken na ux sem expandir o escopo para funcionalidades n
 
 **Critérios de aceite**
 
-- Mensagem clara, refresh de slots e carrinho preservado.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Mensagem clara, refresh de slots e carrinho preservado. O carrinho público (`src/app/b/[slug]/PublicBookingCart.tsx`) ganhou um Passo 3 real: `SlotPicker` (`SlotPicker.tsx`) busca disponibilidade via `getPublicAvailability` (`NEX-062`) para a duração total do carrinho e lista os horários agrupados por dia (`domain/slot-formatting.ts`). Ao confirmar (`createPublicBooking`, `NEX-064`), um `SLOT_TAKEN` limpa só a seleção de horário e a chave de idempotência — nunca o registo nem os serviços/pacote escolhidos — mostra "Este horário acabou de ser reservado por outra pessoa. Escolha outro." e incrementa `reloadKey` para o `SlotPicker` voltar a pedir slots frescos. O handoff por WhatsApp deixa de ser o mecanismo de reserva (passa a alternativa de contacto, "Prefere combinar por WhatsApp?").
+- Nenhum dado de outro tenant pode ser acedido. Reutiliza `getPublicAvailability`/`createPublicBooking`, já tenant-scoped (`NEX-062`/`064`); nenhuma leitura nova nesta tarefa.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Passos numerados (1–4), um horário por botão com estado `aria-pressed`, mensagens diretas em português.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado.
 
 **Testes obrigatórios**
 
-- E2E corrida de reservas.
-- `npm run verify` passa.
+- E2E corrida de reservas. `tests/e2e/public-booking-race.spec.ts`: dois `browser.newContext()` independentes (dois visitantes reais) escolhem o mesmo primeiro horário disponível e confirmam em paralelo (`Promise.all`) — exatamente um recebe o ecrã de sucesso, o outro vê o alerta de `SLOT_TAKEN` com o checkbox do serviço ainda marcado (carrinho preservado) e a base de dados confirma só 1 `appointment` criado.
+- `tests/unit/slot-formatting.test.ts`: agrupamento por dia, ordenação cronológica, label pt-PT capitalizado, formatação de hora no timezone do tenant.
+- `npm run verify` passa (140 testes unitários/integração; e2e requer credenciais Supabase reais, mesmo padrão skip dos restantes specs `tests/e2e/*`).
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só UI sobre RPCs já existentes.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A nesta tarefa (já coberto em `NEX-062`/`064`); a UI nunca decide sozinha se um slot está livre, só reflete o que o servidor devolveu.
+- Registar risco residual ou decisão temporária. Mesmo risco de `NEX-062`/`064`: sem rate limiting real ainda (`NEX-066`).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-066 — Rate limit e bot protection
 

@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PreRegistrationStep } from './PreRegistrationStep';
+import { SlotPicker } from './SlotPicker';
 import { resumeBookingDraft, saveBookingDraft } from './draft-actions';
+import { createPublicBooking } from './booking-actions';
+import { generateIdempotencyKey } from './domain/idempotency-key';
 import {
   cartLines,
   cartTotals,
@@ -56,6 +59,7 @@ export function PublicBookingCart({
   tenantSlug,
   businessName,
   phoneE164,
+  timezone,
   categoryGroups,
   packages,
 }: {
@@ -63,6 +67,7 @@ export function PublicBookingCart({
   tenantSlug: string;
   businessName: string;
   phoneE164: string | null;
+  timezone: string;
   categoryGroups: CategoryGroup[];
   packages: PackageOption[];
 }) {
@@ -70,6 +75,12 @@ export function PublicBookingCart({
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [resumeChecked, setResumeChecked] = useState(false);
+  const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
+  const [slotReloadKey, setSlotReloadKey] = useState(0);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isBooking, setIsBooking] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState<{ appointmentId: string } | null>(null);
 
   // Attempt a same-device resume once, on mount. setState only ever happens inside
   // this nested async function (never directly in the effect body), and only if the
@@ -175,10 +186,66 @@ export function PublicBookingCart({
         )
       : null;
 
+  // A cart change invalidates whatever slot/attempt was in progress — the previously
+  // computed slots were sized for a different total duration, and retrying a stale
+  // idempotency key against a new payload would only ever hit IDEMPOTENCY_CONFLICT.
+  function handleSelectSlot(iso: string) {
+    setSelectedSlotIso(iso);
+    setIdempotencyKey(generateIdempotencyKey());
+    setBookingError(null);
+  }
+
+  async function handleConfirmBooking() {
+    if (!registration || !selectedSlotIso || !idempotencyKey) return;
+    setIsBooking(true);
+    setBookingError(null);
+
+    const result = await createPublicBooking({
+      tenantId,
+      registration,
+      selectedServiceIds: Array.from(selectedServiceIds),
+      selectedPackageId,
+      startAtIso: selectedSlotIso,
+      idempotencyKey,
+    });
+
+    setIsBooking(false);
+
+    if (!result.ok) {
+      if (result.error.code === 'SLOT_TAKEN') {
+        // Mensagem clara, refresh de slots e carrinho preservado (NEX-065 acceptance
+        // criteria): the cart selection is untouched, only the slot choice and the
+        // attempt's idempotency key reset, and SlotPicker is told to refetch via
+        // slotReloadKey — the just-taken slot won't be offered again.
+        setBookingError('Este horário acabou de ser reservado por outra pessoa. Escolha outro.');
+        setSelectedSlotIso(null);
+        setIdempotencyKey(null);
+        setSlotReloadKey((key) => key + 1);
+        return;
+      }
+      setBookingError(result.error.message);
+      return;
+    }
+
+    if (window.localStorage) {
+      window.localStorage.removeItem(draftStorageKey(tenantSlug));
+    }
+    setConfirmedBooking({ appointmentId: result.value.appointmentId });
+  }
+
   if (!resumeChecked) return null;
 
   if (!registration) {
     return <PreRegistrationStep onComplete={setRegistration} />;
+  }
+
+  if (confirmedBooking) {
+    return (
+      <Card className="public-summary">
+        <p className="public-step-label">Marcação confirmada</p>
+        <p>A sua marcação foi confirmada com sucesso.</p>
+      </Card>
+    );
   }
 
   return (
@@ -269,8 +336,8 @@ export function PublicBookingCart({
           </Card>
         ) : null}
 
-        <Card className="public-summary" id="confirmar">
-          <p className="public-step-label">Passo 3 · Confirmar</p>
+        <Card className="public-summary">
+          <p className="public-step-label">Resumo</p>
           {lines.length === 0 ? (
             <p>Escolha pelo menos um serviço ou pacote acima.</p>
           ) : (
@@ -286,13 +353,36 @@ export function PublicBookingCart({
           <p className="public-summary-total">
             Total: {formatEuros(totalCents)} · {totalMinutes} min
           </p>
+        </Card>
+
+        {lines.length > 0 ? (
+          <SlotPicker
+            tenantId={tenantId}
+            timezone={timezone}
+            totalMinutes={totalMinutes}
+            selectedIso={selectedSlotIso}
+            onSelect={handleSelectSlot}
+            reloadKey={slotReloadKey}
+          />
+        ) : null}
+
+        <Card className="public-summary" id="confirmar">
+          <p className="public-step-label">Passo 4 · Confirmar</p>
+          {bookingError ? (
+            <p role="alert" className="form-error">
+              {bookingError}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            disabled={lines.length === 0 || !selectedSlotIso || isBooking}
+            onClick={() => void handleConfirmBooking()}
+          >
+            {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
+          </Button>
           {whatsappHref ? (
-            <a
-              className="button link-button"
-              href={whatsappHref}
-              aria-disabled={lines.length === 0}
-            >
-              Confirmar por WhatsApp
+            <a className="button link-button" href={whatsappHref}>
+              Prefere combinar por WhatsApp?
             </a>
           ) : null}
         </Card>

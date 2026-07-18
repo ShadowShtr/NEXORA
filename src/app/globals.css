@@ -416,6 +416,41 @@ a:focus-visible {
   min-width: 0;
   overflow-wrap: break-word;
 }
+.public-slot-days {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+.public-slot-day-label {
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}
+.public-slot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: 0.5rem;
+}
+.public-slot-button {
+  width: 100%;
+  min-height: 44px;
+  border: 2px solid var(--pink-100);
+  border-radius: 0.75rem;
+  background: white;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.public-slot-button:hover {
+  border-color: var(--pink-300);
+}
+.public-slot-button[aria-pressed='true'] {
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  border-color: var(--pink-600);
+  color: white;
+}
 .hours-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
