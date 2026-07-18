@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { createClient } from '@/lib/supabase/server';
+import { resolveLocationUrl } from '@/lib/open-location';
 import { PublicBookingCart } from './PublicBookingCart';
 
 function whatsappLink(phoneE164: string, businessName: string) {
@@ -103,6 +104,12 @@ export default async function PublicBusinessPage({
     };
   });
 
+  const locationUrl = resolveLocationUrl(settings.maps_url, {
+    addressLine: settings.address_line,
+    postalCode: settings.postal_code,
+    locality: settings.locality,
+  });
+
   return (
     <main className="shell stack">
       <Card className="public-header">
@@ -122,13 +129,8 @@ export default async function PublicBusinessPage({
               Ligar agora
             </a>
           ) : null}
-          {settings.maps_url ? (
-            <a
-              className="button link-button"
-              href={settings.maps_url}
-              target="_blank"
-              rel="noreferrer"
-            >
+          {locationUrl ? (
+            <a className="button link-button" href={locationUrl} target="_blank" rel="noreferrer">
               Ver no mapa
             </a>
           ) : null}

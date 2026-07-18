@@ -146,29 +146,29 @@ Implementar implementar abrir localização sem expandir o escopo para funcional
 
 **Critérios de aceite**
 
-- Link seguro e fallback de morada.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Link seguro e fallback de morada. `resolveLocationUrl` (`src/lib/open-location.ts`): usa `business_settings.maps_url` quando presente e seguro (`isSafeMapsUrl`, já validado na escrita desde `NEX-031`, revalidado aqui como defesa em profundidade); caso contrário gera uma busca segura do Google Maps (`google.com/maps/search`) a partir da morada em texto (`address_line`/`postal_code`/`locality`, sempre obrigatórios no onboarding). Integrado no cabeçalho da página pública (`src/app/b/[slug]/page.tsx`, botão "Ver no mapa" — antes só aparecia com `maps_url` preenchido, agora aparece sempre que há morada) e na vista de `GET /api/bookings/{token}` (`business.locationUrl`, resolvido server-side).
+- Nenhum dado de outro tenant pode ser acedido. Função de domínio pura, sem acesso a dados — opera sobre o que o chamador já resolveu por tenant.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um botão único "Ver no mapa"; sem exigir escolha entre link próprio vs. fallback, a decisão é sempre do servidor.
+- Logs não contêm segredos nem PII desnecessária. N/A — sem logging.
 
 **Testes obrigatórios**
 
-- URL validation.
+- URL validation. `tests/unit/maps-url.test.ts` (já existente desde `NEX-031`) cobre `isSafeMapsUrl` exaustivamente. `tests/unit/open-location.test.ts` (novo): prioriza `maps_url` seguro sobre o fallback, cai para o fallback com `maps_url` vazio/`null`/inseguro (incluindo tentativa de URL maliciosa — confirma que nunca aparece no resultado), omite partes de morada ausentes sem deixar buracos na query, e devolve `null` só quando não há absolutamente nenhum dado de localização.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — reaproveita `isSafeMapsUrl` já existente; o fallback constrói a URL só a partir de texto já validado como morada obrigatória no onboarding, com `encodeURIComponent`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — função pura.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-074 — Implementar e-mail opcional
 

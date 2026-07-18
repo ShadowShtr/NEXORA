@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveBookingByToken } from '@/lib/booking-token-lookup';
+import { resolveLocationUrl } from '@/lib/open-location';
 import { checkBookingLookupRateLimit } from '@/lib/rate-limit';
 import { getRequestIp } from '@/lib/request-ip';
 
@@ -39,6 +40,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   const booking = await resolveBookingByToken(token);
   if (!booking) return notFoundResponse();
 
+  // NEX-073: resolved server-side (owner's own maps_url when safe, otherwise a search
+  // link built from the address) so the client never has to reimplement that fallback.
+  const locationUrl = resolveLocationUrl(booking.business.mapsUrl, {
+    addressLine: booking.business.addressLine,
+    postalCode: booking.business.postalCode,
+    locality: booking.business.locality,
+  });
+
   return NextResponse.json(
     {
       data: {
@@ -52,6 +61,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
           addressLine: booking.business.addressLine,
           postalCode: booking.business.postalCode,
           locality: booking.business.locality,
+          locationUrl,
         },
         items: booking.items,
       },
