@@ -146,29 +146,29 @@ Implementar observações privadas sem expandir o escopo para funcionalidades n�
 
 **Critérios de aceite**
 
-- Editar com auditoria e limites.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Editar com auditoria e limites. Nova função `security definer` `update_client_private_notes` (`supabase/migrations/0010_update_client_private_notes.sql`, mesmo padrão de `cancel_appointment`/`NEX-084`): `tenant_id` de `current_tenant_id()`, verifica que o cliente pertence ao próprio tenant, limite de 2000 caracteres (rejeitado com `22001`), grava `audit_logs` — mas só o **facto** de a nota ter mudado (`client.private_notes_updated`), nunca o conteúdo da nota em si, para não duplicar PII num registo amplamente legível pelo tenant (`docs/05_SECURITY_PRIVACY.md`, T8). `clients` não tinha caminho de `UPDATE` autenticado com auditoria antes desta tarefa (`authenticated` só tem `SELECT` em `audit_logs`, `0001_initial.sql`).
+- Nenhum dado de outro tenant pode ser acedido. `client_id` verificado contra `tenant_id` do chamador antes de qualquer escrita; confirmado por teste cross-tenant.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um `textarea` com nota explícita "Só visível para si. Nunca é partilhada com a cliente."
+- Logs não contêm segredos nem PII desnecessária. Auditoria por design nunca inclui o texto da observação (só o `resource_id`/ação).
 
 **Testes obrigatórios**
 
-- XSS/log redaction.
+- XSS/log redaction. `tests/integration/update-client-private-notes.test.ts`: não chamável por `anon`; rejeita atualizar cliente de outro tenant; grava a nota e confirma que `audit_logs.metadata` nunca contém o texto da observação; rejeita nota com mais de 2000 caracteres; limpa a nota com string vazia. `tests/e2e/client-private-notes.spec.ts`: uma observação com marcação tipo `<img onerror=...>` é guardada e volta a renderizar como texto literal no `textarea` (React/JSX escapa por padrão — sem `dangerouslySetInnerHTML` em lugar nenhum desta árvore) — sem diálogo disparado, sem variável global injetada; ficha de outro tenant devolve `404` sem vazar a observação dele.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova função `security definer` — revogada de `public`/`anon`, concedida só a `authenticated` (`ADR-008`).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenant_id` sempre de `current_tenant_id()`, nunca de parâmetro; `client_id` validado contra ele antes do `UPDATE`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-094 — Fotografias privadas
 

@@ -6,6 +6,7 @@ import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { parseClientPreferences } from '@/features/clients/domain/preferences';
 import { ClientPreferencesForm } from '@/features/clients/ClientPreferencesForm';
+import { ClientPrivateNotesForm } from '@/features/clients/ClientPrivateNotesForm';
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -25,7 +26,7 @@ async function loadClientDetail(tenantId: string, clientId: string) {
   const [{ data: client }, { data: settings }] = await Promise.all([
     supabase
       .from('clients')
-      .select('id, name, phone_e164, email, preferences, first_seen_at')
+      .select('id, name, phone_e164, email, preferences, private_notes, first_seen_at')
       .eq('id', clientId)
       .eq('tenant_id', tenantId)
       .maybeSingle(),
@@ -155,6 +156,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <Card>
         <p className="public-step-label">Preferências</p>
         <ClientPreferencesForm clientId={client.id} preferences={preferences} />
+      </Card>
+
+      <Card>
+        <p className="public-step-label">Observações privadas</p>
+        <ClientPrivateNotesForm clientId={client.id} privateNotes={client.private_notes ?? ''} />
       </Card>
 
       <Card>

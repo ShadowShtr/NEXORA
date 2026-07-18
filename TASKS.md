@@ -93,7 +93,7 @@
 - [x] **NEX-090** — Lista e pesquisa de clientes _(depende: NEX-064,NEX-023)_
 - [x] **NEX-091** — Ficha completa da cliente _(depende: NEX-090)_
 - [x] **NEX-092** — Sugestão/deduplicação no booking manual _(depende: NEX-090,NEX-085)_
-- [ ] **NEX-093** — Observações privadas _(depende: NEX-091)_
+- [x] **NEX-093** — Observações privadas _(depende: NEX-091)_
 - [ ] **NEX-094** — Fotografias privadas _(depende: NEX-091)_
 - [ ] **NEX-095** — Política configurável de faltas _(depende: NEX-091)_
 
