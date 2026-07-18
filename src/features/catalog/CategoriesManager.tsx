@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { Tags } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   createCategory,
@@ -54,20 +55,30 @@ function CategoryRow({ category, isFirst, isLast }: CategoryRowProps) {
         <form action={moveFormAction}>
           <input type="hidden" name="id" value={category.id} />
           <input type="hidden" name="direction" value="up" />
-          <Button type="submit" disabled={movePending || isFirst} aria-label="Mover para cima">
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={movePending || isFirst}
+            aria-label="Mover para cima"
+          >
             ↑
           </Button>
         </form>
         <form action={moveFormAction}>
           <input type="hidden" name="id" value={category.id} />
           <input type="hidden" name="direction" value="down" />
-          <Button type="submit" disabled={movePending || isLast} aria-label="Mover para baixo">
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={movePending || isLast}
+            aria-label="Mover para baixo"
+          >
             ↓
           </Button>
         </form>
         <form action={toggleFormAction}>
           <input type="hidden" name="id" value={category.id} />
-          <Button type="submit" disabled={togglePending}>
+          <Button type="submit" variant="secondary" disabled={togglePending}>
             {category.isVisible ? 'Ocultar' : 'Mostrar'}
           </Button>
         </form>
@@ -92,9 +103,12 @@ export function CategoriesManager({ categories }: { categories: CategoryListItem
 
   return (
     <section className="stack" aria-label="Categorias">
-      <h2>Categorias</h2>
+      <h2 className="catalog-section-title">
+        <Tags aria-hidden="true" size={22} />
+        Categorias
+      </h2>
       {ordered.length === 0 ? (
-        <p>Ainda não tem categorias.</p>
+        <p className="catalog-empty">Ainda não tem categorias.</p>
       ) : (
         <ul className="catalog-list">
           {ordered.map((category, index) => (
@@ -108,7 +122,11 @@ export function CategoriesManager({ categories }: { categories: CategoryListItem
         </ul>
       )}
 
-      <form className="stack" aria-label="Nova categoria" action={createFormAction}>
+      <form
+        className="stack catalog-add-form"
+        aria-label="Nova categoria"
+        action={createFormAction}
+      >
         <label>
           Nova categoria
           <input name="name" required maxLength={80} placeholder="Manicure" />

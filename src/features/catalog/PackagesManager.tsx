@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Gift } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createPackage, togglePackageActive, updatePackage } from '@/features/catalog/actions';
 import {
@@ -62,7 +63,7 @@ function PackageRow({ pkg, services, servicesById }: PackageRowProps) {
       <div className="catalog-row-actions">
         <form action={toggleFormAction}>
           <input type="hidden" name="id" value={pkg.id} />
-          <Button type="submit" disabled={togglePending}>
+          <Button type="submit" variant="secondary" disabled={togglePending}>
             {pkg.isActive ? 'Desativar' : 'Ativar'}
           </Button>
         </form>
@@ -108,13 +109,16 @@ export function PackagesManager({
 
   return (
     <section className="stack" aria-label="Pacotes">
-      <h2>Pacotes</h2>
+      <h2 className="catalog-section-title">
+        <Gift aria-hidden="true" size={22} />
+        Pacotes
+      </h2>
       {services.length === 0 ? (
-        <p>Crie primeiro um serviço para poder montar pacotes.</p>
+        <p className="catalog-empty">Crie primeiro um serviço para poder montar pacotes.</p>
       ) : (
         <>
           {packages.length === 0 ? (
-            <p>Ainda não tem pacotes.</p>
+            <p className="catalog-empty">Ainda não tem pacotes.</p>
           ) : (
             <ul className="catalog-list">
               {packages.map((pkg) => (
@@ -128,7 +132,11 @@ export function PackagesManager({
             </ul>
           )}
 
-          <form className="stack" aria-label="Novo pacote" action={createFormAction}>
+          <form
+            className="stack catalog-add-form"
+            aria-label="Novo pacote"
+            action={createFormAction}
+          >
             <label>
               Nome do pacote
               <input name="name" required maxLength={120} placeholder="Mãos e pés" />

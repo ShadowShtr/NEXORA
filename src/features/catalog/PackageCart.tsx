@@ -77,7 +77,11 @@ export function PackageCart({
               <span>
                 {item.name} · {item.durationMinutes} min
               </span>
-              <Button type="button" onClick={() => handleRemove(item.serviceId)}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleRemove(item.serviceId)}
+              >
                 Remover
               </Button>
             </li>

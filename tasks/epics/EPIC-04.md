@@ -189,26 +189,26 @@ Implementar interface extremamente simples de catálogo sem expandir o escopo pa
 
 **Critérios de aceite**
 
-- Criação em poucos campos, feedback e estados vazios.
-- Nenhum dado de outro tenant pode ser acedido.
+- Criação em poucos campos, feedback e estados vazios. Já garantido desde `NEX-040`–`NEX-043` (formulários de 1–4 campos, botões com estado "A criar…/A guardar…", mensagens de erro amigáveis). Esta tarefa foi um polimento visual dedicado sobre essa base — **sem alterar a interação** (confirmado com o dono: continua "um campo de cada vez", sem drag-and-drop nem funcionalidades novas de concorrentes tipo Fresha/Booksy, decisão explícita para não expandir o scope aprovado): ícones `lucide-react` por secção (Categorias/Serviços/Pacotes), estados vazios em caixa tracejada em vez de texto solto, badge de preço/duração em pílula rosa, `Button` ganhou `variant="secondary"` (contorno, sem sombra) para ações não-primárias (Ocultar/Mostrar, Ativar/Desativar, mover ↑/↓, Remover do carrinho) — cria hierarquia visual clara entre a ação principal de cada linha ("Guardar") e as secundárias, sem tocar no comportamento de mais nenhum ecrã (o `variant` é opcional, `primary` continua o default inalterado).
+- Nenhum dado de outro tenant pode ser acedido. Sem alteração de superfície de dados.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Axe + teste mobile.
+- Axe + teste mobile. Já coberto por `catalog-categories/services/packages.spec.ts` (`NEX-040`–`NEX-043`, Axe + `webkit-mobile`). Esta tarefa **encontrou e corrigiu um bug real de overflow horizontal em mobile** (a página "dava zoom" — `.stack`/`.catalog-list`/`.catalog-row`/etc. eram `display: grid` sem `grid-template-columns`, deixando os itens crescerem pelo conteúdo intrínseco; `input`/`select` sem `min-width: 0` tinham o mesmo problema em `display: flex`) — corrigido em todos os grids de coluna única do `globals.css`, não só no catálogo. Novo `tests/e2e/catalog-mobile-layout.spec.ts` (4 testes, chromium + webkit-mobile) fixa a regressão: `document.documentElement.scrollWidth` nunca excede `clientWidth`, vazio e com categoria+serviço+pacote criados.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só CSS/visual.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
