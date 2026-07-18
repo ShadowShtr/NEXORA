@@ -5,22 +5,20 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PreRegistrationStep } from './PreRegistrationStep';
 import { resumeBookingDraft, saveBookingDraft } from './draft-actions';
+import {
+  cartLines,
+  cartTotals,
+  dropServicesCoveredByPackage,
+  type PackageOption,
+  type ServiceLine,
+} from './domain/booking-selection';
 import type { ClientContactInput } from '@/lib/validation/client';
-
-type CartLine = {
-  id: string;
-  name: string;
-  priceCents: number;
-  durationMinutes: number;
-};
 
 type CategoryGroup = {
   id: string;
   name: string;
-  services: CartLine[];
+  services: ServiceLine[];
 };
-
-type PackageOption = CartLine & { itemNames: string };
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -33,7 +31,7 @@ function buildWhatsappHref(
   phoneE164: string,
   businessName: string,
   clientName: string,
-  lines: CartLine[],
+  lines: ServiceLine[],
   totalCents: number,
   totalMinutes: number,
 ) {
@@ -68,7 +66,8 @@ export function PublicBookingCart({
   packages: PackageOption[];
 }) {
   const [registration, setRegistration] = useState<ClientContactInput | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [resumeChecked, setResumeChecked] = useState(false);
 
   // Attempt a same-device resume once, on mount. setState only ever happens inside
@@ -89,7 +88,8 @@ export function PublicBookingCart({
       if (cancelled) return;
       if (result.ok) {
         setRegistration(result.value.registration);
-        setSelectedIds(new Set(result.value.selectedIds));
+        setSelectedPackageId(result.value.selectedPackageId);
+        setSelectedServiceIds(new Set(result.value.selectedServiceIds));
       } else {
         window.localStorage.removeItem(key);
       }
@@ -115,7 +115,8 @@ export function PublicBookingCart({
       const key = draftStorageKey(tenantSlug);
       const result = await saveBookingDraft(tenantId, window.localStorage.getItem(key), {
         registration: registration!,
-        selectedIds: Array.from(selectedIds),
+        selectedPackageId,
+        selectedServiceIds: Array.from(selectedServiceIds),
       });
       if (result.ok) {
         window.localStorage.setItem(key, result.value.resumeToken);
@@ -124,19 +125,22 @@ export function PublicBookingCart({
 
     const timeout = setTimeout(() => void persistDraft(), 600);
     return () => clearTimeout(timeout);
-  }, [registration, selectedIds, tenantId, tenantSlug]);
+  }, [registration, selectedPackageId, selectedServiceIds, tenantId, tenantSlug]);
 
-  const allLines = useMemo(() => {
-    const map = new Map<string, CartLine>();
+  const servicesById = useMemo(() => {
+    const map = new Map<string, ServiceLine>();
     for (const group of categoryGroups) {
       for (const service of group.services) map.set(service.id, service);
     }
-    for (const pkg of packages) map.set(pkg.id, pkg);
     return map;
-  }, [categoryGroups, packages]);
+  }, [categoryGroups]);
 
-  function toggle(id: string) {
-    setSelectedIds((current) => {
+  const selectedPackage = packages.find((pkg) => pkg.id === selectedPackageId) ?? null;
+  const coveredByPackage = new Set(selectedPackage?.serviceIds ?? []);
+
+  function toggleService(id: string) {
+    if (coveredByPackage.has(id)) return;
+    setSelectedServiceIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -144,18 +148,27 @@ export function PublicBookingCart({
     });
   }
 
-  const selectedLines = Array.from(selectedIds)
-    .map((id) => allLines.get(id))
-    .filter((line): line is CartLine => line !== undefined);
-  const totalCents = selectedLines.reduce((sum, line) => sum + line.priceCents, 0);
-  const totalMinutes = selectedLines.reduce((sum, line) => sum + line.durationMinutes, 0);
+  // Choosing a package drops any already-checked "extra" that the package now covers —
+  // otherwise its checkbox would look checked-but-disabled, implying it still adds to
+  // the total when it no longer does (PRD: "sem duplicação de itens já incluídos").
+  function selectPackage(pkg: PackageOption | null) {
+    setSelectedPackageId(pkg?.id ?? null);
+    setSelectedServiceIds((current) => new Set(dropServicesCoveredByPackage([...current], pkg)));
+  }
+
+  const lines = cartLines(
+    { selectedPackageId, selectedServiceIds: Array.from(selectedServiceIds) },
+    servicesById,
+    packages,
+  );
+  const { totalCents, totalMinutes } = cartTotals(lines);
   const whatsappHref =
     phoneE164 && registration
       ? buildWhatsappHref(
           phoneE164,
           businessName,
           registration.name,
-          selectedLines,
+          lines,
           totalCents,
           totalMinutes,
         )
@@ -183,59 +196,84 @@ export function PublicBookingCart({
         <Card key={group.id}>
           <h2>{group.name}</h2>
           <ul className="public-service-list">
-            {group.services.map((service) => (
-              <li key={service.id} className="public-service-item">
-                <label className="public-service-choice">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(service.id)}
-                    onChange={() => toggle(service.id)}
-                  />
-                  {service.name}
-                </label>
-                <span className="public-service-meta">
-                  {service.durationMinutes} min · {formatEuros(service.priceCents)}
-                </span>
-              </li>
-            ))}
+            {group.services.map((service) => {
+              const included = coveredByPackage.has(service.id);
+              return (
+                <li key={service.id} className="public-service-item">
+                  <label className="public-service-choice">
+                    <input
+                      type="checkbox"
+                      checked={included || selectedServiceIds.has(service.id)}
+                      disabled={included}
+                      onChange={() => toggleService(service.id)}
+                    />
+                    {service.name}
+                    {included ? (
+                      <span className="public-service-included"> · Incluído no pacote</span>
+                    ) : null}
+                  </label>
+                  <span className="public-service-meta">
+                    {service.durationMinutes} min · {formatEuros(service.priceCents)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </Card>
       ))}
 
       {packages.length > 0 ? (
         <Card>
-          <h2>Pacotes</h2>
-          <ul className="public-service-list">
-            {packages.map((pkg) => (
-              <li key={pkg.id} className="public-service-item">
+          <fieldset className="public-package-fieldset">
+            <legend>Pacotes</legend>
+            <ul className="public-service-list">
+              <li className="public-service-item">
                 <label className="public-service-choice">
                   <input
-                    type="checkbox"
-                    checked={selectedIds.has(pkg.id)}
-                    onChange={() => toggle(pkg.id)}
+                    type="radio"
+                    name="pacote"
+                    checked={selectedPackageId === null}
+                    onChange={() => selectPackage(null)}
                   />
-                  <span className="public-package-name">
-                    {pkg.name}
-                    <br />
-                    <small className="public-service-meta">{pkg.itemNames}</small>
-                  </span>
+                  Nenhum pacote
                 </label>
-                <span className="public-service-meta">
-                  {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
-                </span>
               </li>
-            ))}
-          </ul>
+              {packages.map((pkg) => (
+                <li key={pkg.id} className="public-service-item">
+                  <label className="public-service-choice">
+                    <input
+                      type="radio"
+                      name="pacote"
+                      checked={selectedPackageId === pkg.id}
+                      onChange={() => selectPackage(pkg)}
+                    />
+                    <span className="public-package-name">
+                      {pkg.name}
+                      <br />
+                      <small className="public-service-meta">{pkg.itemNames}</small>
+                    </span>
+                  </label>
+                  <span className="public-service-meta">
+                    {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+          <p className="public-service-meta">
+            Escolheu um pacote? Os serviços já incluídos ficam marcados acima — pode ainda adicionar
+            outros serviços como extras.
+          </p>
         </Card>
       ) : null}
 
       <Card className="public-summary">
         <p className="public-step-label">Passo 3 · Confirmar</p>
-        {selectedLines.length === 0 ? (
+        {lines.length === 0 ? (
           <p>Escolha pelo menos um serviço ou pacote acima.</p>
         ) : (
           <ul className="public-service-list">
-            {selectedLines.map((line) => (
+            {lines.map((line) => (
               <li key={line.id} className="public-service-item">
                 <span>{line.name}</span>
                 <span className="public-service-meta">{formatEuros(line.priceCents)}</span>
@@ -247,11 +285,7 @@ export function PublicBookingCart({
           Total: {formatEuros(totalCents)} · {totalMinutes} min
         </p>
         {whatsappHref ? (
-          <a
-            className="button link-button"
-            href={whatsappHref}
-            aria-disabled={selectedLines.length === 0}
-          >
+          <a className="button link-button" href={whatsappHref} aria-disabled={lines.length === 0}>
             Confirmar por WhatsApp
           </a>
         ) : null}
