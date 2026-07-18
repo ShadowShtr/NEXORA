@@ -343,11 +343,31 @@ a:focus-visible {
 .public-service-choice .public-service-meta {
   white-space: normal;
 }
-.public-service-choice input[type='checkbox'] {
+.public-service-choice input[type='checkbox'],
+.public-service-choice input[type='radio'] {
   min-height: auto;
   width: 1.35rem;
   height: 1.35rem;
   accent-color: var(--pink-500);
+}
+.public-service-choice:has(input:disabled) {
+  cursor: default;
+  color: var(--muted);
+}
+.public-service-included {
+  color: var(--pink-600);
+  font-weight: 700;
+}
+.public-package-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.public-package-fieldset legend {
+  font-weight: 800;
+  font-size: 1.1rem;
+  padding: 0;
+  margin: 0 0 0.5rem;
 }
 .public-summary {
   border: 2px solid var(--pink-300);
