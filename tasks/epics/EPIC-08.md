@@ -64,29 +64,29 @@ Implementar cartões de marcação sem expandir o escopo para funcionalidades n�
 
 **Critérios de aceite**
 
-- Horário, cliente, itens, valor, estados e duas ações rápidas.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Horário, cliente, itens, valor, estados e duas ações rápidas. `AppointmentCard` (`src/features/appointments/AppointmentCard.tsx`) renderiza hora (timezone do tenant), nome do cliente, itens, total (`final_total_cents` se já concluída, senão `expected_total_cents`) e o estado traduzido (`APPOINTMENT_STATUS_LABELS`, `src/features/appointments/domain/appointment-card.ts`). Duas ações (docs/02_UX_FLOWS.md, Fluxo C): "Abrir WhatsApp" (deep link `wa.me` real e funcional, com mensagem de lembrete) e "Concluir" (desabilitado com `title` explicativo — a conclusão real com modal/pagamento é `NEX-110`/`113`, EPIC-11, fora de escopo aqui; a UI final do cartão já existe, só falta ligar o comportamento). Integrado em `/dashboard/agenda` (`src/app/(dashboard)/dashboard/agenda/page.tsx`), que passa de placeholder estático para a lista real de marcações do dia.
+- Nenhum dado de outro tenant pode ser acedido. Mesmo padrão de `NEX-080`: `requireProfile()` deriva `tenantId` da sessão, toda query filtra por ele, `createClient()` cookie-scoped com RLS ativa.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Cartões diretos, uma ação de cada vez, sem jargão técnico.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- Axe/mobile.
+- Axe/mobile. `tests/e2e/appointment-card.spec.ts`: conteúdo do cartão (hora/cliente/itens/total/estado), link do WhatsApp aponta para o número real do cliente, zero violações Axe, sem overflow horizontal em viewport estreito (mesmo padrão de `catalog-mobile-layout.spec.ts`, `NEX-044`). `tests/unit/appointment-card.test.ts`: geração do deep link (`+` removido, mensagem URL-encoded), mensagem de lembrete inclui nome/hora, todo valor do enum `appointment_status` tem label em pt-PT.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — leitura autenticada de dados já tenant-scoped.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Herdado de `requireProfile()`/RLS, mesmo padrão de `NEX-080`.
+- Registar risco residual ou decisão temporária. Botão "Concluir" fica desabilitado até `NEX-110`/`113` (EPIC-11) implementarem a conclusão/pagamento real — comportamento intencional, não um bug.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-082 — Visualizações dia/semana/mês
 
