@@ -187,26 +187,26 @@ Implementar implementar e-mail opcional sem expandir o escopo para funcionalidad
 
 **Critérios de aceite**
 
-- Adapter, template e retry; booking não depende de entrega.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Adapter, template e retry; booking não depende de entrega. `EmailProvider` (`src/lib/email/provider.ts`, `docs/03_ARCHITECTURE.md`: "Interface EmailProvider desacoplada"), com dois adapters: `ResendEmailProvider` (`src/lib/email/resend-provider.ts`, `fetch` direto à API REST do Resend — sem SDK, mesma postura de `turnstile.ts` — com até 3 tentativas em falha 5xx/rede, sem retry em 4xx) e `NoopEmailProvider` (`src/lib/email/noop-provider.ts`, sempre sucesso, usado quando `EMAIL_FROM`/`EMAIL_PROVIDER_API_KEY` não configurados). `buildBookingConfirmationEmail` (`src/lib/email/booking-confirmation-template.ts`) gera o template (texto + HTML, com escaping). Disparo em `createPublicBooking` (`src/app/b/[slug]/booking-actions.ts`) é *fire-and-forget* (`void`, não aguardado) só quando `registration.email` foi fornecido — o retorno da action nunca espera pelo envio, então uma falha ou lentidão do provedor não afeta o sucesso já decidido da marcação.
+- Nenhum dado de outro tenant pode ser acedido. Reaproveita `resolveBookingByToken` (`NEX-071`) para montar o e-mail a partir do próprio token gerado na marcação — sem `tenant_id` de fora.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — sem UI nova; o e-mail em si é minimalista (texto-primeiro, sem motor de templating).
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; `ResendEmailProvider` nunca inclui a API key no valor de retorno de erro (`EmailSendResult`), confirmado por teste.
 
 **Testes obrigatórios**
 
-- Mock provider, falha e redaction.
+- Mock provider, falha e redaction. `tests/unit/email.test.ts`: `NoopEmailProvider` nunca chama rede; `ResendEmailProvider` envia com o `from` configurado (mock de `fetch`), não repete falha 4xx, repete falha 5xx/rede até ao limite configurado e recupera se uma tentativa posterior tiver sucesso, nunca vaza a API key no erro devolvido; `buildBookingConfirmationEmail` inclui os dados certos e escapa HTML.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova integração de e-mail — `EMAIL_PROVIDER_API_KEY` server-only, nunca enviada ao browser; lida diretamente de `process.env` (não via `serverEnv()`) para não acoplar módulos de teste a variáveis Supabase não relacionadas, mesmo padrão de `NEX-066`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — o e-mail só é montado a partir do próprio token que a marcação acabou de gerar, nunca de input arbitrário do chamador.
+- Registar risco residual ou decisão temporária. **Risco residual**: sem `EMAIL_FROM`/`EMAIL_PROVIDER_API_KEY` configurados em produção, nenhum e-mail é de facto enviado (`NoopEmailProvider`) — aguarda provisionamento de conta Resend (`docs/ENVIRONMENTS_AND_SECRETS.md`, atualizado nesta tarefa).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

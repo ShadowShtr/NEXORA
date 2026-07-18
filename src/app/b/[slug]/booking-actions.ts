@@ -7,6 +7,9 @@ import type { Result } from '@/lib/result';
 import { checkBookingRateLimit } from '@/lib/rate-limit';
 import { getRequestIp } from '@/lib/request-ip';
 import { verifyTurnstileToken } from '@/lib/turnstile';
+import { getEmailProvider } from '@/lib/email';
+import { buildBookingConfirmationEmail } from '@/lib/email/booking-confirmation-template';
+import { resolveBookingByToken } from '@/lib/booking-token-lookup';
 
 const requestSchema = z.object({
   tenantId: z.uuid(),
@@ -119,6 +122,16 @@ export async function createPublicBooking(
     };
   }
 
+  // Fire-and-forget: booking success has already been decided above (the transaction
+  // committed) and must never depend on e-mail delivery (task acceptance criteria:
+  // "booking não depende de entrega"). Not awaited — the caller gets their confirmation
+  // immediately regardless of how long/whether this succeeds. registration.email is
+  // optional (docs/01_PRODUCT_REQUIREMENTS.md §3.2: "telemóvel e e-mail opcional"), so
+  // this only fires when the client actually provided one.
+  if (registration.email && !data.is_replay && data.booking_token) {
+    void sendBookingConfirmationEmail(registration.email, data.booking_token);
+  }
+
   return {
     ok: true,
     value: {
@@ -127,4 +140,28 @@ export async function createPublicBooking(
       isReplay: data.is_replay,
     },
   };
+}
+
+async function sendBookingConfirmationEmail(email: string, bookingToken: string) {
+  // resolveBookingByToken (src/lib/booking-token-lookup.ts, NEX-071) already resolves
+  // tenant name/timezone and priced items from the token alone — reusing it here avoids
+  // re-querying the same tables with slightly different shapes.
+  const booking = await resolveBookingByToken(bookingToken);
+  if (!booking) return;
+
+  const message = buildBookingConfirmationEmail({
+    to: email,
+    businessName: booking.business.professionalName ?? booking.business.name,
+    startAtIso: booking.startAt,
+    timezone: booking.business.timezone,
+    items: booking.items.map((item) => ({
+      description: item.description,
+      unitPriceCents: item.unitPriceCents,
+    })),
+    totalCents: booking.totalCents,
+    bookingUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/marcacao/${bookingToken}`,
+  });
+
+  const provider = getEmailProvider();
+  await provider.send(message);
 }

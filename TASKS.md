@@ -77,7 +77,7 @@
 - [x] **NEX-071** — Criar link público seguro _(depende: NEX-064)_
 - [x] **NEX-072** — Gerar ficheiro ICS _(depende: NEX-071)_
 - [x] **NEX-073** — Implementar abrir localização _(depende: NEX-071)_
-- [ ] **NEX-074** — Implementar e-mail opcional _(depende: NEX-071)_
+- [x] **NEX-074** — Implementar e-mail opcional _(depende: NEX-071)_
 
 ### EPIC-08 — Dashboard e agenda da dona
 
