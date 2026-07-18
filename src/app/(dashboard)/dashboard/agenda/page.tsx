@@ -3,6 +3,7 @@ import { pt } from 'date-fns/locale/pt';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
+import { computeAvailableSlotsMs } from '@/lib/availability-lookup';
 import { AppointmentCard, type AppointmentCardData } from '@/features/appointments/AppointmentCard';
 import type { AppointmentCardStatus } from '@/features/appointments/domain/appointment-card';
 import {
@@ -11,6 +12,11 @@ import {
   shiftCalendarDate,
   type CalendarView,
 } from '@/features/appointments/domain/calendar-navigation';
+import {
+  filterFreeSlotsInRange,
+  groupFreeSlotsByDay,
+  type FreeSlotsByDay,
+} from '@/features/appointments/domain/free-slots-summary';
 
 function capitalize(label: string): string {
   return label.length === 0 ? label : label[0]!.toUpperCase() + label.slice(1);
@@ -31,7 +37,9 @@ async function loadAgendaData(
 
   const { data: settings } = await supabase
     .from('business_settings')
-    .select('timezone')
+    .select(
+      'timezone, slot_interval_minutes, buffer_minutes, min_notice_hours, booking_window_days',
+    )
     .eq('tenant_id', tenantId)
     .maybeSingle();
   const timezone = settings?.timezone ?? 'Europe/Lisbon';
@@ -40,15 +48,24 @@ async function loadAgendaData(
   const dateKey = requestedDateKey ?? todayKey;
   const range = resolveCalendarRange(view, dateKey, timezone);
 
-  const { data: rows } = await supabase
-    .from('appointments')
-    .select(
-      'id, start_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
-    )
-    .eq('tenant_id', tenantId)
-    .gte('start_at', range.startIso)
-    .lt('start_at', range.endIso)
-    .order('start_at');
+  const [{ data: rows }, { data: shortestServiceRows }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select(
+        'id, start_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
+      )
+      .eq('tenant_id', tenantId)
+      .gte('start_at', range.startIso)
+      .lt('start_at', range.endIso)
+      .order('start_at'),
+    supabase
+      .from('services')
+      .select('duration_minutes')
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true)
+      .order('duration_minutes')
+      .limit(1),
+  ]);
 
   const byDateKey = new Map<string, AppointmentCardData[]>();
   for (const key of range.dateKeys) byDateKey.set(key, []);
@@ -69,7 +86,30 @@ async function loadAgendaData(
     if (list) list.push(card);
   }
 
-  return { timezone, dateKey, todayKey, range, byDateKey };
+  // NEX-083: "Resumo/lista de horários livres", consistent with the availability
+  // engine (NEX-061/062) — the shortest active service is the smallest real
+  // commitment a slot could ever be booked for; falls back to the configured slot
+  // step when the catalog has no active service yet.
+  let freeSlotsByDay: FreeSlotsByDay[] = [];
+  if (settings) {
+    const referenceDurationMinutes =
+      shortestServiceRows?.[0]?.duration_minutes ?? settings.slot_interval_minutes;
+    const slotsMs = await computeAvailableSlotsMs(
+      supabase,
+      tenantId,
+      {
+        timezone: settings.timezone,
+        slotIntervalMinutes: settings.slot_interval_minutes as 15 | 30 | 60,
+        bufferMinutes: settings.buffer_minutes,
+        minNoticeHours: settings.min_notice_hours,
+        bookingWindowDays: settings.booking_window_days,
+      },
+      referenceDurationMinutes,
+    );
+    freeSlotsByDay = filterFreeSlotsInRange(groupFreeSlotsByDay(slotsMs, timezone), range.dateKeys);
+  }
+
+  return { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay };
 }
 
 function navHref(view: CalendarView, dateKey: string) {
@@ -92,7 +132,7 @@ export default async function AgendaPage({
   const params = await searchParams;
   const view: CalendarView = isCalendarView(params.view) ? params.view : 'day';
 
-  const { timezone, dateKey, todayKey, range, byDateKey } = await loadAgendaData(
+  const { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay } = await loadAgendaData(
     tenantId,
     view,
     params.date,
@@ -105,6 +145,7 @@ export default async function AgendaPage({
     (sum, list) => sum + list.length,
     0,
   );
+  const totalFreeSlots = freeSlotsByDay.reduce((sum, day) => sum + day.count, 0);
 
   return (
     <div className="shell">
@@ -149,6 +190,38 @@ export default async function AgendaPage({
           </a>
         ) : null}
       </nav>
+
+      <Card className="agenda-free-slots">
+        <details>
+          <summary className="agenda-free-slots-summary">
+            {totalFreeSlots} {totalFreeSlots === 1 ? 'horário livre' : 'horários livres'} neste
+            período
+          </summary>
+          {totalFreeSlots === 0 ? (
+            <p className="appointment-card-items">Sem horários livres neste período.</p>
+          ) : (
+            <ul className="agenda-free-slots-list">
+              {freeSlotsByDay.map((day) => (
+                <li key={day.dateKey}>
+                  <span className="agenda-free-slots-day-label">
+                    {capitalize(
+                      formatInTimeZone(
+                        fromZonedTime(`${day.dateKey}T12:00:00`, timezone),
+                        timezone,
+                        'EEEE dd/MM',
+                        { locale: pt },
+                      ),
+                    )}
+                  </span>
+                  <span className="agenda-free-slots-day-count">
+                    {day.count} {day.count === 1 ? 'horário' : 'horários'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
+      </Card>
 
       {totalAppointments === 0 ? (
         <Card>

@@ -789,3 +789,27 @@ select {
   font-weight: 800;
   margin: 0 0 0.5rem;
 }
+.agenda-free-slots-summary {
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--pink-600);
+}
+.agenda-free-slots-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+.agenda-free-slots-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.agenda-free-slots-day-label {
+  font-weight: 700;
+}
+.agenda-free-slots-day-count {
+  color: var(--muted);
+}

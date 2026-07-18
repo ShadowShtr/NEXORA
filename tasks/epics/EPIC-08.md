@@ -146,29 +146,29 @@ Implementar resumo/lista de horários livres sem expandir o escopo para funciona
 
 **Critérios de aceite**
 
-- Contagem e drawer/lista sem poluir agenda.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Contagem e drawer/lista sem poluir agenda. Extraído `computeAvailableSlotsMs` (`src/lib/availability-lookup.ts`) do corpo de `getPublicAvailability` (`NEX-062`) para um helper partilhado — a mesma query+cálculo (`generateTimezoneAwareSlots`, `NEX-061`) é agora usada tanto pela consulta pública quanto pelo resumo interno, garantindo que nunca divirjam sobre o que conta como "disponível". `groupFreeSlotsByDay`/`filterFreeSlotsInRange` (`src/features/appointments/domain/free-slots-summary.ts`) agregam os instantes num total por dia. Na agenda (`/dashboard/agenda`), um `<details>`/`<summary>` nativo (sem JS extra, acessível por padrão) mostra "N horários livres neste período" e só expande a lista por dia sob pedido, sem poluir a lista de marcações. Duração de referência: menor `duration_minutes` entre os serviços ativos do catálogo (o menor compromisso real possível), com fallback para `slot_interval_minutes` se ainda não houver catálogo.
+- Nenhum dado de outro tenant pode ser acedido. Mesmo padrão de `NEX-080`/`081`/`082`: `requireProfile()` deriva `tenantId`, toda query (incluindo a nova busca de `services` e a chamada a `computeAvailableSlotsMs`) filtra por ele.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um resumo direto ("N horários livres"), detalhe só ao expandir.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- Consistência com motor.
+- Consistência com motor. `tests/unit/free-slots-summary.test.ts`: agrupamento por dia local, ordenação cronológica, filtro por intervalo de datas. `tests/e2e/agenda-free-slots.spec.ts`: tenant aberto sem marcações mostra contagem > 0, a soma dos totais por dia no drawer bate exatamente com o total do cabeçalho (mesma fonte de dados, sem duplicação de lógica), e um bloqueio de dia inteiro (`availability_blocks`) zera a contagem — mesmo dado que a consulta pública (`NEX-062`) já respeitava.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — reaproveita a mesma lógica de cálculo já auditada em `NEX-061`/`062`, só chamada a partir de um contexto autenticado em vez de público.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `computeAvailableSlotsMs` recebe o `tenantId` já validado por `requireProfile()`; todas as suas queries internas filtram por ele.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-084 — Detalhes, cancelar e reagendar
 
