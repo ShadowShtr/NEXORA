@@ -21,7 +21,13 @@ max_rows = 1000
 # without explicit GRANTs. When unset, new entities are NOT auto-exposed, matching the new cloud
 # default. Set to `true` to keep the legacy behaviour of auto-exposing new entities; this is
 # deprecated and the field is removed on 2026-10-30 once the always-revoked behaviour is permanent.
-# auto_expose_new_tables = true
+# NEX-015: our cloud dev project still has legacy auto-expose (all 0001-0005 migrations
+# rely on it — none contain explicit GRANTs to anon/authenticated/service_role). Without
+# this, every Data API role gets "permission denied" on every table on a fresh local
+# instance. Matches the cloud project for now; the 2026-10-30 removal is a real ticking
+# clock this schema will need explicit GRANTs before, tracked as a residual risk rather
+# than fixed here (out of scope for wiring CI).
+auto_expose_new_tables = true
 
 [api.tls]
 # Enable HTTPS endpoints locally using a self-signed certificate.
