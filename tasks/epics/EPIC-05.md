@@ -23,29 +23,29 @@ Implementar criar página pública por slug sem expandir o escopo para funcional
 
 **Critérios de aceite**
 
-- Dados públicos mínimos, morada, contacto e booking integrado.
-- Nenhum dado de outro tenant pode ser acedido.
+- Dados públicos mínimos, morada, contacto e booking integrado. `src/app/b/[slug]/page.tsx` (Server Component, cliente Supabase sem sessão = `anon`): nome da profissional, morada completa, telefone (CTA "Marcar por WhatsApp" com mensagem pré-preenchida via `wa.me`, e "Ligar agora" via `tel:`), link opcional para mapa (`maps_url`, já validado na escrita — `NEX-031`). "Booking integrado": mostra o catálogo completo publicado (categorias visíveis → serviços ativos → pacotes ativos, com preço/duração), que alimenta a seleção interativa — essa seleção (checkboxes) e o carrinho fixo com total são especificamente o escopo de `NEX-053`/`NEX-054`, já implementados no código (`PublicBookingCart.tsx`, construído fora do processo formal a pedido do dono para uma demonstração — ver `docs/evidence/`) mas cujos testes formais ficam para essas tarefas, não duplicados aqui.
+- Nenhum dado de outro tenant pode ser acedido. Sem migração nova — reutiliza as políticas RLS públicas já existentes desde `NEX-012` (`tenants.status='active'`, `business_settings.published_at is not null`, `service_categories.is_visible`, `services`/`packages.is_active`). Não seleciona `business_settings.email` (mais privado que o telefone, que já é pensado para contacto público).
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Tenant suspenso/não publicado.
+- Tenant suspenso/não publicado. `tests/e2e/public-business-page.spec.ts` (5 testes, chromium + webkit-mobile, todos através de pedidos anónimos reais — sem cookies de sessão — que exercitam a fronteira RLS `anon` na prática, tal como o resto da suite): mostra nome/morada/contacto/catálogo para tenant publicado (200); Axe 0 violações; `tenants.status='suspended'` → 404; tenant `active` mas nunca publicado (`published_at` nulo) → 404; slug desconhecido → 404.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície de escrita — só leitura pública já coberta por RLS existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado pelos 4 cenários (publicado/suspenso/não publicado/inexistente) em `public-business-page.spec.ts`.
+- Registar risco residual ou decisão temporária. Ver "Riscos residuais" na evidência — `PublicBookingCart.tsx` (seleção+carrinho) ainda sem testes formais próprios, previstos em `NEX-053`/`NEX-054`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-051 — Criar pré-cadastro temporário
 

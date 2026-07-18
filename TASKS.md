@@ -55,7 +55,7 @@
 
 ### EPIC-05 — Página pública e pré-cadastro
 
-- [ ] **NEX-050** — Criar página pública por slug _(depende: NEX-035)_
+- [x] **NEX-050** — Criar página pública por slug _(depende: NEX-035)_
 - [ ] **NEX-051** — Criar pré-cadastro temporário _(depende: NEX-050)_
 - [ ] **NEX-052** — Implementar draft e recuperação _(depende: NEX-051)_
 - [ ] **NEX-053** — Criar seletor Serviços/Pacotes _(depende: NEX-043,NEX-050)_
