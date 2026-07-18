@@ -105,29 +105,29 @@ Implementar sugestão/deduplicação no booking manual sem expandir o escopo par
 
 **Critérios de aceite**
 
-- Sugestões sem expor dados cruzados.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Sugestões sem expor dados cruzados. `suggestExistingClients` (`src/features/clients/suggestion-actions.ts`): busca clientes por nome parcial (`ilike`, com escaping) OU telefone normalizado (`normalizePhoneE164`, `src/lib/phone.ts` — o mesmo normalizador usado ao persistir `clients.phone_e164` em `create_public_booking`/`create_manual_booking`), com limite de 5 resultados. Integrado no `ManualBookingForm` (`NEX-085`): ao escrever nome/telefone no modo "Nova cliente" (debounce de 400ms), sugestões aparecem com botão que troca automaticamente para "Cliente existente" já pré-selecionada — evita duplicar quem já está em `clients`.
+- Nenhum dado de outro tenant pode ser acedido. `tenantId` vem só de `requireProfile()`, nunca de input; confirmado por teste com dois tenants tendo o mesmo número de telefone — só a cliente do próprio tenant aparece.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Sugestão discreta ("Já existe uma cliente parecida:"), um clique para usar.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- Telefones equivalentes.
+- Telefones equivalentes. `tests/e2e/manual-booking-client-suggestion.spec.ts`: telefone digitado em formato diferente (`910 000 000` com espaços) do armazenado (`+351910000000`) ainda sugere a cliente certa; a mesma sugestão nunca aparece para o número equivalente pertencente a outro tenant; nome/telefone sem correspondência não mostra sugestão nenhuma. `tests/unit/phone.test.ts` (já existente) cobre `normalizePhoneE164` exaustivamente — a peça que torna "equivalentes" possível.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — leitura autenticada de dados já tenant-scoped por RLS.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenantId` derivado da sessão via `requireProfile()`, filtro explícito na query.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-093 — Observações privadas
 

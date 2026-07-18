@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/Button';
 import { createManualBooking } from './manual-booking-actions';
 import { getManualBookingAvailability } from './manual-availability-actions';
 import {
+  suggestExistingClients,
+  type ClientSuggestion,
+} from '@/features/clients/suggestion-actions';
+import {
   cartLines,
   cartTotals,
   dropServicesCoveredByPackage,
@@ -50,6 +54,9 @@ export function ManualBookingForm({
   const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
   const [slots, setSlots] = useState<string[] | null>(null);
   const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [suggestions, setSuggestions] = useState<ClientSuggestion[]>([]);
 
   const servicesById = useMemo(() => {
     const map = new Map<string, ServiceLine>();
@@ -112,6 +119,47 @@ export function ManualBookingForm({
     };
   }, [totalMinutes]);
 
+  // NEX-092: "Busca sugere cliente existente por nome/telemóvel" — debounced so typing
+  // doesn't fire a request per keystroke; only active in "nova cliente" mode, since an
+  // already-selected existing client has nothing to suggest against.
+  useEffect(() => {
+    let cancelled = false;
+
+    if (
+      clientMode !== 'new' ||
+      (newClientName.trim().length < 2 && newClientPhone.trim().length < 3)
+    ) {
+      const timeout = setTimeout(() => {
+        if (!cancelled) setSuggestions([]);
+      }, 0);
+      return () => {
+        cancelled = true;
+        clearTimeout(timeout);
+      };
+    }
+
+    const timeout = setTimeout(() => {
+      void (async () => {
+        const result = await suggestExistingClients(newClientName, newClientPhone);
+        if (cancelled) return;
+        setSuggestions(result.ok ? result.value : []);
+      })();
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [clientMode, newClientName, newClientPhone]);
+
+  function applySuggestedClient(client: ClientSuggestion) {
+    setClientMode('existing');
+    setSelectedClientId(client.id);
+    setSuggestions([]);
+    setNewClientName('');
+    setNewClientPhone('');
+  }
+
   return (
     <form action={formAction} className="stack">
       <fieldset>
@@ -159,16 +207,48 @@ export function ManualBookingForm({
           <div className="stack">
             <label>
               Nome
-              <input name="clientName" required maxLength={120} />
+              <input
+                name="clientName"
+                required
+                maxLength={120}
+                value={newClientName}
+                onChange={(event) => setNewClientName(event.target.value)}
+              />
             </label>
             <label>
               Telemóvel
-              <input name="clientPhone" type="tel" required />
+              <input
+                name="clientPhone"
+                type="tel"
+                required
+                value={newClientPhone}
+                onChange={(event) => setNewClientPhone(event.target.value)}
+              />
             </label>
             <label>
               E-mail (opcional)
               <input name="clientEmail" type="text" inputMode="email" />
             </label>
+
+            {suggestions.length > 0 ? (
+              <div className="client-suggestions" role="status">
+                <p className="public-service-meta">Já existe uma cliente parecida:</p>
+                <ul className="clients-list">
+                  {suggestions.map((client) => (
+                    <li key={client.id}>
+                      <button
+                        type="button"
+                        className="clients-list-link client-suggestion-button"
+                        onClick={() => applySuggestedClient(client)}
+                      >
+                        <span className="clients-list-name">{client.name}</span>
+                        <span className="clients-list-phone">{client.phoneE164}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         ) : (
           <input type="hidden" name="clientId" value={selectedClientId} />
