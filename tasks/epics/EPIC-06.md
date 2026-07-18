@@ -23,29 +23,29 @@ Implementar modelar horários e exceções sem expandir o escopo para funcionali
 
 **Critérios de aceite**
 
-- Normal, almoço, bloqueios, férias e especial.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Normal, almoço, bloqueios, férias e especial. Normal+almoço: `business_hours` (já existia, `NEX-032`). Bloqueios+férias: `availability_blocks` (já existia, cobre ambos genericamente via `reason`/`is_all_day`). Especial: `business_hours_exceptions` (novo, `0006_business_hours_exceptions.sql`) — uma `exception_date` substitui o padrão semanal só nessa data.
+- Nenhum dado de outro tenant pode ser acedido. RLS tenant-scoped idêntica às restantes tabelas de horário; sem política `anon` (a agenda em bruto nunca é exposta ao público, só slots computados numa RPC futura).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — tarefa é só modelo de dados.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Integração DB.
+- Integração DB. `tests/integration/business-hours-exceptions.test.ts` (11 testes): RLS cruzada (leitura/insert/update/delete, incluindo anon bloqueado), `exception_date` duplicada rejeitada, `is_open=true` com `opens_at >= closes_at` rejeitado, `is_open=false` com horas nulas aceite, almoço invertido rejeitado. Corrido contra Supabase local real em CI (`NEX-015`) — 9/9 ficheiros, 56/56 testes.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova tabela, mesmo padrão de RLS das restantes — sem privilégio novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado pelos 11 testes de integração.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-061 — Implementar gerador de slots timezone-aware
 
