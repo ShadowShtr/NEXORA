@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createService, toggleServiceActive, updateService } from '@/features/catalog/actions';
 import type { CategoryListItem } from '@/features/catalog/domain/category';
@@ -96,7 +97,7 @@ function ServiceRow({ service, categories }: ServiceRowProps) {
       <div className="catalog-row-actions">
         <form action={toggleFormAction}>
           <input type="hidden" name="id" value={service.id} />
-          <Button type="submit" disabled={togglePending}>
+          <Button type="submit" variant="secondary" disabled={togglePending}>
             {service.isActive ? 'Desativar' : 'Ativar'}
           </Button>
         </form>
@@ -129,13 +130,16 @@ export function ServicesManager({
 
   return (
     <section className="stack" aria-label="Serviços">
-      <h2>Serviços</h2>
+      <h2 className="catalog-section-title">
+        <Scissors aria-hidden="true" size={22} />
+        Serviços
+      </h2>
       {categories.length === 0 ? (
-        <p>Crie primeiro uma categoria para poder adicionar serviços.</p>
+        <p className="catalog-empty">Crie primeiro uma categoria para poder adicionar serviços.</p>
       ) : (
         <>
           {services.length === 0 ? (
-            <p>Ainda não tem serviços.</p>
+            <p className="catalog-empty">Ainda não tem serviços.</p>
           ) : (
             <ul className="catalog-list">
               {services.map((service) => (
@@ -144,7 +148,11 @@ export function ServicesManager({
             </ul>
           )}
 
-          <form className="stack" aria-label="Novo serviço" action={createFormAction}>
+          <form
+            className="stack catalog-add-form"
+            aria-label="Novo serviço"
+            action={createFormAction}
+          >
             <label>
               Nome do serviço
               <input name="name" required maxLength={120} placeholder="Verniz gel" />

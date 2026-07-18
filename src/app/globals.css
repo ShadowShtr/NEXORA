@@ -109,6 +109,15 @@ a:focus-visible {
   outline: 3px solid #773454;
   outline-offset: 3px;
 }
+.button-secondary {
+  background: white;
+  color: var(--pink-600);
+  border: 2px solid var(--pink-100);
+  box-shadow: none;
+}
+.button-secondary:hover {
+  border-color: var(--pink-300);
+}
 .link-button {
   display: inline-flex;
   align-items: center;
@@ -153,14 +162,39 @@ a:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
 }
+.catalog-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--pink-600);
+}
 .catalog-row {
-  border: 1px solid var(--pink-100);
+  background: white;
+  border-left: 4px solid var(--pink-300);
   border-radius: 1rem;
   padding: 0.85rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
+  box-shadow:
+    4px 4px 12px rgba(154, 43, 91, 0.08),
+    -2px -2px 8px rgba(255, 255, 255, 0.6);
+}
+.catalog-add-form {
+  border-top: 1px dashed var(--pink-100);
+  padding-top: 1.1rem;
+  margin-top: 0.25rem;
+}
+.catalog-empty {
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed var(--pink-100);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  margin: 0;
 }
 .catalog-row-name {
   display: flex;
@@ -190,15 +224,20 @@ a:focus-visible {
 }
 .catalog-service-summary {
   margin: 0;
-  color: var(--muted);
-  font-weight: 700;
+  color: var(--pink-600);
+  font-weight: 800;
   align-self: center;
+  background: var(--pink-50);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
 }
 .catalog-package-items {
   border: 1px solid var(--pink-100);
   border-radius: 1rem;
   padding: 0.75rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
 .catalog-package-items legend {
@@ -210,6 +249,7 @@ a:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.4rem;
 }
 .catalog-cart-item {
@@ -323,6 +363,7 @@ a:focus-visible {
 }
 .hours-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 .hours-day {
@@ -330,6 +371,7 @@ a:focus-visible {
   border-radius: 1rem;
   padding: 1rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
 }
 .hours-day legend {
@@ -344,12 +386,12 @@ a:focus-visible {
 }
 .hours-times {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
 }
 @media (max-width: 480px) {
   .hours-times {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 input[type='checkbox'] {
@@ -364,6 +406,7 @@ input[type='checkbox'] {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
 .services-list li {
@@ -386,6 +429,7 @@ label {
 input,
 select {
   min-height: 48px;
+  min-width: 0;
   border: 1px solid var(--pink-300);
   border-radius: 0.9rem;
   padding: 0.75rem;
@@ -394,13 +438,13 @@ select {
 }
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
 @media (max-width: 760px) {
   .dashboard-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .shell {
     width: min(100% - 1rem, 1120px);
@@ -446,7 +490,7 @@ select {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   background: white;
   border-top: 1px solid var(--pink-100);
   box-shadow: 0 -8px 20px rgba(153, 86, 114, 0.16);
@@ -486,6 +530,7 @@ select {
   padding: 0;
   margin: 0 0 1rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
 .mobile-nav-more a {
@@ -523,6 +568,7 @@ select {
     padding: 0;
     margin: 1.5rem 0;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.35rem;
   }
   .desktop-nav a {
