@@ -146,29 +146,29 @@ Implementar criar seletor serviços/pacotes sem expandir o escopo para funcional
 
 **Critérios de aceite**
 
-- Checkboxes, categorias, pacotes e extras.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Checkboxes, categorias, pacotes e extras. Serviços por categoria (checkboxes, já existia); pacote de escolha única (`radio`, antes eram checkboxes múltiplos — corrigido para refletir "escolher pacote promocional", PRD 01 §4); **extras** — serviço avulso combinado com o pacote escolhido, novo conceito desta tarefa (`src/app/b/[slug]/domain/booking-selection.ts#cartLines`), **sem duplicação de itens já incluídos no pacote** (PRD 01 §4, literal): um serviço coberto pelo pacote aparece marcado "Incluído no pacote", a checkbox fica desativada, e nunca é somado duas vezes ao total.
+- Nenhum dado de outro tenant pode ser acedido. Sem alteração de superfície de acesso a dados face a `NEX-050`/`NEX-052` — `categoryGroups`/`packages` continuam a vir só do `tenant` resolvido pelo slug.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Escolher um pacote que já cobre um serviço marcado manualmente remove essa seleção avulsa automaticamente (em vez de a UI ficar num estado ambíguo "marcado mas desativado, ainda conta?").
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Mobile, teclado, cálculo.
+- Mobile, teclado, cálculo. `tests/unit/booking-selection.test.ts` (12 testes, novo): `cartLines` deduplica extras cobertos pelo pacote, mantém extras genuínos, ignora `selectedPackageId` desconhecido; `cartTotals` soma correta; `dropServicesCoveredByPackage` não muta o array de entrada. `tests/e2e/public-service-package-selector.spec.ts` (5 testes, `chromium` + `webkit-mobile`): Axe com pacote selecionado; selecionar pacote cobra uma vez só (não pacote+serviço incluído) e extra genuíno soma normalmente; marcar o serviço primeiro e só depois escolher o pacote que o cobre remove a duplicação automaticamente; "Nenhum pacote" repõe a seleção normal; **operável só por teclado** (`Tab`+`Space` em checkbox e rádio, sem rato).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova entrada/privilégio — `page.tsx` passou a expor `serviceIds` de cada pacote ao cliente (já público: os nomes dos serviços incluídos já eram mostrados em `itemNames`).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — sem escrita nesta tarefa; leitura já coberta pelas policies públicas validadas em `NEX-050`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-054 — Criar carrinho fixo
 
@@ -187,26 +187,26 @@ Implementar criar carrinho fixo sem expandir o escopo para funcionalidades não 
 
 **Critérios de aceite**
 
-- Quantidade, duração, total e continuar; sem float.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Quantidade, duração, total e continuar; sem float. `PublicBookingCart.tsx` — barra `position: fixed` (PRD 01 §3.6), sempre visível independente do scroll: `{itemCountLabel} · {totalMinutes} min · {formatEuros(totalCents)}` + botão "Continuar" (desativado com carrinho vazio, faz scroll até ao resumo/confirmação existente). "Sem float" reafirmado por teste unitário explícito (`Number.isInteger` sobre `cartTotals`) — cêntimos/minutos são sempre inteiros por construção (soma de inteiros).
+- Nenhum dado de outro tenant pode ser acedido. Sem alteração de superfície de dados face a `NEX-053`.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. "Continuar" não inventa um passo de marcação que ainda não existe (depende de `EPIC-06`) — leva ao cartão de confirmação (WhatsApp) já implementado.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Unit + visual.
+- Unit + visual. `tests/unit/booking-selection.test.ts` (+4, `itemCountLabel` e "nunca produz total não inteiro"). `tests/e2e/public-cart-bar.spec.ts` (4 testes, `chromium` + `webkit-mobile`): sem overflow horizontal com a barra visível (mesmo padrão de `NEX-044`); quantidade/duração/total ao vivo, "Continuar" desativado vazio; barra mantém a mesma posição no viewport ao fazer scroll (prova real de `position: fixed`); "Continuar" traz o cartão de confirmação e o link do WhatsApp para dentro do viewport.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só UI/apresentação sobre dados já lidos em `NEX-050`/`NEX-053`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

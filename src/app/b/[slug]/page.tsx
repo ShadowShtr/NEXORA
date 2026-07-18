@@ -97,6 +97,7 @@ export default async function PublicBusinessPage({
       priceCents: pkg.price_cents,
       durationMinutes: items.reduce((total, service) => total + service.duration_minutes, 0),
       itemNames: items.map((service) => service.name).join(' + '),
+      serviceIds: items.map((service) => service.id),
     };
   });
 

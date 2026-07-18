@@ -6,7 +6,8 @@ export const draftPayloadSchema = z.object({
     phone: z.string().trim().min(1),
     email: z.string().trim().optional(),
   }),
-  selectedIds: z.array(z.uuid()),
+  selectedPackageId: z.uuid().nullable(),
+  selectedServiceIds: z.array(z.uuid()),
 });
 
 export type DraftPayload = z.infer<typeof draftPayloadSchema>;

@@ -343,11 +343,31 @@ a:focus-visible {
 .public-service-choice .public-service-meta {
   white-space: normal;
 }
-.public-service-choice input[type='checkbox'] {
+.public-service-choice input[type='checkbox'],
+.public-service-choice input[type='radio'] {
   min-height: auto;
   width: 1.35rem;
   height: 1.35rem;
   accent-color: var(--pink-500);
+}
+.public-service-choice:has(input:disabled) {
+  cursor: default;
+  color: var(--muted);
+}
+.public-service-included {
+  color: var(--pink-600);
+  font-weight: 700;
+}
+.public-package-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.public-package-fieldset legend {
+  font-weight: 800;
+  font-size: 1.1rem;
+  padding: 0;
+  margin: 0 0 0.5rem;
 }
 .public-summary {
   border: 2px solid var(--pink-300);
@@ -369,6 +389,32 @@ a:focus-visible {
   gap: 0.5rem 1rem;
   font-weight: 700;
   color: var(--muted);
+}
+.public-booking-content {
+  /* Reserves room so the fixed cart bar never covers the last card's content. */
+  padding-bottom: 5.5rem;
+}
+.public-cart-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  background: white;
+  border-top: 2px solid var(--pink-300);
+  box-shadow: 0 -0.5rem 1.5rem rgba(0, 0, 0, 0.08);
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+.public-cart-bar-summary {
+  font-weight: 800;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 .hours-list {
   display: grid;

@@ -47,19 +47,23 @@ flowchart TD
   K --> F
 ```
 
-### Estado da demonstração pública (`/b/{slug}`)
+### Estado de implementação da página pública (`/b/{slug}`)
 
-A página pública de demonstração (`src/app/b/[slug]/`, fora do processo formal de
-tarefas — ver `docs/evidence/`) implementa por agora só uma parte do Fluxo B:
-escolha de serviços/pacotes com carrinho (total e duração ao vivo) e confirmação via
-WhatsApp com a lista escolhida. Fases ainda por implementar, pela ordem completa do
-Fluxo B acima:
+A página pública (`src/app/b/[slug]/`) implementa por agora as duas primeiras fases do
+Fluxo B. Fases ainda por implementar, pela ordem completa do Fluxo B acima:
 
-1. **Cadastro** — nome + telemóvel (+ e-mail opcional) antes de escolher serviços.
-2. Serviços/Pacotes + carrinho — **já implementado** na demonstração.
+1. **Cadastro** (`NEX-051`) — nome + telemóvel (+ e-mail opcional) antes de escolher
+   serviços; recuperável no mesmo dispositivo por 24h sem e-mail (`NEX-052`).
+2. **Serviços/Pacotes + carrinho** — serviços agrupados por categoria (checkboxes);
+   pacote de escolha única (`radio`, PRD 01 §4: "aba separada"); extras — serviços
+   avulsos combinados com um pacote — nunca duplicam um item já incluído no pacote
+   escolhido (`src/app/b/[slug]/domain/booking-selection.ts`, `NEX-053`); barra de
+   total/duração ao vivo (`NEX-054` cobre a formalização do carrinho fixo com testes
+   próprios — a versão atual já cumpre "sem float" e "recalcula ao vivo").
 3. **Escolha do dia** e do horário disponível (depende do motor de disponibilidade,
    `EPIC-06`, ainda não construído).
-4. Observação opcional + resumo final + confirmação (reserva atómica).
+4. Observação opcional + resumo final + confirmação (reserva atómica) — por agora, a
+   confirmação é só um link `wa.me` com a seleção itemizada (sem motor de marcação).
 
 A versão formal e testada desta página fica para `NEX-050` em diante.
 
