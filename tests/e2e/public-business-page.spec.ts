@@ -6,6 +6,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
+import { completeRegistration } from './support/public-page';
 
 // NEX-050: the public page relies entirely on the anon RLS policies already proven in
 // NEX-012/NEX-035 (tenants.status='active', business_settings.published_at is not
@@ -63,6 +64,10 @@ test.describe('public business page /b/{slug} (NEX-050)', () => {
     await expect(page.getByText('Rua Exemplo, 10, 1000-001 Lisboa')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Marcar por WhatsApp' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Ligar agora' })).toBeVisible();
+
+    // Catalog sits behind Passo 1 (pré-cadastro, NEX-051) — completing it is required
+    // to reach "booking integrado".
+    await completeRegistration(page, 'Ana Cliente', '911111111');
     await expect(page.getByText('Verniz gel')).toBeVisible();
     await expect(page.getByText('60 min · 25,00 €')).toBeVisible();
   });

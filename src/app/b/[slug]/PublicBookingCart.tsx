@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { PreRegistrationStep } from './PreRegistrationStep';
+import type { ClientContactInput } from '@/lib/validation/client';
 
 type CartLine = {
   id: string;
@@ -28,12 +31,13 @@ function formatEuros(cents: number) {
 function buildWhatsappHref(
   phoneE164: string,
   businessName: string,
+  clientName: string,
   lines: CartLine[],
   totalCents: number,
   totalMinutes: number,
 ) {
   const digits = phoneE164.replace('+', '');
-  const intro = `Olá! Vim através da página de ${businessName}`;
+  const intro = `Olá! Chamo-me ${clientName} e vim através da página de ${businessName}`;
   const text =
     lines.length === 0
       ? `${intro} e gostava de marcar.`
@@ -52,6 +56,7 @@ export function PublicBookingCart({
   categoryGroups: CategoryGroup[];
   packages: PackageOption[];
 }) {
+  const [registration, setRegistration] = useState<ClientContactInput | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const allLines = useMemo(() => {
@@ -77,13 +82,33 @@ export function PublicBookingCart({
     .filter((line): line is CartLine => line !== undefined);
   const totalCents = selectedLines.reduce((sum, line) => sum + line.priceCents, 0);
   const totalMinutes = selectedLines.reduce((sum, line) => sum + line.durationMinutes, 0);
-  const whatsappHref = phoneE164
-    ? buildWhatsappHref(phoneE164, businessName, selectedLines, totalCents, totalMinutes)
-    : null;
+  const whatsappHref =
+    phoneE164 && registration
+      ? buildWhatsappHref(
+          phoneE164,
+          businessName,
+          registration.name,
+          selectedLines,
+          totalCents,
+          totalMinutes,
+        )
+      : null;
+
+  if (!registration) {
+    return <PreRegistrationStep onComplete={setRegistration} />;
+  }
 
   return (
     <>
-      <p className="public-step-label">Passo 1 · Escolha o que quer marcar</p>
+      <div className="public-registration-summary">
+        <span>
+          {registration.name} · {registration.phone}
+        </span>
+        <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
+          Alterar dados
+        </Button>
+      </div>
+      <p className="public-step-label">Passo 2 · Escolha o que quer marcar</p>
 
       {categoryGroups.map((group) => (
         <Card key={group.id}>
@@ -136,7 +161,7 @@ export function PublicBookingCart({
       ) : null}
 
       <Card className="public-summary">
-        <p className="public-step-label">Passo 2 · Confirmar</p>
+        <p className="public-step-label">Passo 3 · Confirmar</p>
         {selectedLines.length === 0 ? (
           <p>Escolha pelo menos um serviço ou pacote acima.</p>
         ) : (

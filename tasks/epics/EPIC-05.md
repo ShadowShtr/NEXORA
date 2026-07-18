@@ -64,29 +64,29 @@ Implementar criar pré-cadastro temporário sem expandir o escopo para funcional
 
 **Critérios de aceite**
 
-- Nome/telefone obrigatórios; e-mail opcional; nada em clients antes do booking.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Nome/telefone obrigatórios; e-mail opcional; nada em clients antes do booking. `PreRegistrationStep.tsx` — Passo 1 do fluxo público, antes do catálogo (segue `docs/02_UX_FLOWS.md`, Fluxo B). Nome e telemóvel `required` (HTML nativo — não há round-trip ao servidor neste componente para validar "obrigatório" de outra forma); `src/lib/validation/client.ts#clientContactSchema` (reforçado nesta tarefa: nome ≥2 carateres, telefone normalizado para E.164 via `normalizePhoneE164`, e-mail opcional mas validado se preenchido). **Nada é escrito no servidor** — dados ficam em estado React até ao "Confirmar" (que continua a ser só um link `wa.me`, sem motor de marcação); confirmado por teste que expulsa a aba a meio e verifica `clients` vazio.
+- Nenhum dado de outro tenant pode ser acedido. N/A — sem escrita nesta tarefa.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Passo 1 (dados) → Passo 2 (escolher) → Passo 3 (confirmar), com "Alterar dados" para voltar; mensagem de WhatsApp agora personalizada com o nome do cliente.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Abandono sem poluir clientes.
+- Abandono sem poluir clientes. `tests/unit/client-contact.test.ts` (9 testes, novo): normalização de telefone E.164, e-mail opcional/inválido, nome curto/vazio, telefone irreconhecível. `tests/e2e/public-pre-registration.spec.ts` (9 testes, chromium + webkit-mobile): Axe; nome/telefone marcados `required`; nome com 1 caráter rejeitado; telefone irreconhecível rejeitado; e-mail inválido rejeitado; avança só com nome+telefone (e-mail vazio); "Alterar dados" volta ao formulário; **completar o pré-cadastro e abandonar antes de "Confirmar" não escreve nenhuma linha em `clients`**.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova superfície de escrita.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-052 — Implementar draft e recuperação
 
