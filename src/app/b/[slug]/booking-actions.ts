@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { clientContactSchema } from '@/lib/validation/client';
 import type { Result } from '@/lib/result';
+import { checkBookingRateLimit } from '@/lib/rate-limit';
+import { getRequestIp } from '@/lib/request-ip';
+import { verifyTurnstileToken } from '@/lib/turnstile';
 
 const requestSchema = z.object({
   tenantId: z.uuid(),
@@ -15,6 +18,10 @@ const requestSchema = z.object({
   // held by the caller across retries — generating it inside this action instead would
   // mint a fresh key on every retry, defeating idempotency entirely.
   idempotencyKey: z.string().regex(/^[0-9a-f]{64}$/, 'idempotencyKey must be 64 hex chars'),
+  // Absent when Turnstile isn't rendered client-side (TURNSTILE_SITE_KEY unset) —
+  // verifyTurnstileToken already no-ops server-side in that same case, so an empty
+  // string here is fine rather than a validation error.
+  turnstileToken: z.string().optional(),
 });
 
 export type CreateBookingRequest = z.infer<typeof requestSchema>;
@@ -43,7 +50,29 @@ export async function createPublicBooking(
     selectedPackageId,
     startAtIso,
     idempotencyKey,
+    turnstileToken,
   } = parsed.data;
+
+  const ip = await getRequestIp();
+
+  const rateLimit = await checkBookingRateLimit(ip);
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      error: { code: 'RATE_LIMITED', message: 'Demasiados pedidos. Tente novamente em breve.' },
+    };
+  }
+
+  const isHuman = await verifyTurnstileToken(turnstileToken ?? '', ip);
+  if (!isHuman) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Verificação de segurança falhou. Tente novamente.',
+      },
+    };
+  }
 
   type CreatePublicBookingRow = {
     appointment_id: string;

@@ -69,7 +69,7 @@
 - [x] **NEX-063** — Implementar constraint de não sobreposição _(depende: NEX-011)_
 - [x] **NEX-064** — Implementar booking transacional/idempotente _(depende: NEX-063,NEX-051)_
 - [x] **NEX-065** — Tratar SLOT_TAKEN na UX _(depende: NEX-064)_
-- [ ] **NEX-066** — Rate limit e bot protection _(depende: NEX-064)_
+- [x] **NEX-066** — Rate limit e bot protection _(depende: NEX-064)_
 
 ### EPIC-07 — Confirmação e link da marcação
 

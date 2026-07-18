@@ -11,6 +11,8 @@ import type {
   BusinessHoursRow,
 } from '@/features/appointments/domain/daily-schedule';
 import type { Result } from '@/lib/result';
+import { checkAvailabilityRateLimit } from '@/lib/rate-limit';
+import { getRequestIp } from '@/lib/request-ip';
 
 const requestSchema = z.object({
   tenantId: z.uuid(),
@@ -36,6 +38,15 @@ export async function getPublicAvailability(
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Pedido inválido.' } };
   }
   const { tenantId, serviceDurationMinutes } = parsed.data;
+
+  const ip = await getRequestIp();
+  const rateLimit = await checkAvailabilityRateLimit(ip);
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      error: { code: 'RATE_LIMITED', message: 'Demasiados pedidos. Tente novamente em breve.' },
+    };
+  }
 
   const admin = createAdminClient();
 

@@ -272,26 +272,26 @@ Implementar rate limit e bot protection sem expandir o escopo para funcionalidad
 
 **Critérios de aceite**
 
-- Rate limit distribuído e proteção escalonável sem memória local.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Rate limit distribuído e proteção escalonável sem memória local. `src/lib/rate-limit.ts`: `Ratelimit.slidingWindow` do `@upstash/ratelimit` sobre Redis REST (Upstash) — chaveado por IP (`src/lib/request-ip.ts`, lê `x-forwarded-for`/`x-real-ip`), sem estado em memória do processo (`CLAUDE.md`). Dois limiares independentes: disponibilidade (30/min, leitura) e criação de marcação (5/min, escrita). `src/lib/turnstile.ts`: verificação server-side de um token Cloudflare Turnstile via `siteverify`.
+- Nenhum dado de outro tenant pode ser acedido. N/A — módulos genéricos, sem leitura de dados de negócio.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. `getPublicAvailability`/`createPublicBooking` devolvem `RATE_LIMITED` com mensagem direta ("Demasiados pedidos. Tente novamente em breve.").
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; `RATE_LIMIT_REDIS_TOKEN`/`TURNSTILE_SECRET_KEY` nunca aparecem em mensagens de erro devolvidas ao cliente.
 
 **Testes obrigatórios**
 
-- Teste 429 e bypass legítimo.
+- Teste 429 e bypass legítimo. `tests/integration/rate-limit.test.ts` (requer `RATE_LIMIT_REDIS_URL`/`_TOKEN` reais — Upstash; skip limpo sem credenciais, mesmo padrão dos restantes testes de integração): confirma `limited: true` com `retryAfterSeconds` após exceder o limite, que um identificador diferente (bypass legítimo) não é afetado, e que os dois limitadores (disponibilidade/booking) são independentes por identificador. `tests/unit/rate-limit.test.ts`: sem credenciais configuradas, nunca bloqueia e trata todo o visitante como humano — degradação graciosa coberta incondicionalmente (não requer credenciais).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — camada de defesa adicional em frente a RPCs já existentes (`NEX-062`/`064`).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — rate limit atua antes de qualquer acesso a dados, por IP, não por tenant.
+- Registar risco residual ou decisão temporária. **Risco residual**: sem `RATE_LIMIT_REDIS_URL`/`_TOKEN`/`TURNSTILE_SECRET_KEY` configurados em produção, o código degrada para "sem limite"/"assume humano" — proteção real só existe após provisionar Upstash + Cloudflare Turnstile e configurar as variáveis (`docs/ENVIRONMENTS_AND_SECRETS.md`, atualizado nesta tarefa). O widget Turnstile client-side (`TURNSTILE_SITE_KEY`) ainda não foi renderizado na UI pública — só a verificação server-side está pronta; `turnstileToken` chega vazio de `PublicBookingCart.tsx` até essa decisão de UX ser tomada.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
