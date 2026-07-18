@@ -1,5 +1,6 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
@@ -151,6 +152,10 @@ export default async function AgendaPage({
     <div className="shell">
       <p className="eyebrow">Agenda</p>
       <h1>Agenda</h1>
+
+      <Link href="/dashboard/agenda/nova" className="button link-button">
+        Nova marcação
+      </Link>
 
       <nav className="agenda-view-switcher" aria-label="Vista da agenda">
         <a

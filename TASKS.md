@@ -86,7 +86,7 @@
 - [x] **NEX-082** — Visualizações dia/semana/mês _(depende: NEX-080)_
 - [x] **NEX-083** — Resumo/lista de horários livres _(depende: NEX-061,NEX-080)_
 - [x] **NEX-084** — Detalhes, cancelar e reagendar _(depende: NEX-081)_
-- [ ] **NEX-085** — Marcação manual completa _(depende: NEX-041,NEX-061,NEX-080)_
+- [x] **NEX-085** — Marcação manual completa _(depende: NEX-041,NEX-061,NEX-080)_
 
 ### EPIC-09 — Clientes e histórico
 

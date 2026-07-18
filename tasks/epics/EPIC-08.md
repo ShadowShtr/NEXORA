@@ -228,26 +228,26 @@ Implementar marcação manual completa sem expandir o escopo para funcionalidade
 
 **Critérios de aceite**
 
-- Cliente, itens, slot, valor, observação.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Cliente, itens, slot, valor, observação. Nova página `/dashboard/agenda/nova` (`ManualBookingForm`, `src/features/appointments/ManualBookingForm.tsx`): escolher cliente existente (lista da própria dona) ou preencher dados de nova cliente (mesma validação `clientContactSchema` do fluxo público), serviços/pacote (reaproveita `cartLines`/`cartTotals` de `src/app/b/[slug]/domain/booking-selection.ts`), horário (`getManualBookingAvailability`, autenticado, reaproveita `computeAvailableSlotsMs`/`NEX-083`), total ao vivo, observação opcional. Delegado à função `security definer` `create_manual_booking` (`supabase/migrations/0009_create_manual_booking.sql`, mesmo padrão de `create_public_booking`/`NEX-064`): upsert de cliente por `(tenant_id, phone_e164)` quando novo, snapshot de itens relidos do catálogo (nunca confiados do formulário), `source='admin'`, grava `audit_logs`.
+- Nenhum dado de outro tenant pode ser acedido. `tenant_id` vem sempre de `current_tenant_id()` dentro da função, nunca de parâmetro; um `client_id` de outro tenant é rejeitado explicitamente (`22023`), confirmado por teste.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um formulário único, secções claras (Cliente/Serviços/Horário/Observação), total sempre visível.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging de aplicação.
 
 **Testes obrigatórios**
 
-- Conflito e cliente existente.
+- Conflito e cliente existente. `tests/integration/create-manual-booking.test.ts`: não chamável por `anon`; reserva um cliente já existente sem duplicar a linha em `clients`; cria cliente novo quando `client_id` é omitido; rejeita reservar num horário já ocupado por outra marcação ativa (`23P01`, `appointments_no_overlap`, `NEX-063`); rejeita um `client_id` pertencente a outro tenant (`22023`).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova função `security definer` — mesma superfície de `create_public_booking`, mas exigindo sessão autenticada (`authenticated`, não `anon`); preço/duração sempre relidos do catálogo, nunca confiados do formulário.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenant_id` derivado de `current_tenant_id()`; `client_id` explicitamente verificado contra esse mesmo `tenant_id` antes de ser usado.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
