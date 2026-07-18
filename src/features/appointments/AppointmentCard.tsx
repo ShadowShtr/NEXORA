@@ -49,18 +49,24 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentCardD
         <p className="appointment-card-items">{appointment.itemDescriptions.join(', ')}</p>
       ) : null}
       <p className="appointment-card-total">{formatEuros(appointment.totalCents)}</p>
-      {isActive ? (
-        <div className="appointment-card-actions">
-          {whatsappHref ? (
-            <a
-              className="button button-secondary link-button"
-              href={whatsappHref}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Abrir WhatsApp
-            </a>
-          ) : null}
+      <div className="appointment-card-actions">
+        <a
+          className="button button-secondary link-button"
+          href={`/dashboard/agenda/${appointment.id}`}
+        >
+          Ver detalhes
+        </a>
+        {isActive && whatsappHref ? (
+          <a
+            className="button button-secondary link-button"
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Abrir WhatsApp
+          </a>
+        ) : null}
+        {isActive ? (
           <Button
             type="button"
             variant="secondary"
@@ -69,8 +75,8 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentCardD
           >
             Concluir
           </Button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </li>
   );
 }

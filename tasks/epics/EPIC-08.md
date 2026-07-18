@@ -187,29 +187,29 @@ Implementar detalhes, cancelar e reagendar sem expandir o escopo para funcionali
 
 **Critérios de aceite**
 
-- Ações internas com confirmação e auditoria.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Ações internas com confirmação e auditoria. Nova página `/dashboard/agenda/[id]` (`src/app/(dashboard)/dashboard/agenda/[id]/page.tsx`): estado completo da marcação, itens, total, observação. Duas funções `security definer` (`supabase/migrations/0008_cancel_reschedule_appointment.sql`), mesmo padrão de `publish_business`/`ADR-008`: `cancel_appointment` (marca `cancelled`, grava `cancelled_at`) e `reschedule_appointment` (move `start_at`/`end_at`/`blocked_until`, recalculando o buffer a partir de `business_settings.buffer_minutes` atual, preservando a duração original) — ambas derivam `tenant_id` de `current_tenant_id()`, nunca de parâmetro, e gravam em `audit_logs` (append-only, `NEX-014`). Confirmação na UI é um reveal em duas etapas (clicar mostra a ação real, clicar de novo confirma) — sem `window.confirm()` nativo, consistente com o resto da app.
+- Nenhum dado de outro tenant pode ser acedido. A página filtra a busca por `tenantId` da sessão (RLS + filtro explícito); as RPCs recusam qualquer `appointment_id` que não pertença ao tenant do chamador (`22023`), confirmado por teste cross-tenant.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Duas ações diretas, mensagens de confirmação claras, `datetime-local` nativo para escolher o novo horário.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging de aplicação; o registo de auditoria em `audit_logs` já é o padrão estabelecido do projeto para isto.
 
 **Testes obrigatórios**
 
-- Permissões e conflitos.
+- Permissões e conflitos. `tests/integration/cancel-reschedule-appointment.test.ts`: não chamável por `anon` (`42501`); rejeita cancelar/reagendar marcação de outro tenant (`22023`); cancela com sucesso e grava `audit_logs`; rejeita cancelar uma marcação já cancelada; reagenda preservando a duração original e grava auditoria; rejeita reagendar para um horário já ocupado por outra marcação ativa (`23P01`, `appointments_no_overlap`, `NEX-063`), com a marcação original intacta após a falha. `tests/e2e/appointment-detail.spec.ts`: fluxo real de UI — cancelar exige o segundo clique de confirmação antes de submeter, reagendar atualiza `start_at`.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Duas funções `security definer` novas — revogadas de `public`/`anon`, concedidas só a `authenticated` (`ADR-008`); autorização real é `current_tenant_id()` dentro da função, não a concessão de `EXECUTE` por si.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `for update` no `select` dentro de ambas as funções evita corrida entre a leitura do estado atual e a escrita subsequente na mesma transação.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-085 — Marcação manual completa
 
