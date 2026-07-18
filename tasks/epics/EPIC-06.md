@@ -148,29 +148,29 @@ Implementar implementar constraint de não sobreposição sem expandir o escopo 
 
 **Critérios de aceite**
 
-- GiST impede dupla reserva em estados ativos.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- GiST impede dupla reserva em estados ativos. Já implementado em `0001_initial.sql` (`appointments_no_overlap`, `exclude using gist (tenant_id with =, tstzrange(start_at, blocked_until, '[)') with &&) where (status in ('confirmed', 'presence_confirmed'))`) — esta tarefa não precisou de migração nova, só da prova de que a constraint aguenta concorrência real, que faltava.
+- Nenhum dado de outro tenant pode ser acedido. A exclusão é particionada por `tenant_id with =`, confirmado por teste (`tests/integration/appointment-overlap.test.ts`): um overlap idêntico noutro tenant não é bloqueado.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — tarefa é só a constraint/teste, sem UI.
+- Logs não contêm segredos nem PII desnecessária. N/A — nenhuma alteração de schema ou aplicação.
 
 **Testes obrigatórios**
 
-- Teste concorrente SQL.
+- Teste concorrente SQL. `tests/integration/appointment-overlap.test.ts`: rejeita insert sequencial sobreposto (`23P01`), aceita marcações costas-com-costas no limite exato do intervalo semiaberto `[start_at, blocked_until)`, ignora overlap noutro tenant, ignora overlap com marcação já `cancelled`, e — o teste central da tarefa — duas transações Postgres independentes a inserir o mesmo intervalo em paralelo (`Promise.allSettled` sobre duas ligações `pg` distintas, cada uma na sua própria transação): exatamente uma comita, a outra recebe `23P01`. Segue o padrão `TEST_DATABASE_URL`/skip de `tests/integration/schema-invariants.test.ts`; sem Docker disponível neste momento, não corrido localmente — corre no CI (`NEX-015`/`NEX-011`).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — reafirma uma constraint já existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — a exclusion constraint atua ao nível da base de dados, abaixo de RLS, e já é tenant-scoped pelo `with =` sobre `tenant_id`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-064 — Implementar booking transacional/idempotente
 
