@@ -361,6 +361,15 @@ a:focus-visible {
   pointer-events: none;
   opacity: 0.5;
 }
+.public-registration-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-weight: 700;
+  color: var(--muted);
+}
 .hours-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
