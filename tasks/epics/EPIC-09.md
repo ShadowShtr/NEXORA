@@ -64,29 +64,29 @@ Implementar ficha completa da cliente sem expandir o escopo para funcionalidades
 
 **Critérios de aceite**
 
-- Resumo, histórico, preferências, faltas, valores.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Resumo, histórico, preferências, faltas, valores. `/dashboard/clientes/[id]` (`src/app/(dashboard)/dashboard/clientes/[id]/page.tsx`): contacto (nome/telefone/e-mail), resumo (primeira/última/próxima marcação, contagem de faltas/cancelamentos, total gasto, última forma de pagamento), preferências editáveis (`ClientPreferencesForm`, quatro campos de texto livre — cores/formatos/técnicas/produtos, `docs/01_PRODUCT_REQUIREMENTS.md` §10), histórico completo de marcações com itens e valores. Preferências modeladas pela primeira vez em `src/features/clients/domain/preferences.ts` (`clients.preferences` era `jsonb` sem forma definida) — parse tolerante para dados legados/malformados, nunca lança exceção. Observações privadas (`NEX-093`) e fotografias (`NEX-094`) ficam para tarefas seguintes; o layout já reserva o espaço.
+- Nenhum dado de outro tenant pode ser acedido. Busca do cliente filtrada por `id` + `tenantId` da sessão — um `id` de outro tenant simplesmente não é encontrado (`notFound()`, `404`), nunca vaza dados; confirmado por teste.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Cartões separados por assunto (Contacto/Resumo/Preferências/Histórico), formulário de preferências com confirmação de sucesso.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- Privacidade e acesso.
+- Privacidade e acesso. `tests/e2e/client-detail.spec.ts`: mostra resumo/histórico corretos e guarda preferências com sucesso para a própria cliente da dona; devolve `404` para um `id` de cliente de outro tenant, sem vazar nenhum dado dele na página. `tests/unit/client-preferences.test.ts`: parse de objeto bem-formado, campos em falta assumem `''`, valor `{}` (default da coluna) resulta em preferências vazias, dados malformados/legados nunca lançam exceção.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — leitura/escrita autenticada de dados já tenant-scoped por RLS.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Busca da ficha filtra por `tenantId` explícito; `updateClientPreferences` conta as linhas afetadas pelo `UPDATE` (RLS torna uma tentativa cross-tenant um no-op silencioso — checado explicitamente para devolver erro em vez de "sucesso" falso).
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-092 — Sugestão/deduplicação no booking manual
 
