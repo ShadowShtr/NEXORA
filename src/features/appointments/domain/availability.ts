@@ -1,3 +1,11 @@
+import { formatInTimeZone } from 'date-fns-tz';
+import {
+  dayHoursToOpenIntervals,
+  resolveDayHours,
+  type BusinessHoursExceptionRow,
+  type BusinessHoursRow,
+} from './daily-schedule';
+
 export type BusyInterval = Readonly<{ startMs: number; endMs: number }>;
 
 export type GenerateSlotsInput = Readonly<{
@@ -31,6 +39,88 @@ export function generateAvailableSlots(input: GenerateSlotsInput): number[] {
     const end = start + occupiedMs;
     const overlaps = busy.some((interval) => start < interval.endMs && end > interval.startMs);
     if (!overlaps) slots.push(start);
+  }
+
+  return slots;
+}
+
+export type GenerateTimezoneAwareSlotsInput = Readonly<{
+  timeZone: string;
+  nowMs: number;
+  minNoticeHours: number;
+  bookingWindowDays: number;
+  slotStepMinutes: 15 | 30 | 60;
+  serviceDurationMinutes: number;
+  bufferMinutes: number;
+  weeklyHours: readonly BusinessHoursRow[];
+  exceptions: readonly BusinessHoursExceptionRow[];
+  busy: readonly BusyInterval[];
+}>;
+
+// Orchestrates NEX-061: walks each calendar day (in the tenant's timezone) inside
+// [now + min_notice_hours, now + booking_window_days], resolves that day's open
+// intervals (business_hours_exceptions takes priority over business_hours, per
+// NEX-060/docs/04_DATA_MODEL.md), and generates slots per open interval via
+// generateAvailableSlots — which already subtracts `busy` (existing appointments and
+// availability_blocks, merged by the caller). Walking day-by-day and converting each
+// day's local wall-clock hours through fromZonedTime (daily-schedule.ts) is what makes
+// this correct across a DST transition, unlike a single UTC window ignorant of the
+// tenant's calendar day boundaries.
+export function generateTimezoneAwareSlots(input: GenerateTimezoneAwareSlotsInput): number[] {
+  const {
+    timeZone,
+    nowMs,
+    minNoticeHours,
+    bookingWindowDays,
+    slotStepMinutes,
+    serviceDurationMinutes,
+    bufferMinutes,
+    weeklyHours,
+    exceptions,
+    busy,
+  } = input;
+
+  if (bookingWindowDays <= 0) throw new Error('Booking window must be positive');
+  if (minNoticeHours < 0) throw new Error('Min notice cannot be negative');
+
+  const earliestMs = nowMs + minNoticeHours * 60 * 60_000;
+  const horizonMs = nowMs + bookingWindowDays * 24 * 60 * 60_000;
+
+  // formatInTimeZone reads calendar fields via Intl in `timeZone`, independent of the
+  // host process's own timezone (unlike Date getters on a toZonedTime() result) — this
+  // process may run under any TZ in CI or production.
+  const todayKey = formatInTimeZone(nowMs, timeZone, 'yyyy-MM-dd');
+  const todayYear = Number(todayKey.slice(0, 4));
+  const todayMonth = Number(todayKey.slice(5, 7));
+  const todayDate = Number(todayKey.slice(8, 10));
+  const slots: number[] = [];
+
+  for (let offset = 0; offset <= bookingWindowDays; offset += 1) {
+    // A UTC-noon anchor for day arithmetic only (never used as a wall-clock instant):
+    // stepping by whole days here can never cross a DST boundary within the same
+    // UTC day, so this stays offset-free and safe to feed back into date formatting.
+    const dayAnchor = new Date(Date.UTC(todayYear, todayMonth - 1, todayDate + offset, 12));
+    const dateKey = dayAnchor.toISOString().slice(0, 10);
+    const dayOfWeek = dayAnchor.getUTCDay();
+
+    const dayHours = resolveDayHours(dateKey, dayOfWeek, weeklyHours, exceptions);
+    const openIntervals = dayHoursToOpenIntervals(dateKey, dayHours, timeZone);
+
+    for (const interval of openIntervals) {
+      const windowStartMs = Math.max(interval.startMs, earliestMs);
+      const windowEndMs = Math.min(interval.endMs, horizonMs);
+      if (windowEndMs <= windowStartMs) continue;
+
+      const daySlots = generateAvailableSlots({
+        windowStartMs,
+        windowEndMs,
+        slotStepMinutes,
+        serviceDurationMinutes,
+        bufferMinutes,
+        busy,
+      });
+      slots.push(...daySlots);
+    }
   }
 
   return slots;
