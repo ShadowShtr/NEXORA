@@ -64,29 +64,29 @@ Implementar criar link público seguro sem expandir o escopo para funcionalidade
 
 **Critérios de aceite**
 
-- Token hash, vista mínima, revogação e respostas uniformes.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Token hash, vista mínima, revogação e respostas uniformes. `GET /api/bookings/{token}` (`src/app/api/bookings/[token]/route.ts`): resolve `appointments.booking_token_hash` (já existente desde `0001_initial.sql`, `create_public_booking`/`NEX-064` só devolve o token em claro uma vez, na criação), comparação final por `timingSafeEqual` como defesa em profundidade. Vista mínima: nome do negócio/morada, itens da marcação, data/hora e `status` atual — nunca telefone/e-mail do cliente. "Revogação": não há ainda cancelamento/reagendamento no produto (épicos futuros); a vista já reflete honestamente o `status` da marcação em vez de assumir sempre ativa, o que é a base sobre a qual um cancelamento futuro (`NEX-084`) automaticamente revoga o valor prático do link sem trabalho adicional aqui.
+- Nenhum dado de outro tenant pode ser acedido. Lookup é só por `booking_token_hash` (índice único global), nunca por `tenant_id` do caller — não há como um token válido de um tenant devolver dados de outro.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — rota HTTP pura (JSON); consumida por UI em `NEX-070`.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging na rota; o token nunca é escrito em log algum, só usado para derivar o hash em memória.
 
 **Testes obrigatórios**
 
-- Enumeração e logs.
+- Enumeração e logs. `tests/e2e/booking-token-lookup.spec.ts`: token malformado, token bem-formado mas inexistente e uma tentativa contra dados de outro registo devolvem exatamente o mesmo corpo/`404` (`docs/05_SECURITY_PRIVACY.md`, T3); vista mínima confirmada sem nome/telefone do cliente na resposta; `Cache-Control: no-store` confirmado. Rate limit dedicado (`checkBookingLookupRateLimit`, 60/min, `src/lib/rate-limit.ts`) como defesa adicional contra scripted enumeration, reaproveitando a infraestrutura de `NEX-066`.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — leitura pública já prevista desde `NEX-064` (token devolvido ao cliente para "ver marcação").
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — acesso por posse do token (256 bits de entropia, hash em BD), não por sessão/tenant; service-role necessário porque `appointments`/`appointment_items` não têm política `anon`.
+- Registar risco residual ou decisão temporária. Mesmo risco residual de `NEX-066`: sem `RATE_LIMIT_REDIS_URL`/`_TOKEN` configurados, esta rota também degrada para "sem limite" (mitigado pela entropia do token em si).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-072 — Gerar ficheiro ICS
 

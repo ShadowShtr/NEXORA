@@ -14,9 +14,10 @@ import { Redis } from '@upstash/redis';
 // that module parses the full app schema (including required NEXT_PUBLIC_* Supabase
 // vars) eagerly at import time, which would make this file — and every unit test that
 // imports it — depend on unrelated Supabase env vars being present.
-let cachedLimiters: { availability: Ratelimit; booking: Ratelimit } | null = null;
+type Limiters = { availability: Ratelimit; booking: Ratelimit; bookingLookup: Ratelimit };
+let cachedLimiters: Limiters | null = null;
 
-function getLimiters(): { availability: Ratelimit; booking: Ratelimit } | null {
+function getLimiters(): Limiters | null {
   if (cachedLimiters) return cachedLimiters;
 
   const RATE_LIMIT_REDIS_URL = process.env.RATE_LIMIT_REDIS_URL;
@@ -41,6 +42,15 @@ function getLimiters(): { availability: Ratelimit; booking: Ratelimit } | null {
       limiter: Ratelimit.slidingWindow(5, '1 m'),
       prefix: 'nexora:ratelimit:booking',
     }),
+    // GET /api/bookings/{token} (NEX-071): the 256-bit token already makes brute force
+    // impractical on its own, but a generous cap still adds defense in depth against a
+    // scripted enumeration attempt (docs/05_SECURITY_PRIVACY.md, T3) without getting in
+    // the way of a real visitor refreshing their confirmation page.
+    bookingLookup: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, '1 m'),
+      prefix: 'nexora:ratelimit:booking-lookup',
+    }),
   };
   return cachedLimiters;
 }
@@ -63,4 +73,10 @@ export async function checkBookingRateLimit(identifier: string): Promise<RateLim
   const limiters = getLimiters();
   if (!limiters) return { limited: false };
   return check(limiters.booking, identifier);
+}
+
+export async function checkBookingLookupRateLimit(identifier: string): Promise<RateLimitResult> {
+  const limiters = getLimiters();
+  if (!limiters) return { limited: false };
+  return check(limiters.bookingLookup, identifier);
 }
