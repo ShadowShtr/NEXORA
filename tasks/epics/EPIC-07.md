@@ -105,29 +105,29 @@ Implementar gerar ficheiro ics sem expandir o escopo para funcionalidades não a
 
 **Critérios de aceite**
 
-- Timezone, duração, morada e UID estável.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Timezone, duração, morada e UID estável. `GET /api/bookings/{token}/calendar.ics` (`src/app/api/bookings/[token]/calendar.ics/route.ts`) reaproveita `resolveBookingByToken` (`NEX-071`) e gera um único `VEVENT` via `generateIcsEvent` (`src/lib/ics.ts`, sem dependência externa — RFC 5545 mínimo). `DTSTART`/`DTEND` em UTC (`...Z`), interpretados corretamente por qualquer cliente independente do timezone do visitante; duração é a diferença real entre `start_at`/`end_at` da marcação; `LOCATION` formatado a partir da morada do negócio; `UID` é `{appointment_id}@nexora` — estável entre re-downloads do mesmo token (re-importar atualiza o evento existente em vez de duplicar).
+- Nenhum dado de outro tenant pode ser acedido. Mesma resolução por hash de token de `NEX-071`, sem `tenant_id` do caller.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — rota HTTP (`text/calendar`, `Content-Disposition: attachment`); consumida por UI em `NEX-070`.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging na rota.
 
 **Testes obrigatórios**
 
-- Import em Google/Apple/Outlook.
+- Import em Google/Apple/Outlook. `tests/unit/ics.test.ts`: conformidade estrutural RFC 5545 exaustiva — `CRLF`, folding de linhas >75 octetos, escaping de `,`/`;`/`\`, `DTSTART`/`DTEND` em UTC, `UID` estável, `LOCATION`/`DESCRIPTION` só quando presentes (esta é a garantia real de compatibilidade com os três clientes, todos leitores RFC 5545 padrão). `tests/e2e/booking-calendar-ics.spec.ts`: contrato HTTP real (`Content-Type: text/calendar`, `Content-Disposition: attachment; filename=...ics`), duração correta ponta-a-ponta contra dados reais em BD, `UID` idêntico em dois downloads do mesmo token, 404 uniforme para token desconhecido (mesma forma de `NEX-071`).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — mesma leitura pública por posse de token de `NEX-071`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — herda a mesma garantia de `resolveBookingByToken`.
+- Registar risco residual ou decisão temporária. Mesmo risco residual de rate limit de `NEX-071`/`066` (rota partilha `checkBookingLookupRateLimit`).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-073 — Implementar abrir localização
 

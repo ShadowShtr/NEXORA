@@ -1,22 +1,14 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { resolveBookingByToken } from '@/lib/booking-token-lookup';
 import { checkBookingLookupRateLimit } from '@/lib/rate-limit';
 import { getRequestIp } from '@/lib/request-ip';
 
-const TOKEN_PATTERN = /^[0-9a-f]{64}$/;
-
-function hashToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
-}
-
 // docs/05_SECURITY_PRIVACY.md, T3 "Enumeração de links": an attacker trying random
-// tokens must see the exact same response (shape, status code, timing budget) whether
-// the token is malformed, well-formed-but-unknown, or points at another tenant's
-// marcação — any difference is a signal that helps them narrow the search. This is why
-// every failure path below returns the identical 404 body, and why the hash comparison
-// itself (once a row is found) still goes through timingSafeEqual rather than a plain
-// string compare that could short-circuit at the first differing byte.
+// tokens must see the exact same response (shape, status code) whether the token is
+// malformed, well-formed-but-unknown, or points at another tenant's marcação — any
+// difference is a signal that helps them narrow the search. resolveBookingByToken
+// (src/lib/booking-token-lookup.ts) already collapses every one of those cases to
+// `null`, so this route only ever has one not-found shape to return.
 function notFoundResponse() {
   return NextResponse.json(
     { error: { code: 'NOT_FOUND', message: 'Marcação não encontrada.' } },
@@ -44,74 +36,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     );
   }
 
-  if (!TOKEN_PATTERN.test(token)) {
-    return notFoundResponse();
-  }
-
-  const admin = createAdminClient();
-  const tokenHash = hashToken(token);
-
-  const { data: appointment } = await admin
-    .from('appointments')
-    .select(
-      'id, tenant_id, status, start_at, end_at, expected_total_cents, final_total_cents, booking_token_hash',
-    )
-    .eq('booking_token_hash', tokenHash)
-    .maybeSingle();
-
-  if (!appointment) {
-    return notFoundResponse();
-  }
-
-  // Defense in depth: booking_token_hash is already a unique-indexed exact-match lookup
-  // (fast, not attacker-controlled timing-wise on its own), but comparing the retrieved
-  // hash back against the computed one via timingSafeEqual costs nothing and removes
-  // any doubt about the DB layer's own comparison semantics.
-  const storedHash = Buffer.from(appointment.booking_token_hash, 'hex');
-  const computedHash = Buffer.from(tokenHash, 'hex');
-  if (storedHash.length !== computedHash.length || !timingSafeEqual(storedHash, computedHash)) {
-    return notFoundResponse();
-  }
-
-  const [{ data: tenant }, { data: items }] = await Promise.all([
-    admin
-      .from('tenants')
-      .select('name, business_settings(professional_name, address_line, postal_code, locality)')
-      .eq('id', appointment.tenant_id)
-      .maybeSingle(),
-    admin
-      .from('appointment_items')
-      .select('description, unit_price_cents, quantity')
-      .eq('appointment_id', appointment.id),
-  ]);
-
-  if (!tenant) {
-    return notFoundResponse();
-  }
-
-  const settings = Array.isArray(tenant.business_settings)
-    ? tenant.business_settings[0]
-    : tenant.business_settings;
+  const booking = await resolveBookingByToken(token);
+  if (!booking) return notFoundResponse();
 
   return NextResponse.json(
     {
       data: {
-        status: appointment.status,
-        startAt: appointment.start_at,
-        endAt: appointment.end_at,
-        totalCents: appointment.final_total_cents ?? appointment.expected_total_cents,
+        status: booking.status,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+        totalCents: booking.totalCents,
         business: {
-          name: tenant.name,
-          professionalName: settings?.professional_name ?? null,
-          addressLine: settings?.address_line ?? null,
-          postalCode: settings?.postal_code ?? null,
-          locality: settings?.locality ?? null,
+          name: booking.business.name,
+          professionalName: booking.business.professionalName,
+          addressLine: booking.business.addressLine,
+          postalCode: booking.business.postalCode,
+          locality: booking.business.locality,
         },
-        items: (items ?? []).map((item) => ({
-          description: item.description,
-          unitPriceCents: item.unit_price_cents,
-          quantity: item.quantity,
-        })),
+        items: booking.items,
       },
     },
     { headers: { 'Cache-Control': 'no-store' } },
