@@ -63,7 +63,7 @@
 
 ### EPIC-06 — Motor de disponibilidade
 
-- [ ] **NEX-060** — Modelar horários e exceções _(depende: NEX-011,NEX-032)_
+- [x] **NEX-060** — Modelar horários e exceções _(depende: NEX-011,NEX-032)_
 - [ ] **NEX-061** — Implementar gerador de slots timezone-aware _(depende: NEX-060)_
 - [ ] **NEX-062** — Implementar consulta pública de disponibilidade _(depende: NEX-061,NEX-054)_
 - [ ] **NEX-063** — Implementar constraint de não sobreposição _(depende: NEX-011)_
