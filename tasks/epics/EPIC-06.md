@@ -106,29 +106,30 @@ Implementar implementar consulta pública de disponibilidade sem expandir o esco
 
 **Critérios de aceite**
 
-- API retorna apenas slots válidos e limites de intervalo.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- API retorna apenas slots válidos e limites de intervalo. `getPublicAvailability` (`src/app/b/[slug]/availability-actions.ts`, server action) lê `business_settings` do próprio tenant para step/buffer/notice/window/timezone (nunca do caller), busca `business_hours`/`business_hours_exceptions`/`availability_blocks`/marcações ativas (`confirmed`/`presence_confirmed`, janela `[start_at, blocked_until)` como em `appointments_no_overlap`) e delega o cálculo a `generateTimezoneAwareSlots` (`NEX-061`). Retorna só os instantes computados (`slotsIso`).
+- Nenhum dado de outro tenant pode ser acedido. Todas as queries são filtradas por `tenant_id`; o service-role client (`src/lib/supabase/admin.ts`) é necessário porque nenhuma das tabelas de origem tem política `anon` (por desenho, ver `docs/04_DATA_MODEL.md`) — só os slots computados saem da função, nunca o horário em bruto. Isolamento coberto por teste de integração com dois tenants (bloqueio total num dia só afeta o tenant dono do bloqueio).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — esta tarefa entrega só a consulta (server action); a UI que a consome é trabalho de tarefas de dashboard/booking futuras.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; erros devolvidos como `Result<T>` tipado (`VALIDATION_ERROR`/`NOT_FOUND`), sem detalhes internos expostos.
 
 **Testes obrigatórios**
 
-- Validação/rate limit contract.
+- Validação/rate limit contract. Input validado com Zod (`tenantId` uuid, `serviceDurationMinutes` 5–720) — rejeitado antes de tocar a base de dados. `RATE_LIMITED` já modelado em `AppErrorCode` (`src/lib/result.ts`); rate limiting real fica para `NEX-066` (fora de escopo aqui, per `CLAUDE.md`: não expandir escopo).
+- `tests/integration/public-availability.test.ts`: rejeita input inválido, `NOT_FOUND` para tenant nunca publicado e para tenant inexistente, isolamento entre dois tenants (bloqueio num não afeta o outro). Segue o mesmo padrão skip-sem-env de `publish-business.test.ts` (`describe.runIf`); import da action é feito dinamicamente dentro de `beforeAll` porque `src/lib/env.ts` faz parse eager de `process.env` — um import estático abortaria o ficheiro inteiro antes do skip poder atuar.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — reaproveita o service-role client já existente (`NEX-052`) para leitura, sem escrita.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado: `tenant_id` de cada query vem do parâmetro validado, nunca de sessão (não há sessão — visitante anónimo); horário/step/buffer/notice/window vêm sempre de `business_settings` do próprio tenant, nunca do input do caller, fechando a via de um caller pedir um `bufferMinutes`/`slotStepMinutes` diferente do configurado pela dona.
+- Registar risco residual ou decisão temporária. Sem rate limiting real (`NEX-066` cobre isto) — risco aceite temporariamente: um caller pode fazer polling desta action sem limite até `NEX-066` ser implementada.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-063 — Implementar constraint de não sobreposição
 
