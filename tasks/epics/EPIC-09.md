@@ -23,29 +23,29 @@ Implementar lista e pesquisa de clientes sem expandir o escopo para funcionalida
 
 **Critérios de aceite**
 
-- Busca por nome/telefone, paginação e empty state.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Busca por nome/telefone, paginação e empty state. `/dashboard/clientes` (`src/app/(dashboard)/dashboard/clientes/page.tsx`): pesquisa via `?q=` (`ilike` em `name`/`phone_e164`, com escaping dos caracteres especiais de sintaxe `or()`/`ilike` do PostgREST), paginação real via `?page=` + `.range()` (20 por página), dois empty states distintos ("ainda não tem clientes" vs. "nenhuma cliente encontrada para essa pesquisa").
+- Nenhum dado de outro tenant pode ser acedido. Query filtrada por `tenantId` da sessão (`requireProfile()`); RLS via `createClient()` cookie-scoped como defesa em profundidade. Confirmado por teste com dois tenants.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Um campo de pesquisa, lista direta, paginação Anterior/Seguinte.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging novo.
 
 **Testes obrigatórios**
 
-- RLS/performance.
+- RLS/performance. `tests/e2e/clients-search.spec.ts`: empty state sem clientes, pesquisa por nome parcial e por telefone encontra a cliente certa sem nunca mostrar dados de outro tenant, pesquisa sem resultados mostra o empty state correto, paginação com 25 clientes reais mostra exatamente 20 na página 1 e 5 na página 2.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — leitura autenticada de dados já tenant-scoped por RLS.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `createClient()` cookie-scoped (RLS ativa) mais filtro explícito por `tenantId`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-091 — Ficha completa da cliente
 
