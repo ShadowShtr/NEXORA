@@ -57,7 +57,7 @@
 
 - [x] **NEX-050** — Criar página pública por slug _(depende: NEX-035)_
 - [x] **NEX-051** — Criar pré-cadastro temporário _(depende: NEX-050)_
-- [ ] **NEX-052** — Implementar draft e recuperação _(depende: NEX-051)_
+- [x] **NEX-052** — Implementar draft e recuperação _(depende: NEX-051)_
 - [ ] **NEX-053** — Criar seletor Serviços/Pacotes _(depende: NEX-043,NEX-050)_
 - [ ] **NEX-054** — Criar carrinho fixo _(depende: NEX-053)_
 

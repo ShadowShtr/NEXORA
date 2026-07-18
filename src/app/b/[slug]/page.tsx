@@ -133,6 +133,8 @@ export default async function PublicBusinessPage({
       </Card>
 
       <PublicBookingCart
+        tenantId={tenant.id}
+        tenantSlug={slug}
         businessName={tenant.name}
         phoneE164={settings.phone_e164}
         categoryGroups={categoryGroups}

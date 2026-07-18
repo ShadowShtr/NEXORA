@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PreRegistrationStep } from './PreRegistrationStep';
+import { resumeBookingDraft, saveBookingDraft } from './draft-actions';
 import type { ClientContactInput } from '@/lib/validation/client';
 
 type CartLine = {
@@ -45,12 +46,22 @@ function buildWhatsappHref(
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
+// Same-device recovery only (NEX-052): the resume token lives in this browser's
+// localStorage, scoped per tenant — no e-mail delivery involved.
+function draftStorageKey(tenantSlug: string) {
+  return `nexora-draft-${tenantSlug}`;
+}
+
 export function PublicBookingCart({
+  tenantId,
+  tenantSlug,
   businessName,
   phoneE164,
   categoryGroups,
   packages,
 }: {
+  tenantId: string;
+  tenantSlug: string;
   businessName: string;
   phoneE164: string | null;
   categoryGroups: CategoryGroup[];
@@ -58,6 +69,62 @@ export function PublicBookingCart({
 }) {
   const [registration, setRegistration] = useState<ClientContactInput | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [resumeChecked, setResumeChecked] = useState(false);
+
+  // Attempt a same-device resume once, on mount. setState only ever happens inside
+  // this nested async function (never directly in the effect body), and only if the
+  // effect hasn't been cleaned up in the meantime.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkForDraft() {
+      const key = draftStorageKey(tenantSlug);
+      const token = window.localStorage.getItem(key);
+      if (!token) {
+        if (!cancelled) setResumeChecked(true);
+        return;
+      }
+
+      const result = await resumeBookingDraft(token);
+      if (cancelled) return;
+      if (result.ok) {
+        setRegistration(result.value.registration);
+        setSelectedIds(new Set(result.value.selectedIds));
+      } else {
+        window.localStorage.removeItem(key);
+      }
+      setResumeChecked(true);
+    }
+
+    void checkForDraft();
+    return () => {
+      cancelled = true;
+    };
+    // Only ever run once, right after mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save (debounced) whenever the registration or selection changes, so the client can
+  // recover on this device even if they close the tab mid-selection. Reuses whatever
+  // token is already in localStorage so repeated edits update one row instead of
+  // creating a new one each time (see saveBookingDraft's existingToken parameter).
+  useEffect(() => {
+    if (!registration) return;
+
+    async function persistDraft() {
+      const key = draftStorageKey(tenantSlug);
+      const result = await saveBookingDraft(tenantId, window.localStorage.getItem(key), {
+        registration: registration!,
+        selectedIds: Array.from(selectedIds),
+      });
+      if (result.ok) {
+        window.localStorage.setItem(key, result.value.resumeToken);
+      }
+    }
+
+    const timeout = setTimeout(() => void persistDraft(), 600);
+    return () => clearTimeout(timeout);
+  }, [registration, selectedIds, tenantId, tenantSlug]);
 
   const allLines = useMemo(() => {
     const map = new Map<string, CartLine>();
@@ -93,6 +160,8 @@ export function PublicBookingCart({
           totalMinutes,
         )
       : null;
+
+  if (!resumeChecked) return null;
 
   if (!registration) {
     return <PreRegistrationStep onComplete={setRegistration} />;
