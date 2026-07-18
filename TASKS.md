@@ -67,7 +67,7 @@
 - [x] **NEX-061** — Implementar gerador de slots timezone-aware _(depende: NEX-060)_
 - [x] **NEX-062** — Implementar consulta pública de disponibilidade _(depende: NEX-061,NEX-054)_
 - [x] **NEX-063** — Implementar constraint de não sobreposição _(depende: NEX-011)_
-- [ ] **NEX-064** — Implementar booking transacional/idempotente _(depende: NEX-063,NEX-051)_
+- [x] **NEX-064** — Implementar booking transacional/idempotente _(depende: NEX-063,NEX-051)_
 - [ ] **NEX-065** — Tratar SLOT_TAKEN na UX _(depende: NEX-064)_
 - [ ] **NEX-066** — Rate limit e bot protection _(depende: NEX-064)_
 

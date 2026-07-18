@@ -189,29 +189,29 @@ Implementar implementar booking transacional/idempotente sem expandir o escopo p
 
 **Critérios de aceite**
 
-- Cliente upsert, snapshots, appointment, reminder e token em transação.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Cliente upsert, snapshots, appointment, reminder e token em transação. `create_public_booking` (`supabase/migrations/0007_create_public_booking.sql`, `security definer`): upsert de `clients` por `(tenant_id, phone_e164)`, snapshot de `appointment_items` com preço/duração relidos do catálogo (nunca confiados do caller), insert de `appointments` (`booking_token` gerado com `gen_random_bytes`, só o hash persistido) e de `reminders` (due 24h antes) — tudo numa única transação PL/pgSQL; `appointments_no_overlap` (`NEX-063`) faz o rollback automático de tudo se o horário já estiver ocupado. Chamada por `getPublicAvailability`-style server action `createPublicBooking` (`src/app/b/[slug]/booking-actions.ts`), que mapeia `23P01`→`SLOT_TAKEN`, `23505`→`IDEMPOTENCY_CONFLICT`.
+- Nenhum dado de outro tenant pode ser acedido. Toda query da função é filtrada por `tenant_id`; `tenant_id` vem sempre do parâmetro validado (uuid), nunca de sessão (não há sessão — visitante anónimo). Confirmado por teste (dois tenants, IDs de serviço só resolvidos dentro do próprio tenant).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — esta tarefa entrega a mutação (RPC + server action); a UI que a consome fica para `NEX-070` (ecrã de confirmação).
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; a função não expõe o `booking_token` em texto claro nos logs — só no valor de retorno da própria chamada (`docs/06_API_CONTRACTS.md`: "devolve token público uma única vez").
 
 **Testes obrigatórios**
 
-- Concorrência, rollback e idempotência.
+- Concorrência, rollback e idempotência. `tests/integration/create-public-booking.test.ts` (conexão `pg` direta, `TEST_DATABASE_URL`): cria cliente+items+appointment+reminder atomicamente; reaproveita cliente existente pelo telefone; faz rollback do upsert de cliente quando o insert do appointment falha por sobreposição (`23P01`); replay com mesma chave+payload devolve o `appointment_id` original sem duplicar nem reemitir token; mesma chave com payload diferente rejeitada (`23505`); e o teste central — duas ligações Postgres independentes a reservar o mesmo horário em paralelo, exatamente uma comita. `tests/integration/create-public-booking-grant.test.ts` (PostgREST/`supabase-js`, mesmas env vars de `publish-business.test.ts`): confirma que `anon` consegue mesmo invocar a função via API real (não só ler o `GRANT` no SQL).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova função pública (`anon` pode invocar) — âmbito de escrita limitado ao `tenant_id` passado e apenas para tenants publicados; preço/duração sempre recalculados server-side, nunca aceites do caller (fecha a via de um caller declarar um total diferente do real).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `security definer` com `set search_path = public`, seguindo `ADR-008`: revogado de `public`/`authenticated`, concedido só a `anon` (marcação administrativa futura, `NEX-085`, terá o seu próprio caminho autenticado — fora de escopo aqui).
+- Registar risco residual ou decisão temporária. Nenhum rate limiting nesta função ainda (`NEX-066` cobre isto) — mesmo risco residual já registado em `NEX-062`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-065 — Tratar SLOT_TAKEN na UX
 

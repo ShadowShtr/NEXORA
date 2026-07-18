@@ -4,6 +4,7 @@ export type AppErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'SLOT_TAKEN'
+  | 'IDEMPOTENCY_CONFLICT'
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR';
 
