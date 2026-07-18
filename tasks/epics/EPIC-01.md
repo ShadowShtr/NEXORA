@@ -228,26 +228,26 @@ Implementar criar testes automatizados de isolamento sem expandir o escopo para 
 
 **Critérios de aceite**
 
-- Suite cobre SELECT/INSERT/UPDATE/DELETE cruzado.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Suite cobre SELECT/INSERT/UPDATE/DELETE cruzado. Já existia desde `NEX-012`/`NEX-040`-`043` (`tests/integration/*.test.ts`, 8 ficheiros, 45 testes) mas nunca corria de facto — só localmente, com credenciais reais opcionais, sempre skip em CI. O trabalho desta tarefa foi torná-la executável a sério (ver Testes obrigatórios).
+- Nenhum dado de outro tenant pode ser acedido. Confirmado pelos próprios testes (tenant A/B cruzado em `clients`, `service_categories`, `services`, `packages`).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — sem UI.
+- Logs não contêm segredos nem PII desnecessária. N/A — CI usa credenciais efémeras geradas pelo próprio `supabase start`, descartadas no fim do job.
 
 **Testes obrigatórios**
 
-- CI com Supabase local.
+- CI com Supabase local. Novo job `integration` em `.github/workflows/ci.yml`: `supabase/setup-cli` + `supabase start` sobe a stack completa via Docker nativo do runner (`ubuntu-latest` tem Docker; a máquina de dev local não, `ADR-007`), aplica as migrations `0001`-`0005` existentes, e corre `npm run test:integration` (novo script, `vitest run tests/integration`) com as credenciais reais da instância local exportadas via `supabase status -o env`. **8/8 ficheiros, 45/45 testes passam** — primeira vez que esta suite corre de facto em CI.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova entrada/dado — só passou a executar testes já escritos.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado pelos próprios 45 testes agora a correr de facto.
+- Registar risco residual ou decisão temporária. Ver evidência (`docs/evidence/NEX-015_CI_RLS_ISOLATION.md`): `supabase/config.toml#auto_expose_new_tables` reativado para a instância local corresponder ao comportamento legacy do projeto cloud (nenhuma das migrations `0001`-`0005` tem `GRANT`s explícitos) — esta flag é removida pelo CLI a 2026-10-30, altura em que o schema vai precisar de `GRANT`s explícitos por tabela; não corrigido agora por estar fora do escopo desta tarefa (só a tornar a suite executável).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
