@@ -145,7 +145,11 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+# NEX-015: disabled locally — requires the `vector` (pgvector) Postgres extension,
+# which the local CLI's Postgres image doesn't ship, and NEXORA has no vector/embedding
+# storage feature. Left here (not deleted) so a future task that genuinely needs it can
+# re-enable deliberately instead of rediscovering this failure mode from scratch.
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
