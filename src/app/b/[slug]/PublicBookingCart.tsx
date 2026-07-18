@@ -9,6 +9,7 @@ import {
   cartLines,
   cartTotals,
   dropServicesCoveredByPackage,
+  itemCountLabel,
   type PackageOption,
   type ServiceLine,
 } from './domain/booking-selection';
@@ -182,114 +183,140 @@ export function PublicBookingCart({
 
   return (
     <>
-      <div className="public-registration-summary">
-        <span>
-          {registration.name} · {registration.phone}
-        </span>
-        <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
-          Alterar dados
-        </Button>
-      </div>
-      <p className="public-step-label">Passo 2 · Escolha o que quer marcar</p>
+      <div className="public-booking-content">
+        <div className="public-registration-summary">
+          <span>
+            {registration.name} · {registration.phone}
+          </span>
+          <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
+            Alterar dados
+          </Button>
+        </div>
+        <p className="public-step-label">Passo 2 · Escolha o que quer marcar</p>
 
-      {categoryGroups.map((group) => (
-        <Card key={group.id}>
-          <h2>{group.name}</h2>
-          <ul className="public-service-list">
-            {group.services.map((service) => {
-              const included = coveredByPackage.has(service.id);
-              return (
-                <li key={service.id} className="public-service-item">
-                  <label className="public-service-choice">
-                    <input
-                      type="checkbox"
-                      checked={included || selectedServiceIds.has(service.id)}
-                      disabled={included}
-                      onChange={() => toggleService(service.id)}
-                    />
-                    {service.name}
-                    {included ? (
-                      <span className="public-service-included"> · Incluído no pacote</span>
-                    ) : null}
-                  </label>
-                  <span className="public-service-meta">
-                    {service.durationMinutes} min · {formatEuros(service.priceCents)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      ))}
-
-      {packages.length > 0 ? (
-        <Card>
-          <fieldset className="public-package-fieldset">
-            <legend>Pacotes</legend>
+        {categoryGroups.map((group) => (
+          <Card key={group.id}>
+            <h2>{group.name}</h2>
             <ul className="public-service-list">
-              <li className="public-service-item">
-                <label className="public-service-choice">
-                  <input
-                    type="radio"
-                    name="pacote"
-                    checked={selectedPackageId === null}
-                    onChange={() => selectPackage(null)}
-                  />
-                  Nenhum pacote
-                </label>
-              </li>
-              {packages.map((pkg) => (
-                <li key={pkg.id} className="public-service-item">
+              {group.services.map((service) => {
+                const included = coveredByPackage.has(service.id);
+                return (
+                  <li key={service.id} className="public-service-item">
+                    <label className="public-service-choice">
+                      <input
+                        type="checkbox"
+                        checked={included || selectedServiceIds.has(service.id)}
+                        disabled={included}
+                        onChange={() => toggleService(service.id)}
+                      />
+                      {service.name}
+                      {included ? (
+                        <span className="public-service-included"> · Incluído no pacote</span>
+                      ) : null}
+                    </label>
+                    <span className="public-service-meta">
+                      {service.durationMinutes} min · {formatEuros(service.priceCents)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        ))}
+
+        {packages.length > 0 ? (
+          <Card>
+            <fieldset className="public-package-fieldset">
+              <legend>Pacotes</legend>
+              <ul className="public-service-list">
+                <li className="public-service-item">
                   <label className="public-service-choice">
                     <input
                       type="radio"
                       name="pacote"
-                      checked={selectedPackageId === pkg.id}
-                      onChange={() => selectPackage(pkg)}
+                      checked={selectedPackageId === null}
+                      onChange={() => selectPackage(null)}
                     />
-                    <span className="public-package-name">
-                      {pkg.name}
-                      <br />
-                      <small className="public-service-meta">{pkg.itemNames}</small>
-                    </span>
+                    Nenhum pacote
                   </label>
-                  <span className="public-service-meta">
-                    {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
-                  </span>
+                </li>
+                {packages.map((pkg) => (
+                  <li key={pkg.id} className="public-service-item">
+                    <label className="public-service-choice">
+                      <input
+                        type="radio"
+                        name="pacote"
+                        checked={selectedPackageId === pkg.id}
+                        onChange={() => selectPackage(pkg)}
+                      />
+                      <span className="public-package-name">
+                        {pkg.name}
+                        <br />
+                        <small className="public-service-meta">{pkg.itemNames}</small>
+                      </span>
+                    </label>
+                    <span className="public-service-meta">
+                      {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+            <p className="public-service-meta">
+              Escolheu um pacote? Os serviços já incluídos ficam marcados acima — pode ainda
+              adicionar outros serviços como extras.
+            </p>
+          </Card>
+        ) : null}
+
+        <Card className="public-summary" id="confirmar">
+          <p className="public-step-label">Passo 3 · Confirmar</p>
+          {lines.length === 0 ? (
+            <p>Escolha pelo menos um serviço ou pacote acima.</p>
+          ) : (
+            <ul className="public-service-list">
+              {lines.map((line) => (
+                <li key={line.id} className="public-service-item">
+                  <span>{line.name}</span>
+                  <span className="public-service-meta">{formatEuros(line.priceCents)}</span>
                 </li>
               ))}
             </ul>
-          </fieldset>
-          <p className="public-service-meta">
-            Escolheu um pacote? Os serviços já incluídos ficam marcados acima — pode ainda adicionar
-            outros serviços como extras.
+          )}
+          <p className="public-summary-total">
+            Total: {formatEuros(totalCents)} · {totalMinutes} min
           </p>
+          {whatsappHref ? (
+            <a
+              className="button link-button"
+              href={whatsappHref}
+              aria-disabled={lines.length === 0}
+            >
+              Confirmar por WhatsApp
+            </a>
+          ) : null}
         </Card>
-      ) : null}
+      </div>
 
-      <Card className="public-summary">
-        <p className="public-step-label">Passo 3 · Confirmar</p>
-        {lines.length === 0 ? (
-          <p>Escolha pelo menos um serviço ou pacote acima.</p>
-        ) : (
-          <ul className="public-service-list">
-            {lines.map((line) => (
-              <li key={line.id} className="public-service-item">
-                <span>{line.name}</span>
-                <span className="public-service-meta">{formatEuros(line.priceCents)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="public-summary-total">
-          Total: {formatEuros(totalCents)} · {totalMinutes} min
-        </p>
-        {whatsappHref ? (
-          <a className="button link-button" href={whatsappHref} aria-disabled={lines.length === 0}>
-            Confirmar por WhatsApp
-          </a>
-        ) : null}
-      </Card>
+      {/* PRD 01 §3.6: "Barra fixa mostra quantidade, duração e valor do carrinho" — kept
+          visible while browsing services/pacotes, instead of only at the bottom of the
+          page after scrolling past everything. */}
+      <div className="public-cart-bar">
+        <span className="public-cart-bar-summary" role="status">
+          {itemCountLabel(lines.length)} · {totalMinutes} min · {formatEuros(totalCents)}
+        </span>
+        <Button
+          type="button"
+          disabled={lines.length === 0}
+          onClick={() =>
+            document
+              .getElementById('confirmar')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        >
+          Continuar
+        </Button>
+      </div>
     </>
   );
 }

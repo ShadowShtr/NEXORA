@@ -187,26 +187,26 @@ Implementar criar carrinho fixo sem expandir o escopo para funcionalidades não 
 
 **Critérios de aceite**
 
-- Quantidade, duração, total e continuar; sem float.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
+- Quantidade, duração, total e continuar; sem float. `PublicBookingCart.tsx` — barra `position: fixed` (PRD 01 §3.6), sempre visível independente do scroll: `{itemCountLabel} · {totalMinutes} min · {formatEuros(totalCents)}` + botão "Continuar" (desativado com carrinho vazio, faz scroll até ao resumo/confirmação existente). "Sem float" reafirmado por teste unitário explícito (`Number.isInteger` sobre `cartTotals`) — cêntimos/minutos são sempre inteiros por construção (soma de inteiros).
+- Nenhum dado de outro tenant pode ser acedido. Sem alteração de superfície de dados face a `NEX-053`.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. "Continuar" não inventa um passo de marcação que ainda não existe (depende de `EPIC-06`) — leva ao cartão de confirmação (WhatsApp) já implementado.
 - Logs não contêm segredos nem PII desnecessária.
 
 **Testes obrigatórios**
 
-- Unit + visual.
+- Unit + visual. `tests/unit/booking-selection.test.ts` (+4, `itemCountLabel` e "nunca produz total não inteiro"). `tests/e2e/public-cart-bar.spec.ts` (4 testes, `chromium` + `webkit-mobile`): sem overflow horizontal com a barra visível (mesmo padrão de `NEX-044`); quantidade/duração/total ao vivo, "Continuar" desativado vazio; barra mantém a mesma posição no viewport ao fazer scroll (prova real de `position: fixed`); "Continuar" traz o cartão de confirmação e o link do WhatsApp para dentro do viewport.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só UI/apresentação sobre dados já lidos em `NEX-050`/`NEX-053`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
