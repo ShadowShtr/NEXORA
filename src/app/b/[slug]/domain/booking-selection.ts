@@ -38,6 +38,10 @@ export function cartLines(
   return lines;
 }
 
+// CLAUDE.md: "Valores monetários são inteiros em cêntimos; nunca use float." Every
+// input line already carries integer cents/minutes, and summing integers stays an
+// integer — this function is the one place the fixed cart bar (NEX-054) reads its
+// running total from, so keeping it float-free here keeps the whole cart float-free.
 export function cartTotals(lines: readonly ServiceLine[]): {
   totalCents: number;
   totalMinutes: number;
@@ -46,6 +50,10 @@ export function cartTotals(lines: readonly ServiceLine[]): {
     totalCents: lines.reduce((sum, line) => sum + line.priceCents, 0),
     totalMinutes: lines.reduce((sum, line) => sum + line.durationMinutes, 0),
   };
+}
+
+export function itemCountLabel(count: number): string {
+  return count === 1 ? '1 item' : `${count} itens`;
 }
 
 // Extra services that were individually checked before a package was chosen may now be

@@ -3,6 +3,7 @@ import {
   cartLines,
   cartTotals,
   dropServicesCoveredByPackage,
+  itemCountLabel,
   type PackageOption,
   type ServiceLine,
 } from '@/app/b/[slug]/domain/booking-selection';
@@ -100,6 +101,18 @@ describe('cartTotals', () => {
     expect(cartTotals([verniz, massagem])).toEqual({ totalCents: 5500, totalMinutes: 105 });
   });
 
+  it('never produces a non-integer total (CLAUDE.md: cêntimos são inteiros, nunca float)', () => {
+    const oddPriced: ServiceLine = {
+      id: 'svc-4',
+      name: 'Sobrancelhas',
+      priceCents: 1333,
+      durationMinutes: 17,
+    };
+    const { totalCents, totalMinutes } = cartTotals([verniz, oddPriced, massagem]);
+    expect(Number.isInteger(totalCents)).toBe(true);
+    expect(Number.isInteger(totalMinutes)).toBe(true);
+  });
+
   it('never double-counts a package plus its own extras once deduped by cartLines', () => {
     const lines = cartLines(
       { selectedPackageId: combo.id, selectedServiceIds: [verniz.id, pedicure.id, massagem.id] },
@@ -132,5 +145,19 @@ describe('dropServicesCoveredByPackage', () => {
     const input = [verniz.id, massagem.id];
     dropServicesCoveredByPackage(input, combo);
     expect(input).toEqual([verniz.id, massagem.id]);
+  });
+});
+
+describe('itemCountLabel', () => {
+  it('pluralizes zero as "itens"', () => {
+    expect(itemCountLabel(0)).toBe('0 itens');
+  });
+
+  it('keeps one singular', () => {
+    expect(itemCountLabel(1)).toBe('1 item');
+  });
+
+  it('pluralizes more than one', () => {
+    expect(itemCountLabel(3)).toBe('3 itens');
   });
 });

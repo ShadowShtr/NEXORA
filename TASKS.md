@@ -59,7 +59,7 @@
 - [x] **NEX-051** — Criar pré-cadastro temporário _(depende: NEX-050)_
 - [x] **NEX-052** — Implementar draft e recuperação _(depende: NEX-051)_
 - [x] **NEX-053** — Criar seletor Serviços/Pacotes _(depende: NEX-043,NEX-050)_
-- [ ] **NEX-054** — Criar carrinho fixo _(depende: NEX-053)_
+- [x] **NEX-054** — Criar carrinho fixo _(depende: NEX-053)_
 
 ### EPIC-06 — Motor de disponibilidade
 
