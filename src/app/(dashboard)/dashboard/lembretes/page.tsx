@@ -3,14 +3,12 @@ import { pt } from 'date-fns/locale/pt';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
-import {
-  REMINDER_BADGE_LABELS,
-  resolveReminderBadge,
-} from '@/features/reminders/domain/reminder-badges';
+import { resolveReminderBadge } from '@/features/reminders/domain/reminder-badges';
 import {
   buildReminderWhatsappMessage,
   buildWhatsappDeepLink,
 } from '@/features/appointments/domain/appointment-card';
+import { ReminderCard, type ReminderCardData } from '@/features/reminders/ReminderCard';
 
 const PAGE_SIZE = 20;
 
@@ -103,41 +101,20 @@ export default async function LembretesPage({
                     )
                   : null;
 
-              return (
-                <li key={reminder.id} className={`appointment-card appointment-card-${badge}`}>
-                  <div className="appointment-card-header">
-                    <span className="appointment-card-time">
-                      {appointment
-                        ? formatInTimeZone(appointment.start_at, timezone, "dd/MM 'às' HH:mm", {
-                            locale: pt,
-                          })
-                        : '—'}
-                    </span>
-                    <span className="appointment-card-status">{REMINDER_BADGE_LABELS[badge]}</span>
-                  </div>
-                  <p className="appointment-card-client">{client?.name ?? 'Cliente'}</p>
-                  <div className="appointment-card-actions">
-                    {appointment ? (
-                      <a
-                        className="button button-secondary link-button"
-                        href={`/dashboard/agenda/${appointment.id}`}
-                      >
-                        Ver marcação
-                      </a>
-                    ) : null}
-                    {whatsappHref ? (
-                      <a
-                        className="button button-secondary link-button"
-                        href={whatsappHref}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Abrir WhatsApp
-                      </a>
-                    ) : null}
-                  </div>
-                </li>
-              );
+              const cardData: ReminderCardData = {
+                reminderId: reminder.id,
+                appointmentId: appointment?.id ?? null,
+                clientName: client?.name ?? 'Cliente',
+                timeLabel: appointment
+                  ? formatInTimeZone(appointment.start_at, timezone, "dd/MM 'às' HH:mm", {
+                      locale: pt,
+                    })
+                  : '—',
+                badge,
+                whatsappHref,
+              };
+
+              return <ReminderCard key={reminder.id} reminder={cardData} />;
             })}
           </ul>
 

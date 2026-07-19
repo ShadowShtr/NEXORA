@@ -169,4 +169,48 @@ test.describe('reminders list (NEX-101)', () => {
     expect(href).not.toContain('+');
     expect(decodeURIComponent(href!.split('text=')[1]!)).toContain('Ana Cliente');
   });
+
+  // NEX-103: "Registar aberto e marcado enviado" sem alegar entrega/leitura — a
+  // "Marcar como enviado" click is the dona's own explicit confirmation, a separate
+  // fact from having merely opened WhatsApp.
+  test('marking a reminder as sent updates its badge and removes the action', async ({ page }) => {
+    user = await createProvisionedTestUser('nex103');
+    const { data: tenant } = await user.admin
+      .from('tenants')
+      .select('id')
+      .eq('slug', user.slug)
+      .single();
+    const { data: client } = await user.admin
+      .from('clients')
+      .insert({ tenant_id: tenant!.id, name: 'Cliente Envio', phone_e164: '+351911111140' })
+      .select('id')
+      .single();
+    const appointmentId = await seedAppointmentWithReminder(
+      user,
+      tenant!.id,
+      client!.id,
+      new Date(Date.now() + 48 * 60 * 60_000),
+      'pending',
+      new Date(Date.now() + 24 * 60 * 60_000),
+    );
+
+    await page.goto('/login');
+    await page.getByLabel('E-mail').fill(user.email);
+    await page.getByLabel('Palavra-passe').fill(user.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    await page.goto('/dashboard/lembretes');
+    await page.getByRole('button', { name: 'Marcar como enviado' }).click();
+    await expect(page.getByText('Enviado')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Marcar como enviado' })).toHaveCount(0);
+
+    const { data: reminder } = await user.admin
+      .from('reminders')
+      .select('status, marked_sent_at')
+      .eq('appointment_id', appointmentId)
+      .single();
+    expect(reminder?.status).toBe('marked_sent');
+    expect(reminder?.marked_sent_at).not.toBeNull();
+  });
 });
