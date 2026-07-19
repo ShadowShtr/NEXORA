@@ -1,10 +1,10 @@
-import { Button } from '@/components/ui/Button';
 import {
   APPOINTMENT_STATUS_LABELS,
   buildAppointmentReminderMessage,
   buildWhatsappDeepLink,
   type AppointmentCardStatus,
 } from './domain/appointment-card';
+import { AppointmentCompletionPanel } from './AppointmentCompletionPanel';
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -20,12 +20,11 @@ export type AppointmentCardData = {
   status: AppointmentCardStatus;
 };
 
-// NEX-081: "Cartões mostram atendimentos por hora" (docs/02_UX_FLOWS.md, Fluxo C) —
-// horário, cliente, itens, valor, estado, e the two quick actions the flow calls for:
-// "Abrir WhatsApp" (a real deep link, functional today) and "Concluir" (Fluxo C: "abre
-// modal rápido" — the actual completion flow is NEX-110/113, EPIC-11, not yet built;
-// shown here disabled with an explanatory title rather than omitted, so the card's
-// final shape is already visible and NEX-110 only has to wire behavior, not add UI).
+// NEX-081/NEX-110: "Cartões mostram atendimentos por hora" (docs/02_UX_FLOWS.md, Fluxo
+// C) — horário, cliente, itens, valor, estado, e the two quick actions the flow calls
+// for: "Abrir WhatsApp" (a real deep link) and "Concluir" (Fluxo C: "abre modal
+// rápido" — AppointmentCompletionPanel, an inline reveal-in-place panel rather than a
+// new overlay component, consistent with cancel/reschedule/mark-no-show).
 export function AppointmentCard({ appointment }: { appointment: AppointmentCardData }) {
   const isActive =
     appointment.status === 'confirmed' || appointment.status === 'presence_confirmed';
@@ -67,14 +66,10 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentCardD
           </a>
         ) : null}
         {isActive ? (
-          <Button
-            type="button"
-            variant="secondary"
-            disabled
-            title="Disponível em breve — conclusão e pagamento chegam numa próxima atualização."
-          >
-            Concluir
-          </Button>
+          <AppointmentCompletionPanel
+            appointmentId={appointment.id}
+            expectedTotalCents={appointment.totalCents}
+          />
         ) : null}
       </div>
     </li>

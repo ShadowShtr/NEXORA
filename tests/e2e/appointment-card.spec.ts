@@ -92,9 +92,7 @@ test.describe('appointment card (NEX-081)', () => {
     await expect(card.getByText('Confirmada')).toBeVisible();
 
     await expect(card.getByRole('link', { name: 'Abrir WhatsApp' })).toBeVisible();
-    const concludeButton = card.getByRole('button', { name: 'Concluir' });
-    await expect(concludeButton).toBeVisible();
-    await expect(concludeButton).toBeDisabled();
+    await expect(card.getByRole('button', { name: 'Concluir' })).toBeVisible();
   });
 
   test('the "Abrir WhatsApp" link points to a wa.me deep link for the client', async ({ page }) => {

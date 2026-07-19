@@ -759,6 +759,19 @@ select {
 .appointment-card-actions .button {
   margin-top: 0;
 }
+.completion-panel {
+  width: 100%;
+}
+.completion-panel-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.completion-panel-choices .button {
+  margin-top: 0;
+  flex: 1;
+  min-width: 6rem;
+}
 
 .agenda-view-switcher,
 .agenda-date-nav {
