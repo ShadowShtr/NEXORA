@@ -49,24 +49,37 @@ async function loadAgendaData(
   const dateKey = requestedDateKey ?? todayKey;
   const range = resolveCalendarRange(view, dateKey, timezone);
 
-  const [{ data: rows }, { data: shortestServiceRows }] = await Promise.all([
-    supabase
-      .from('appointments')
-      .select(
-        'id, start_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
-      )
-      .eq('tenant_id', tenantId)
-      .gte('start_at', range.startIso)
-      .lt('start_at', range.endIso)
-      .order('start_at'),
-    supabase
-      .from('services')
-      .select('duration_minutes')
-      .eq('tenant_id', tenantId)
-      .eq('is_active', true)
-      .order('duration_minutes')
-      .limit(1),
-  ]);
+  const [{ data: rows }, { data: shortestServiceRows }, { data: activeServiceRows }] =
+    await Promise.all([
+      supabase
+        .from('appointments')
+        .select(
+          'id, start_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
+        )
+        .eq('tenant_id', tenantId)
+        .gte('start_at', range.startIso)
+        .lt('start_at', range.endIso)
+        .order('start_at'),
+      supabase
+        .from('services')
+        .select('duration_minutes')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .order('duration_minutes')
+        .limit(1),
+      supabase
+        .from('services')
+        .select('id, name, price_cents')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .order('name'),
+    ]);
+
+  const availableServices = (activeServiceRows ?? []).map((service) => ({
+    id: service.id,
+    name: service.name,
+    priceCents: service.price_cents,
+  }));
 
   const byDateKey = new Map<string, AppointmentCardData[]>();
   for (const key of range.dateKeys) byDateKey.set(key, []);
@@ -110,7 +123,7 @@ async function loadAgendaData(
     freeSlotsByDay = filterFreeSlotsInRange(groupFreeSlotsByDay(slotsMs, timezone), range.dateKeys);
   }
 
-  return { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay };
+  return { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay, availableServices };
 }
 
 function navHref(view: CalendarView, dateKey: string) {
@@ -133,11 +146,8 @@ export default async function AgendaPage({
   const params = await searchParams;
   const view: CalendarView = isCalendarView(params.view) ? params.view : 'day';
 
-  const { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay } = await loadAgendaData(
-    tenantId,
-    view,
-    params.date,
-  );
+  const { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay, availableServices } =
+    await loadAgendaData(tenantId, view, params.date);
 
   const previousDateKey = shiftCalendarDate(view, dateKey, -1);
   const nextDateKey = shiftCalendarDate(view, dateKey, 1);
@@ -256,7 +266,11 @@ export default async function AgendaPage({
                 ) : (
                   <ul className="appointment-card-list">
                     {appointments.map((appointment) => (
-                      <AppointmentCard key={appointment.id} appointment={appointment} />
+                      <AppointmentCard
+                        key={appointment.id}
+                        appointment={appointment}
+                        availableServices={availableServices}
+                      />
                     ))}
                   </ul>
                 )}

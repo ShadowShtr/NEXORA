@@ -5,6 +5,7 @@ import {
   type AppointmentCardStatus,
 } from './domain/appointment-card';
 import { AppointmentCompletionPanel } from './AppointmentCompletionPanel';
+import type { AvailableService } from './domain/extras';
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -25,7 +26,13 @@ export type AppointmentCardData = {
 // for: "Abrir WhatsApp" (a real deep link) and "Concluir" (Fluxo C: "abre modal
 // rápido" — AppointmentCompletionPanel, an inline reveal-in-place panel rather than a
 // new overlay component, consistent with cancel/reschedule/mark-no-show).
-export function AppointmentCard({ appointment }: { appointment: AppointmentCardData }) {
+export function AppointmentCard({
+  appointment,
+  availableServices,
+}: {
+  appointment: AppointmentCardData;
+  availableServices: AvailableService[];
+}) {
   const isActive =
     appointment.status === 'confirmed' || appointment.status === 'presence_confirmed';
   const whatsappHref = appointment.clientPhoneE164
@@ -69,6 +76,7 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentCardD
           <AppointmentCompletionPanel
             appointmentId={appointment.id}
             expectedTotalCents={appointment.totalCents}
+            availableServices={availableServices}
           />
         ) : null}
       </div>

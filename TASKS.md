@@ -108,7 +108,7 @@
 ### EPIC-11 — Conclusão, pagamentos e pendências
 
 - [x] **NEX-110** — Modal de conclusão rápida _(depende: NEX-081)_
-- [ ] **NEX-111** — Tela Ver mais e extras _(depende: NEX-110)_
+- [x] **NEX-111** — Tela Ver mais e extras _(depende: NEX-110)_
 - [ ] **NEX-112** — Descontos fixos/percentuais _(depende: NEX-111)_
 - [x] **NEX-113** — Transação de conclusão _(depende: NEX-110)_
 - [ ] **NEX-114** — Área de pagamentos pendentes _(depende: NEX-113)_
