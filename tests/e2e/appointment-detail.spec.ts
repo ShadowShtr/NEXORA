@@ -139,4 +139,43 @@ test.describe('appointment detail page (NEX-084)', () => {
       60_000,
     );
   });
+
+  // NEX-095: "Registar" falta — mirrors the cancel test's two-step confirm pattern.
+  test('marking a no-show requires a second confirming click, then updates the status', async ({
+    page,
+  }) => {
+    user = await createProvisionedTestUser('nex095');
+    const { data: tenant } = await user.admin
+      .from('tenants')
+      .select('id')
+      .eq('slug', user.slug)
+      .single();
+    const appointmentId = await seedAppointment(
+      user,
+      tenant!.id,
+      new Date(Date.now() - 24 * 60 * 60_000),
+    );
+
+    await page.goto('/login');
+    await page.getByLabel('E-mail').fill(user.email);
+    await page.getByLabel('Palavra-passe').fill(user.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    await page.goto(`/dashboard/agenda/${appointmentId}`);
+    await page.getByRole('button', { name: 'Marcar falta' }).click();
+    await expect(
+      page.getByText('Confirma que a cliente não compareceu a esta marcação?'),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Sim, marcar falta' }).click();
+    await expect(page.getByText('Falta registada.')).toBeVisible();
+
+    const { data: appointment } = await user.admin
+      .from('appointments')
+      .select('status')
+      .eq('id', appointmentId)
+      .single();
+    expect(appointment?.status).toBe('no_show');
+  });
 });

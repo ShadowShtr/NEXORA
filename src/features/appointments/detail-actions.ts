@@ -11,6 +11,7 @@ const rescheduleSchema = z.object({
   appointmentId: z.uuid(),
   newStartAtIso: z.iso.datetime(),
 });
+const noShowSchema = z.object({ appointmentId: z.uuid() });
 
 // NEX-084: "Ações internas com confirmação e auditoria". Both delegate to
 // security-definer RPCs (supabase/migrations/0008_cancel_reschedule_appointment.sql)
@@ -46,6 +47,49 @@ export async function cancelAppointment(
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível cancelar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/dashboard/agenda');
+  return { ok: true, value: null };
+}
+
+// NEX-095: "Registar" — the first acceptance criterion of the no-show policy epic.
+// appointment_status already had 'no_show' since 0001_initial.sql but nothing could
+// ever reach it; mark_appointment_no_show (0011_no_show_policy.sql) mirrors
+// cancel_appointment exactly (same status guard, same tenant derivation, same audit
+// write), so this action mirrors cancelAppointment above too.
+export async function markAppointmentNoShow(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = noShowSchema.safeParse({ appointmentId: formData.get('appointmentId') });
+  if (!parsed.success) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Marcação inválida.' } };
+  }
+
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('mark_appointment_no_show', {
+    p_appointment_id: parsed.data.appointmentId,
+  });
+
+  if (error) {
+    if (error.code === '22023') {
+      return {
+        ok: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Esta marcação já não pode ser marcada como falta.',
+        },
+      };
+    }
+    return {
+      ok: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Não foi possível registar a falta. Tente novamente.',
+      },
     };
   }
 

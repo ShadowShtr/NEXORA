@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { cancelAppointment, rescheduleAppointment } from './detail-actions';
+import { cancelAppointment, markAppointmentNoShow, rescheduleAppointment } from './detail-actions';
 import type { Result } from '@/lib/result';
 
 // NEX-084: "Ações internas com confirmação e auditoria" — confirmation is a two-step
@@ -27,11 +27,16 @@ export function AppointmentDetailActions({
     Result<null> | null,
     FormData
   >(rescheduleAppointment, null);
+  const [noShowState, noShowFormAction, noShowPending] = useActionState<
+    Result<null> | null,
+    FormData
+  >(markAppointmentNoShow, null);
 
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [confirmingNoShow, setConfirmingNoShow] = useState(false);
   const [showRescheduleForm, setShowRescheduleForm] = useState(false);
 
-  const error = [cancelState, rescheduleState].find(
+  const error = [cancelState, rescheduleState, noShowState].find(
     (state): state is Extract<Result<null>, { ok: false }> => state !== null && !state.ok,
   );
 
@@ -40,6 +45,9 @@ export function AppointmentDetailActions({
   }
   if (rescheduleState?.ok) {
     return <p role="status">Marcação reagendada.</p>;
+  }
+  if (noShowState?.ok) {
+    return <p role="status">Falta registada.</p>;
   }
 
   return (
@@ -94,6 +102,27 @@ export function AppointmentDetailActions({
                 {cancelPending ? 'A cancelar…' : 'Sim, cancelar'}
               </Button>
               <Button type="button" variant="secondary" onClick={() => setConfirmingCancel(false)}>
+                Voltar
+              </Button>
+            </form>
+          )}
+        </div>
+      ) : null}
+
+      {canCancel ? (
+        <div>
+          {!confirmingNoShow ? (
+            <Button type="button" variant="secondary" onClick={() => setConfirmingNoShow(true)}>
+              Marcar falta
+            </Button>
+          ) : (
+            <form action={noShowFormAction} className="wizard-actions">
+              <input type="hidden" name="appointmentId" value={appointmentId} />
+              <p>Confirma que a cliente não compareceu a esta marcação?</p>
+              <Button type="submit" disabled={noShowPending}>
+                {noShowPending ? 'A registar…' : 'Sim, marcar falta'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setConfirmingNoShow(false)}>
                 Voltar
               </Button>
             </form>

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { parseClientPreferences } from '@/features/clients/domain/preferences';
 import { ClientPreferencesForm } from '@/features/clients/ClientPreferencesForm';
 import { ClientPrivateNotesForm } from '@/features/clients/ClientPrivateNotesForm';
+import { countRecentNoShows, exceedsNoShowLimit } from '@/features/clients/domain/no-show-policy';
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -30,7 +31,11 @@ async function loadClientDetail(tenantId: string, clientId: string) {
       .eq('id', clientId)
       .eq('tenant_id', tenantId)
       .maybeSingle(),
-    supabase.from('business_settings').select('timezone').eq('tenant_id', tenantId).maybeSingle(),
+    supabase
+      .from('business_settings')
+      .select('timezone, no_show_limit, no_show_window_days')
+      .eq('tenant_id', tenantId)
+      .maybeSingle(),
   ]);
 
   if (!client) return null;
@@ -64,6 +69,17 @@ async function loadClientDetail(tenantId: string, clientId: string) {
   const noShowCount = allAppointments.filter((a) => a.status === 'no_show').length;
   const cancelledCount = allAppointments.filter((a) => a.status === 'cancelled').length;
 
+  const noShowWindowDays = settings?.no_show_window_days ?? 90;
+  const recentNoShowCount = countRecentNoShows(
+    allAppointments.map((a) => ({ status: a.status, startAt: a.start_at })),
+    noShowWindowDays,
+    nowMs,
+  );
+  const noShowLimitExceeded = exceedsNoShowLimit(recentNoShowCount, {
+    limit: settings?.no_show_limit ?? null,
+    windowDays: noShowWindowDays,
+  });
+
   const totalSpentCents = allAppointments
     .filter((a) => a.status === 'completed')
     .reduce((sum, a) => sum + (a.final_total_cents ?? a.expected_total_cents), 0);
@@ -83,6 +99,9 @@ async function loadClientDetail(tenantId: string, clientId: string) {
     cancelledCount,
     totalSpentCents,
     lastPaymentMethod,
+    recentNoShowCount,
+    noShowWindowDays,
+    noShowLimitExceeded,
   };
 }
 
@@ -111,6 +130,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     cancelledCount,
     totalSpentCents,
     lastPaymentMethod,
+    recentNoShowCount,
+    noShowWindowDays,
+    noShowLimitExceeded,
   } = detail;
 
   const preferences = parseClientPreferences(client.preferences);
@@ -123,6 +145,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     <div className="shell">
       <p className="eyebrow">Clientes</p>
       <h1>{client.name}</h1>
+
+      {noShowLimitExceeded ? (
+        <Card className="form-error">
+          <p role="alert">
+            Esta cliente teve {recentNoShowCount} faltas nos últimos {noShowWindowDays} dias,
+            atingindo o limite definido nas definições do negócio.
+          </p>
+        </Card>
+      ) : null}
 
       <Card>
         <p className="public-step-label">Contacto</p>
