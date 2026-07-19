@@ -4,11 +4,12 @@ import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { resolveReminderBadge } from '@/features/reminders/domain/reminder-badges';
-import {
-  buildReminderWhatsappMessage,
-  buildWhatsappDeepLink,
-} from '@/features/appointments/domain/appointment-card';
+import { buildWhatsappDeepLink } from '@/features/appointments/domain/appointment-card';
 import { ReminderCard, type ReminderCardData } from '@/features/reminders/ReminderCard';
+import {
+  DEFAULT_REMINDER_TEMPLATE,
+  renderReminderTemplate,
+} from '@/features/reminders/domain/template';
 
 const PAGE_SIZE = 20;
 
@@ -23,10 +24,11 @@ async function loadReminders(tenantId: string, page: number) {
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from('business_settings')
-    .select('timezone')
+    .select('timezone, reminder_message_template')
     .eq('tenant_id', tenantId)
     .maybeSingle();
   const timezone = settings?.timezone ?? 'Europe/Lisbon';
+  const messageTemplate = settings?.reminder_message_template ?? DEFAULT_REMINDER_TEMPLATE;
 
   const from = (page - 1) * PAGE_SIZE;
   const { data: reminders, count } = await supabase
@@ -40,7 +42,7 @@ async function loadReminders(tenantId: string, page: number) {
     .order('due_at')
     .range(from, from + PAGE_SIZE - 1);
 
-  return { reminders: reminders ?? [], total: count ?? 0, timezone, nowMs };
+  return { reminders: reminders ?? [], total: count ?? 0, timezone, nowMs, messageTemplate };
 }
 
 // NEX-101: "Lista de lembretes pendentes" (docs/01_PRODUCT_REQUIREMENTS.md §8) —
@@ -59,7 +61,10 @@ export default async function LembretesPage({
   const params = await searchParams;
   const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1);
 
-  const { reminders, total, timezone, nowMs } = await loadReminders(tenantId, page);
+  const { reminders, total, timezone, nowMs, messageTemplate } = await loadReminders(
+    tenantId,
+    page,
+  );
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -93,11 +98,15 @@ export default async function LembretesPage({
                 appointment && client?.phone_e164
                   ? buildWhatsappDeepLink(
                       client.phone_e164,
-                      buildReminderWhatsappMessage(
-                        client.name ?? 'Cliente',
-                        formatInTimeZone(appointment.start_at, timezone, 'dd/MM', { locale: pt }),
-                        formatInTimeZone(appointment.start_at, timezone, 'HH:mm', { locale: pt }),
-                      ),
+                      renderReminderTemplate(messageTemplate, {
+                        clientName: client.name ?? 'Cliente',
+                        dateLabel: formatInTimeZone(appointment.start_at, timezone, 'dd/MM', {
+                          locale: pt,
+                        }),
+                        timeLabel: formatInTimeZone(appointment.start_at, timezone, 'HH:mm', {
+                          locale: pt,
+                        }),
+                      }),
                     )
                   : null;
 

@@ -20,16 +20,3 @@ export function buildWhatsappDeepLink(phoneE164: string, message: string): strin
 export function buildAppointmentReminderMessage(clientName: string, timeLabel: string): string {
   return `Olá ${clientName}! Só a confirmar a sua marcação de hoje às ${timeLabel}.`;
 }
-
-// NEX-102: the dashboard's "hoje" card (buildAppointmentReminderMessage above) only
-// ever shows same-day appointments, so hardcoding "hoje" is correct there — but the
-// reminders list (NEX-101) can show a reminder for tomorrow or later, where "hoje"
-// would be wrong. dateLabel is a short pt-PT day label (e.g. "amanhã" or "sexta,
-// 24/07"), left to the caller to compute from its own timezone-aware formatting.
-export function buildReminderWhatsappMessage(
-  clientName: string,
-  dateLabel: string,
-  timeLabel: string,
-): string {
-  return `Olá ${clientName}! Só a confirmar a sua marcação de ${dateLabel} às ${timeLabel}.`;
-}

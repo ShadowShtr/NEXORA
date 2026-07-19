@@ -103,7 +103,7 @@
 - [x] **NEX-101** — Lista de lembretes pendentes _(depende: NEX-100,NEX-080)_
 - [x] **NEX-102** — Gerar deep link WhatsApp _(depende: NEX-101)_
 - [x] **NEX-103** — Registar aberto e marcado enviado _(depende: NEX-102)_
-- [ ] **NEX-104** — Personalizar template simples _(depende: NEX-102)_
+- [x] **NEX-104** — Personalizar template simples _(depende: NEX-102)_
 
 ### EPIC-11 — Conclusão, pagamentos e pendências
 
