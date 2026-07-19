@@ -19,6 +19,7 @@ const PRIMARY_ITEMS: NavItem[] = [
 ];
 
 const MORE_ITEMS: NavItem[] = [
+  { href: '/dashboard/lembretes', label: 'Lembretes' },
   { href: '/dashboard/financeiro', label: 'Financeiro' },
   { href: '/dashboard/relatorios', label: 'Relatórios' },
   { href: '/dashboard/definicoes', label: 'Definições' },

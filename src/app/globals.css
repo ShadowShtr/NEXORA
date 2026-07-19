@@ -730,10 +730,12 @@ select {
   font-size: 0.85rem;
 }
 .appointment-card-cancelled .appointment-card-status,
-.appointment-card-no_show .appointment-card-status {
+.appointment-card-no_show .appointment-card-status,
+.appointment-card-overdue .appointment-card-status {
   color: var(--danger);
 }
-.appointment-card-completed .appointment-card-status {
+.appointment-card-completed .appointment-card-status,
+.appointment-card-marked_sent .appointment-card-status {
   color: var(--success);
 }
 .appointment-card-client {
