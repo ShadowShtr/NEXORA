@@ -99,7 +99,7 @@
 
 ### EPIC-10 — Lembretes e WhatsApp manual
 
-- [ ] **NEX-100** — Gerar lembrete 24h _(depende: NEX-064)_
+- [x] **NEX-100** — Gerar lembrete 24h _(depende: NEX-064)_
 - [ ] **NEX-101** — Lista de lembretes pendentes _(depende: NEX-100,NEX-080)_
 - [ ] **NEX-102** — Gerar deep link WhatsApp _(depende: NEX-101)_
 - [ ] **NEX-103** — Registar aberto e marcado enviado _(depende: NEX-102)_
