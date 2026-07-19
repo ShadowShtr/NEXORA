@@ -7,6 +7,10 @@ import {
   REMINDER_BADGE_LABELS,
   resolveReminderBadge,
 } from '@/features/reminders/domain/reminder-badges';
+import {
+  buildReminderWhatsappMessage,
+  buildWhatsappDeepLink,
+} from '@/features/appointments/domain/appointment-card';
 
 const PAGE_SIZE = 20;
 
@@ -87,6 +91,18 @@ export default async function LembretesPage({
                 nowMs,
               );
 
+              const whatsappHref =
+                appointment && client?.phone_e164
+                  ? buildWhatsappDeepLink(
+                      client.phone_e164,
+                      buildReminderWhatsappMessage(
+                        client.name ?? 'Cliente',
+                        formatInTimeZone(appointment.start_at, timezone, 'dd/MM', { locale: pt }),
+                        formatInTimeZone(appointment.start_at, timezone, 'HH:mm', { locale: pt }),
+                      ),
+                    )
+                  : null;
+
               return (
                 <li key={reminder.id} className={`appointment-card appointment-card-${badge}`}>
                   <div className="appointment-card-header">
@@ -100,14 +116,26 @@ export default async function LembretesPage({
                     <span className="appointment-card-status">{REMINDER_BADGE_LABELS[badge]}</span>
                   </div>
                   <p className="appointment-card-client">{client?.name ?? 'Cliente'}</p>
-                  {appointment ? (
-                    <a
-                      className="button button-secondary link-button"
-                      href={`/dashboard/agenda/${appointment.id}`}
-                    >
-                      Ver marcação
-                    </a>
-                  ) : null}
+                  <div className="appointment-card-actions">
+                    {appointment ? (
+                      <a
+                        className="button button-secondary link-button"
+                        href={`/dashboard/agenda/${appointment.id}`}
+                      >
+                        Ver marcação
+                      </a>
+                    ) : null}
+                    {whatsappHref ? (
+                      <a
+                        className="button button-secondary link-button"
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Abrir WhatsApp
+                      </a>
+                    ) : null}
+                  </div>
                 </li>
               );
             })}

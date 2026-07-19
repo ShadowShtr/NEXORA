@@ -128,4 +128,45 @@ test.describe('reminders list (NEX-101)', () => {
     // 3 visible cards (pending + overdue + marked_sent), skipped excluded.
     await expect(page.locator('.appointment-card')).toHaveCount(3);
   });
+
+  // NEX-102: "E.164 e texto URL-encoded" — wa.me only accepts digits (no leading "+"),
+  // and the pre-filled message must be a real, URL-encoded querystring value.
+  test('the WhatsApp button links to a wa.me URL with the phone stripped of "+" and an encoded message', async ({
+    page,
+  }) => {
+    user = await createProvisionedTestUser('nex102');
+    const { data: tenant } = await user.admin
+      .from('tenants')
+      .select('id')
+      .eq('slug', user.slug)
+      .single();
+    const { data: client } = await user.admin
+      .from('clients')
+      .insert({ tenant_id: tenant!.id, name: 'Ana Cliente', phone_e164: '+351911111130' })
+      .select('id')
+      .single();
+
+    await seedAppointmentWithReminder(
+      user,
+      tenant!.id,
+      client!.id,
+      new Date(Date.now() + 48 * 60 * 60_000),
+      'pending',
+      new Date(Date.now() + 24 * 60 * 60_000),
+    );
+
+    await page.goto('/login');
+    await page.getByLabel('E-mail').fill(user.email);
+    await page.getByLabel('Palavra-passe').fill(user.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    await page.goto('/dashboard/lembretes');
+    const whatsappLink = page.getByRole('link', { name: 'Abrir WhatsApp' });
+    await expect(whatsappLink).toBeVisible();
+    const href = await whatsappLink.getAttribute('href');
+    expect(href).toMatch(/^https:\/\/wa\.me\/351911111130\?text=/);
+    expect(href).not.toContain('+');
+    expect(decodeURIComponent(href!.split('text=')[1]!)).toContain('Ana Cliente');
+  });
 });

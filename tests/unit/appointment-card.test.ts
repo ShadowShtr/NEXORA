@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildWhatsappDeepLink,
   buildAppointmentReminderMessage,
+  buildReminderWhatsappMessage,
   APPOINTMENT_STATUS_LABELS,
 } from '@/features/appointments/domain/appointment-card';
 
@@ -16,6 +17,15 @@ describe('buildAppointmentReminderMessage', () => {
   it('includes the client name and time', () => {
     const message = buildAppointmentReminderMessage('Ana', '14:30');
     expect(message).toContain('Ana');
+    expect(message).toContain('14:30');
+  });
+});
+
+describe('buildReminderWhatsappMessage', () => {
+  it('includes the client name, date label and time', () => {
+    const message = buildReminderWhatsappMessage('Ana', 'amanhã', '14:30');
+    expect(message).toContain('Ana');
+    expect(message).toContain('amanhã');
     expect(message).toContain('14:30');
   });
 });
