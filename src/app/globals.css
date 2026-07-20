@@ -1,4 +1,7 @@
 :root {
+  /* Legado (pré-redesign) — ainda em uso pelas páginas não migradas. Não adicionar novos
+     usos; migrar para os tokens --nx-* abaixo página a página, conforme
+     docs/reference/CLAUDE_VISUAL_EXECUTION.md. Remover quando a última página migrar. */
   --pink-50: #fff8fb;
   --pink-100: #fdebf3;
   --pink-300: #ef9fc0;
@@ -13,6 +16,53 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, ui-sans-serif, sans-serif;
   color: var(--text);
   background: var(--pink-50);
+
+  /* Design system pixel-perfect (docs/DESIGN_SYSTEM_PIXEL_PERFECT.md §5, §7) — fonte de
+     verdade para todo o trabalho de UI a partir de 2026-07-20. */
+  --nx-primary-50: #fff4f8;
+  --nx-primary-100: #ffe7f0;
+  --nx-primary-200: #ffcfe0;
+  --nx-primary-300: #ffa9c7;
+  --nx-primary-400: #ff78a6;
+  --nx-primary-500: #ff3f7f;
+  --nx-primary-600: #ed2869;
+  --nx-primary-700: #ca1b56;
+
+  --nx-surface: #ffffff;
+  --nx-surface-soft: #fff9fb;
+  --nx-surface-muted: #f9f5f7;
+  --nx-background: #fffafb;
+
+  --nx-text-strong: #1f1f24;
+  --nx-text: #38343a;
+  --nx-text-muted: #77717a;
+  --nx-text-subtle: #a19aa2;
+
+  --nx-border: #f0e7eb;
+  --nx-border-strong: #e2d5db;
+
+  --nx-success: #42b883;
+  --nx-success-soft: #ecf9f2;
+  --nx-warning: #f5a623;
+  --nx-warning-soft: #fff7e8;
+  --nx-danger: #ef5350;
+  --nx-danger-soft: #fff1f1;
+  --nx-info: #5b8def;
+  --nx-info-soft: #eef5ff;
+
+  --nx-radius-xs: 8px;
+  --nx-radius-sm: 12px;
+  --nx-radius-md: 16px;
+  --nx-radius-lg: 20px;
+  --nx-radius-xl: 24px;
+  --nx-radius-2xl: 28px;
+  --nx-radius-pill: 999px;
+
+  /* next/font/google (src/app/layout.tsx) expõe --font-heading (Poppins) e --font-body
+     (Inter) no elemento <html>; os fallbacks replicam a pilha padrão do Next.js para
+     esses mesmos pesos. */
+  --nx-font-heading: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  --nx-font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
