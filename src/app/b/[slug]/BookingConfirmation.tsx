@@ -1,6 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { formatInTimeZone } from 'date-fns-tz';
+import { pt } from 'date-fns/locale/pt';
+import { Calendar, Check, Coins, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 function whatsappLink(phoneE164: string, businessName: string) {
@@ -9,6 +12,14 @@ function whatsappLink(phoneE164: string, businessName: string) {
     `Olá! Acabei de marcar através da página de ${businessName}. Fico a aguardar confirmação, obrigada!`,
   );
   return `https://wa.me/${digits}?text=${text}`;
+}
+
+function formatEuros(cents: number) {
+  return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+}
+
+function capitalize(label: string): string {
+  return label.length === 0 ? label : label[0]!.toUpperCase() + label.slice(1);
 }
 
 // NEX-070: "Ecrã final oferece: ver marcação, adicionar ao calendário e abrir
@@ -21,10 +32,11 @@ function whatsappLink(phoneE164: string, businessName: string) {
 // addition: after confirming, the client can reach the dona directly for anything the
 // automated flow can't handle (a last-minute question, a special request).
 //
-// "Ver marcação" is the one action with real informational weight (the full appointment
-// detail page), so it's the sole full-width primary button — calendário/mapa/WhatsApp
-// are secondary utility actions, shown as a row of equal-weight icon buttons rather
-// than four stacked buttons that all look equally important when they aren't.
+// Visual refinement mid-2026: three summary cards (date/time, business+address, price)
+// above the actions, each an icon badge + text row reusing the same
+// .public-info-icon/.public-info-row primitives as the public landing page, and every
+// action as an equal-weight full-width button (only "Ver marcação" stays visually
+// primary) instead of the earlier row of small icon buttons.
 //
 // lookupCode (NEX-095b): an 8-character code the client can use later at /marcacao to
 // look the booking back up without needing this exact link — see
@@ -35,22 +47,83 @@ export function BookingConfirmation({
   locationUrl,
   phoneE164,
   businessName,
+  addressLine,
+  postalCode,
+  locality,
+  startAtIso,
+  timezone,
+  totalCents,
 }: {
   bookingToken: string;
   lookupCode: string;
   locationUrl: string | null;
   phoneE164: string | null;
   businessName: string;
+  addressLine: string | null;
+  postalCode: string | null;
+  locality: string | null;
+  startAtIso: string;
+  timezone: string;
+  totalCents: number;
 }) {
   return (
     <Card className="public-confirmation">
       <div className="public-confirmation-icon" aria-hidden="true">
-        ✓
+        <Check size={40} strokeWidth={3} />
       </div>
-      <h2 className="text-title">Marcação confirmada</h2>
+      <h2 className="text-title">Marcação confirmada com sucesso!</h2>
       <p className="text-support public-confirmation-lead">
-        A sua marcação foi confirmada com sucesso.
+        Enviámos os detalhes para o seu WhatsApp e email.
       </p>
+
+      <div className="public-confirmation-details">
+        <div className="card">
+          <div className="public-info-row">
+            <span className="public-info-icon" aria-hidden="true">
+              <Calendar size={18} />
+            </span>
+            <span>
+              <span className="public-info-primary">
+                {capitalize(
+                  formatInTimeZone(startAtIso, timezone, "EEEE, dd 'de' MMMM", { locale: pt }),
+                )}
+              </span>
+              <span className="public-info-secondary">
+                {formatInTimeZone(startAtIso, timezone, 'HH:mm')}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="public-info-row">
+            <span className="public-info-icon" aria-hidden="true">
+              <MapPin size={18} />
+            </span>
+            <span>
+              <span className="public-info-primary">{businessName}</span>
+              {addressLine ? <span className="public-info-secondary">{addressLine}</span> : null}
+              {postalCode || locality ? (
+                <span className="public-info-secondary">
+                  {postalCode} {locality}
+                </span>
+              ) : null}
+            </span>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="public-info-row">
+            <span className="public-info-icon" aria-hidden="true">
+              <Coins size={18} />
+            </span>
+            <span>
+              <span className="public-info-primary">{formatEuros(totalCents)}</span>
+              <span className="public-info-secondary">Valor estimado</span>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <a
         className="button link-button public-confirmation-primary"
@@ -58,30 +131,32 @@ export function BookingConfirmation({
       >
         Ver marcação
       </a>
-
-      <div className="public-contact-row">
-        <a className="public-contact-button" href={`/api/bookings/${bookingToken}/calendar.ics`}>
-          <span aria-hidden="true">📅</span>
-          Calendário
+      <a
+        className="button button-secondary link-button public-confirmation-secondary"
+        href={`/api/bookings/${bookingToken}/calendar.ics`}
+      >
+        Adicionar ao calendário
+      </a>
+      {locationUrl ? (
+        <a
+          className="button button-secondary link-button public-confirmation-secondary"
+          href={locationUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Abrir localização
         </a>
-        {locationUrl ? (
-          <a className="public-contact-button" href={locationUrl} target="_blank" rel="noreferrer">
-            <span aria-hidden="true">📍</span>
-            Mapa
-          </a>
-        ) : null}
-        {phoneE164 ? (
-          <a
-            className="public-contact-button"
-            href={whatsappLink(phoneE164, businessName)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <span aria-hidden="true">💬</span>
-            WhatsApp
-          </a>
-        ) : null}
-      </div>
+      ) : null}
+      {phoneE164 ? (
+        <a
+          className="button button-secondary link-button public-confirmation-secondary"
+          href={whatsappLink(phoneE164, businessName)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Contactar por WhatsApp
+        </a>
+      ) : null}
 
       <div className="public-lookup-code">
         <p className="text-meta">Guarde este código para consultar a marcação mais tarde:</p>

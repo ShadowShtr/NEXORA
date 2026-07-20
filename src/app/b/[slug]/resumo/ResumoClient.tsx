@@ -37,6 +37,9 @@ export function ResumoClient({
   businessName,
   professionalName,
   phoneE164,
+  addressLine,
+  postalCode,
+  locality,
   timezone,
   locationUrl,
   services,
@@ -47,6 +50,9 @@ export function ResumoClient({
   businessName: string;
   professionalName: string | null;
   phoneE164: string | null;
+  addressLine: string | null;
+  postalCode: string | null;
+  locality: string | null;
   timezone: string;
   locationUrl: string | null;
   services: ServiceLine[];
@@ -145,6 +151,12 @@ export function ResumoClient({
         locationUrl={locationUrl}
         phoneE164={phoneE164}
         businessName={businessName}
+        addressLine={addressLine}
+        postalCode={postalCode}
+        locality={locality}
+        startAtIso={state.selectedSlotIso}
+        timezone={timezone}
+        totalCents={totalCents}
       />
     );
   }

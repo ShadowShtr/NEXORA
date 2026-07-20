@@ -71,6 +71,9 @@ export default async function ResumoPage({ params }: { params: Promise<{ slug: s
       businessName={tenant.name}
       professionalName={settings.professional_name}
       phoneE164={settings.phone_e164}
+      addressLine={settings.address_line}
+      postalCode={settings.postal_code}
+      locality={settings.locality}
       timezone={settings.timezone}
       locationUrl={locationUrl}
       services={services.map((service) => ({
