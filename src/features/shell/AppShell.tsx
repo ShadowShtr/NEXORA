@@ -4,25 +4,39 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
+import {
+  BarChart3,
+  Bell,
+  Calendar,
+  Home,
+  MoreHorizontal,
+  Scissors,
+  Settings,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 import { LogoutButton } from '@/features/auth/LogoutButton';
 
-type NavItem = { href: Route; label: string };
+type NavItem = { href: Route; label: string; icon: LucideIcon };
 
 // 01_PRODUCT_REQUIREMENTS.md #14 — mobile bottom bar: Início, Agenda, Clientes,
 // Serviços, Mais (Mais contém Financeiro, Relatórios, Definições, Terminar sessão).
 // Desktop amplia em vez de duplicar (CLAUDE.md): mostra tudo diretamente, sem "Mais".
+// Ícones: lucide-react único (docs/DESIGN_SYSTEM_PIXEL_PERFECT.md §13) — nunca misturar
+// bibliotecas.
 const PRIMARY_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'Início' },
-  { href: '/dashboard/agenda', label: 'Agenda' },
-  { href: '/dashboard/clientes', label: 'Clientes' },
-  { href: '/dashboard/servicos', label: 'Serviços' },
+  { href: '/dashboard', label: 'Início', icon: Home },
+  { href: '/dashboard/agenda', label: 'Agenda', icon: Calendar },
+  { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
+  { href: '/dashboard/servicos', label: 'Serviços', icon: Scissors },
 ];
 
 const MORE_ITEMS: NavItem[] = [
-  { href: '/dashboard/lembretes', label: 'Lembretes' },
-  { href: '/dashboard/financeiro', label: 'Financeiro' },
-  { href: '/dashboard/relatorios', label: 'Relatórios' },
-  { href: '/dashboard/definicoes', label: 'Definições' },
+  { href: '/dashboard/lembretes', label: 'Lembretes', icon: Bell },
+  { href: '/dashboard/financeiro', label: 'Financeiro', icon: Wallet },
+  { href: '/dashboard/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { href: '/dashboard/definicoes', label: 'Definições', icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -71,6 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {[...PRIMARY_ITEMS, ...MORE_ITEMS].map((item) => (
             <li key={item.href}>
               <Link href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                <item.icon size={20} aria-hidden="true" strokeWidth={1.8} />
                 {item.label}
               </Link>
             </li>
@@ -91,6 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-current={isActive(item.href) ? 'page' : undefined}
             className="mobile-nav-item"
           >
+            <item.icon aria-hidden="true" />
             {item.label}
           </Link>
         ))}
@@ -102,6 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-controls="mobile-nav-more"
           onClick={() => setMoreOpen((open) => !open)}
         >
+          <MoreHorizontal aria-hidden="true" />
           Mais
         </button>
       </nav>
@@ -117,6 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     aria-current={isActive(item.href) ? 'page' : undefined}
                     onClick={() => setMoreOpen(false)}
                   >
+                    <item.icon size={20} aria-hidden="true" strokeWidth={1.8} />
                     {item.label}
                   </Link>
                 </li>
