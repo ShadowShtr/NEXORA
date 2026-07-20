@@ -7,7 +7,11 @@ import { createClient } from '@/lib/supabase/server';
 import { parseClientPreferences } from '@/features/clients/domain/preferences';
 import { ClientPreferencesForm } from '@/features/clients/ClientPreferencesForm';
 import { ClientPrivateNotesForm } from '@/features/clients/ClientPrivateNotesForm';
+import { ClientPhotosForm, type ClientPhotoItem } from '@/features/clients/ClientPhotosForm';
+import { isClientPhotoKind } from '@/features/clients/domain/photos';
 import { countRecentNoShows, exceedsNoShowLimit } from '@/features/clients/domain/no-show-policy';
+
+const PHOTO_SIGNED_URL_TTL_SECONDS = 300;
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
