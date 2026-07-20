@@ -1,0 +1,12 @@
+-- Fixes a latent bug from 0001_initial.sql: `create extension if not exists pgcrypto;`
+-- (no explicit schema) lands pgcrypto in the `extensions` schema on Supabase-managed
+-- Postgres (platform default), not `public`. Every security-definer function in this
+-- schema deliberately restricts `set search_path = public` (hardening against
+-- search-path hijacking, ADR-008) — which made digest()/gen_random_bytes()
+-- (pgcrypto-only, no core Postgres equivalent, unlike gen_random_uuid() which has been
+-- built into core since PG13 and so never surfaced this) unreachable from inside
+-- create_public_booking, resolve_booking_lookup_code, and everywhere else that hashes a
+-- token. Confirmed live: create_public_booking currently fails with
+-- "function digest(text, unknown) does not exist" (42883) — the public booking flow's
+-- RPC has never actually completed successfully against this schema.
+alter extension pgcrypto set schema public;

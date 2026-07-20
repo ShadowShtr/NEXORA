@@ -25,6 +25,7 @@ const requestSchema = z.object({
   // verifyTurnstileToken already no-ops server-side in that same case, so an empty
   // string here is fine rather than a validation error.
   turnstileToken: z.string().optional(),
+  observation: z.string().trim().max(2000).optional(),
 });
 
 export type CreateBookingRequest = z.infer<typeof requestSchema>;
@@ -59,6 +60,7 @@ export async function createPublicBooking(request: CreateBookingRequest): Promis
     startAtIso,
     idempotencyKey,
     turnstileToken,
+    observation,
   } = parsed.data;
 
   const ip = await getRequestIp();
@@ -100,6 +102,7 @@ export async function createPublicBooking(request: CreateBookingRequest): Promis
       p_selected_package_id: selectedPackageId,
       p_start_at: startAtIso,
       p_idempotency_key: idempotencyKey,
+      p_client_observation: observation || null,
     })
     .single<CreatePublicBookingRow>();
 

@@ -1,0 +1,78 @@
+import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { HorarioClient } from './HorarioClient';
+
+export default async function HorarioPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ slotTaken?: string }>;
+}) {
+  const { slug } = await params;
+  const { slotTaken } = await searchParams;
+  const supabase = await createClient();
+
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (!tenant) notFound();
+
+  const { data: settings } = await supabase
+    .from('business_settings')
+    .select('timezone')
+    .eq('tenant_id', tenant.id)
+    .maybeSingle();
+  if (!settings) notFound();
+
+  const [{ data: serviceRows }, { data: packageRows }, { data: packageServiceRows }] =
+    await Promise.all([
+      supabase
+        .from('services')
+        .select('id, name, price_cents, duration_minutes')
+        .eq('tenant_id', tenant.id),
+      supabase.from('packages').select('id, name, price_cents').eq('tenant_id', tenant.id),
+      supabase.from('package_services').select('package_id, service_id').eq('tenant_id', tenant.id),
+    ]);
+
+  const services = serviceRows ?? [];
+  const servicesById = new Map(services.map((service) => [service.id, service]));
+  const serviceIdsByPackageId = new Map<string, string[]>();
+  for (const row of packageServiceRows ?? []) {
+    const list = serviceIdsByPackageId.get(row.package_id) ?? [];
+    list.push(row.service_id);
+    serviceIdsByPackageId.set(row.package_id, list);
+  }
+
+  const packages = (packageRows ?? []).map((pkg) => {
+    const items = (serviceIdsByPackageId.get(pkg.id) ?? [])
+      .map((serviceId) => servicesById.get(serviceId))
+      .filter((service) => service !== undefined);
+    return {
+      id: pkg.id,
+      name: pkg.name,
+      priceCents: pkg.price_cents,
+      durationMinutes: items.reduce((total, service) => total + service.duration_minutes, 0),
+      itemNames: items.map((service) => service.name).join(' + '),
+      serviceIds: items.map((service) => service.id),
+    };
+  });
+
+  return (
+    <HorarioClient
+      tenantId={tenant.id}
+      tenantSlug={slug}
+      timezone={settings.timezone}
+      services={services.map((service) => ({
+        id: service.id,
+        name: service.name,
+        priceCents: service.price_cents,
+        durationMinutes: service.duration_minutes,
+      }))}
+      packages={packages}
+      slotTaken={slotTaken === '1'}
+    />
+  );
+}
