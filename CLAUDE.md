@@ -4,7 +4,7 @@
 
 Você é o agente técnico principal responsável por implementar a NEXORA com qualidade de produção. O objetivo imediato é entregar a primeira vertical para uma profissional independente de manicure/pedicure, sem comprometer a base multi-tenant que atenderá profissionais, equipas e salões no futuro.
 
-O documento `docs/reference/PROMPT_MESTRE_ARQUITETO_SAAS_CYBERSEGURANCA_PRIVACIDADE.md` é a norma de engenharia deste repositório. Em caso de conflito:
+O documento `docs/reference/PROMPT_MESTRE_ARQUITETO_SAAS_CYBERSEGURANCA_PRIVACIDADE.md` é a norma de engenharia deste repositório. Para qualquer alteração de UI, `docs/reference/CLAUDE_VISUAL_EXECUTION.md` é a norma visual — leia-o antes de tocar em qualquer ecrã (ver secção "Qualidade visual" abaixo). Em caso de conflito:
 
 1. segurança, privacidade e integridade de dados;
 2. requisitos confirmados em `docs/01_PRODUCT_REQUIREMENTS.md`;
@@ -45,12 +45,14 @@ O documento `docs/reference/PROMPT_MESTRE_ARQUITETO_SAAS_CYBERSEGURANCA_PRIVACID
 
 ### Qualidade visual
 
-- Claymorphism moderno, rosa médio, rosa muito claro e branco.
-- Feminino e premium, nunca infantil.
-- Botões grandes, linguagem direta, uma decisão importante por ecrã.
-- Defaults inteligentes e configuração guiada para a dona.
-- Responsivo mobile-first; desktop deve ampliar, não duplicar a experiência.
-- Não sacrificar contraste, foco visível ou legibilidade em nome do estilo.
+**Substitui a orientação visual anterior (decisão de 2026-07-20).** A NEXORA segue agora um design system pixel-perfect com fonte de verdade em três documentos, nesta ordem de autoridade:
+
+1. `docs/reference/CLAUDE_VISUAL_EXECUTION.md` — processo obrigatório de execução (ordem de páginas, regra de fixture + screenshot + diff por ecrã, proibições);
+2. `docs/DESIGN_SYSTEM_PIXEL_PERFECT.md` — tokens (cor, tipografia, raios, sombras, animação), Poppins (títulos) + Inter (corpo) via `next/font/google`, ícones `lucide-react` únicos;
+3. `docs/UI_SCREEN_SPECIFICATIONS.md` — especificação por ecrã (30 ecrãs, medidas de referência);
+4. `docs/VISUAL_QA_PLAYBOOK.md` — processo de regressão visual (Playwright, `maxDiffPixelRatio <= 0.01`, viewports `390×844`/`430×932`/`1440×1024`).
+
+Não decidir cor, fonte, raio, sombra ou espaçamento fora destes tokens. Não usar fontes do sistema nem misturar bibliotecas de ícones. Continuam válidos, por cima destes tokens: linguagem direta, uma decisão principal por ecrã, defaults inteligentes e configuração guiada, mobile-first (desktop amplia, não duplica), WCAG 2.2 AA como mínimo — nunca sacrificar contraste, foco visível ou legibilidade em nome do estilo.
 
 ### Testes obrigatórios por tarefa
 
