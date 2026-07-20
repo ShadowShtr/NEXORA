@@ -1492,3 +1492,187 @@ textarea {
   color: var(--nx-primary-500);
   font-weight: 600;
 }
+
+/* ============================================================================
+   Dashboard da dona (docs/UI_SCREEN_SPECIFICATIONS.md #10) — pixel-perfect.
+   ============================================================================ */
+.nx-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+.nx-icon-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--nx-radius-pill);
+  border: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+  color: var(--nx-text);
+  text-decoration: none;
+  position: relative;
+}
+.nx-icon-button svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+}
+.nx-icon-button-dot::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nx-primary-500);
+  border: 1.5px solid var(--nx-surface);
+}
+
+.nx-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: var(--nx-radius-pill);
+  background: linear-gradient(135deg, var(--nx-primary-300), var(--nx-primary-500));
+  color: white;
+  font-family: var(--nx-font-heading);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nx-next-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 108px;
+}
+.nx-next-card .nx-avatar {
+  width: 52px;
+  height: 52px;
+  font-size: 1.1rem;
+}
+.nx-next-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.nx-next-card-time {
+  font-family: var(--nx-font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--nx-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.nx-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.nx-metric-card {
+  min-height: 82px;
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+.nx-metric-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--nx-radius-sm);
+}
+.nx-metric-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+.nx-metric-icon-primary {
+  background: var(--nx-primary-100);
+  color: var(--nx-primary-600);
+}
+.nx-metric-icon-success {
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
+}
+.nx-metric-icon-warning {
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
+}
+.nx-metric-icon-info {
+  background: var(--nx-info-soft);
+  color: var(--nx-info);
+}
+
+.nx-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 1.5rem 0 0.6rem;
+}
+.nx-section-link {
+  font-family: var(--nx-font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--nx-primary-600);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.nx-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.nx-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  min-height: 60px;
+}
+.nx-preview-item-time {
+  font-family: var(--nx-font-body);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--nx-text-strong);
+  flex-shrink: 0;
+  width: 3rem;
+}
+.nx-preview-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.nx-preview-item-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--nx-text-strong);
+  margin: 0;
+}
+.nx-preview-item-service {
+  margin: 0;
+  color: var(--nx-text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nx-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--nx-border-strong);
+}
+.nx-status-dot-confirmed {
+  background: var(--nx-info);
+}
+.nx-status-dot-presence_confirmed {
+  background: var(--nx-success);
+}
