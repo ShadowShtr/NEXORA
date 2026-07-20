@@ -91,21 +91,33 @@ export function ResumoClient({
     setIsBooking(true);
     setBookingError(null);
 
-    const result = await createPublicBooking({
-      tenantId,
-      registration: state.registration,
-      selectedServiceIds: state.selectedServiceIds,
-      selectedPackageId: state.selectedPackageId,
-      startAtIso: state.selectedSlotIso,
-      idempotencyKey,
-      observation: observation.trim() || undefined,
-    });
+    let result;
+    try {
+      result = await createPublicBooking({
+        tenantId,
+        registration: state.registration,
+        selectedServiceIds: state.selectedServiceIds,
+        selectedPackageId: state.selectedPackageId,
+        startAtIso: state.selectedSlotIso,
+        idempotencyKey,
+        observation: observation.trim() || undefined,
+      });
+    } catch {
+      setIsBooking(false);
+      setBookingError('Não foi possível concluir a marcação. Tente novamente.');
+      return;
+    }
 
     setIsBooking(false);
 
     if (!result.ok) {
       if (result.error.code === 'SLOT_TAKEN') {
-        await persist({ ...state, selectedSlotIso: null });
+        try {
+          await persist({ ...state, selectedSlotIso: null });
+        } catch {
+          // Best-effort: even if clearing the stale slot in the draft fails, still send
+          // the visitor back to pick a new one rather than leaving them stuck here.
+        }
         router.push(`/b/${tenantSlug}/horario?slotTaken=1`);
         return;
       }

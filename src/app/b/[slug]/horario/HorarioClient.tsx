@@ -36,6 +36,7 @@ export function HorarioClient({
   const { state, ready, persist } = useBookingSession(tenantId, tenantSlug);
   const [selectedIso, setSelectedIso] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
 
   // Seed selectedIso from the resumed draft exactly once, the moment the session
   // finishes loading — adjusting state during render (not in an effect) on that one
@@ -67,8 +68,19 @@ export function HorarioClient({
   async function handleContinue() {
     if (!selectedIso) return;
     setPending(true);
-    await persist({ ...state, selectedSlotIso: selectedIso });
-    router.push(`/b/${tenantSlug}/dados`);
+    setContinueError(null);
+    try {
+      const result = await persist({ ...state, selectedSlotIso: selectedIso });
+      if (!result.ok) {
+        setContinueError(result.error.message);
+        setPending(false);
+        return;
+      }
+      router.push(`/b/${tenantSlug}/dados`);
+    } catch {
+      setContinueError('Não foi possível continuar. Tente novamente.');
+      setPending(false);
+    }
   }
 
   if (!ready || lines.length === 0) return null;
@@ -99,6 +111,11 @@ export function HorarioClient({
         />
       </div>
 
+      {continueError ? (
+        <p role="alert" className="form-error public-continue-error">
+          {continueError}
+        </p>
+      ) : null}
       <div className="public-cart-bar">
         <span className="public-cart-bar-summary" role="status">
           {selectedIso ? 'Horário selecionado' : 'Escolha um horário'}
