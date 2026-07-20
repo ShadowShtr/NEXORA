@@ -94,7 +94,7 @@
 - [x] **NEX-091** — Ficha completa da cliente _(depende: NEX-090)_
 - [x] **NEX-092** — Sugestão/deduplicação no booking manual _(depende: NEX-090,NEX-085)_
 - [x] **NEX-093** — Observações privadas _(depende: NEX-091)_
-- [ ] **NEX-094** — Fotografias privadas _(depende: NEX-091)_
+- [x] **NEX-094** — Fotografias privadas _(depende: NEX-091)_
 - [x] **NEX-095** — Política configurável de faltas _(depende: NEX-091)_
 
 ### EPIC-10 — Lembretes e WhatsApp manual

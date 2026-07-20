@@ -3,7 +3,11 @@
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { deleteClientPhoto, uploadClientPhoto } from './photo-actions';
-import { CLIENT_PHOTO_KIND_LABELS, CLIENT_PHOTO_KINDS, type ClientPhotoKind } from './domain/photos';
+import {
+  CLIENT_PHOTO_KIND_LABELS,
+  CLIENT_PHOTO_KINDS,
+  type ClientPhotoKind,
+} from './domain/photos';
 import type { Result } from '@/lib/result';
 
 export type ClientPhotoItem = {

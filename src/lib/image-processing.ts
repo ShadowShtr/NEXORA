@@ -17,7 +17,12 @@ const JPEG_QUALITY = 85;
 export async function reencodePhotoAsJpeg(input: Buffer): Promise<Buffer> {
   return sharp(input)
     .rotate()
-    .resize({ width: MAX_DIMENSION_PX, height: MAX_DIMENSION_PX, fit: 'inside', withoutEnlargement: true })
+    .resize({
+      width: MAX_DIMENSION_PX,
+      height: MAX_DIMENSION_PX,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
     .jpeg({ quality: JPEG_QUALITY })
     .toBuffer();
 }

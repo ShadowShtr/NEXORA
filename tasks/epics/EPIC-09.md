@@ -199,17 +199,17 @@ Implementar fotografias privadas sem expandir o escopo para funcionalidades não
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova superfície: bucket Storage privado (`client-photos`) com RLS própria em `storage.objects` — não existia antes desta tarefa. Ver `docs/evidence/NEX-094_CLIENT_PHOTOS.md`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado por `tests/integration/client-photos-storage-rls.test.ts` (7/7, corrido de verdade contra o Supabase de dev): upload/leitura/exclusão cruzados entre tenants bloqueados tanto no Storage como na tabela `client_photos`.
+- Registar risco residual ou decisão temporária. Ver secção "Riscos residuais" da evidência (blob órfão best-effort se a remoção do Storage falhar depois do delete da linha — nunca exposto a outro tenant).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-095 — Política configurável de faltas
 

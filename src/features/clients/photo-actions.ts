@@ -6,11 +6,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { reencodePhotoAsJpeg } from '@/lib/image-processing';
-import {
-  CLIENT_PHOTO_KINDS,
-  isAllowedPhotoMimeType,
-  isAllowedPhotoSize,
-} from './domain/photos';
+import { CLIENT_PHOTO_KINDS, isAllowedPhotoMimeType, isAllowedPhotoSize } from './domain/photos';
 import type { Result } from '@/lib/result';
 
 const uploadSchema = z.object({
