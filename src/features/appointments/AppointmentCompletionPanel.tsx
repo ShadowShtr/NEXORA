@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { completeAppointment } from './completion-actions';
 import { parseEurosToCents, type QuickPaymentChoice } from './domain/completion';
@@ -39,10 +40,14 @@ export function AppointmentCompletionPanel({
   appointmentId,
   expectedTotalCents,
   availableServices,
+  compact = false,
 }: {
   appointmentId: string;
   expectedTotalCents: number;
   availableServices: AvailableService[];
+  /** Agenda timeline row trigger: a bare checkmark icon instead of a "Concluir" button —
+   * only the closed-state trigger changes, the expanded form is identical either way. */
+  compact?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<Result<null> | null, FormData>(
     completeAppointment,
@@ -61,10 +66,22 @@ export function AppointmentCompletionPanel({
   const [discountReason, setDiscountReason] = useState('');
 
   if (state?.ok) {
-    return <p role="status">Atendimento concluído.</p>;
+    return compact ? null : <p role="status">Atendimento concluído.</p>;
   }
 
   if (!open) {
+    if (compact) {
+      return (
+        <button
+          type="button"
+          className="appointment-timeline-complete-trigger"
+          onClick={() => setOpen(true)}
+          aria-label="Concluir atendimento"
+        >
+          <Check size={16} aria-hidden="true" />
+        </button>
+      );
+    }
     return (
       <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
         Concluir

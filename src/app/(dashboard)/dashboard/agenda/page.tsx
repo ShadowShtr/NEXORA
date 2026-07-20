@@ -1,11 +1,13 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { computeAvailableSlotsMs } from '@/lib/availability-lookup';
 import { AppointmentCard, type AppointmentCardData } from '@/features/appointments/AppointmentCard';
+import { AgendaDatePicker } from '@/features/appointments/AgendaDatePicker';
 import type { AppointmentCardStatus } from '@/features/appointments/domain/appointment-card';
 import {
   formatRangeLabel,
@@ -45,7 +47,8 @@ async function loadAgendaData(
     .maybeSingle();
   const timezone = settings?.timezone ?? 'Europe/Lisbon';
 
-  const todayKey = formatInTimeZone(Date.now(), timezone, 'yyyy-MM-dd');
+  const nowMs = Date.now();
+  const todayKey = formatInTimeZone(nowMs, timezone, 'yyyy-MM-dd');
   const dateKey = requestedDateKey ?? todayKey;
   const range = resolveCalendarRange(view, dateKey, timezone);
 
@@ -89,6 +92,7 @@ async function loadAgendaData(
     const card: AppointmentCardData = {
       id: row.id,
       timeLabel: formatInTimeZone(row.start_at, timezone, 'HH:mm'),
+      startAtMs: new Date(row.start_at).getTime(),
       clientName: client?.name ?? 'Cliente',
       clientPhoneE164: client?.phone_e164 ?? null,
       itemDescriptions: (row.appointment_items ?? []).map((item) => item.description),
@@ -123,7 +127,16 @@ async function loadAgendaData(
     freeSlotsByDay = filterFreeSlotsInRange(groupFreeSlotsByDay(slotsMs, timezone), range.dateKeys);
   }
 
-  return { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay, availableServices };
+  return {
+    timezone,
+    dateKey,
+    todayKey,
+    range,
+    byDateKey,
+    freeSlotsByDay,
+    availableServices,
+    nowMs,
+  };
 }
 
 function navHref(view: CalendarView, dateKey: string) {
@@ -146,8 +159,16 @@ export default async function AgendaPage({
   const params = await searchParams;
   const view: CalendarView = isCalendarView(params.view) ? params.view : 'day';
 
-  const { timezone, dateKey, todayKey, range, byDateKey, freeSlotsByDay, availableServices } =
-    await loadAgendaData(tenantId, view, params.date);
+  const {
+    timezone,
+    dateKey,
+    todayKey,
+    range,
+    byDateKey,
+    freeSlotsByDay,
+    availableServices,
+    nowMs,
+  } = await loadAgendaData(tenantId, view, params.date);
 
   const previousDateKey = shiftCalendarDate(view, dateKey, -1);
   const nextDateKey = shiftCalendarDate(view, dateKey, 1);
@@ -159,52 +180,61 @@ export default async function AgendaPage({
   const totalFreeSlots = freeSlotsByDay.reduce((sum, day) => sum + day.count, 0);
 
   return (
-    <div className="shell">
+    <div className="shell agenda-page">
       <p className="text-eyebrow">Agenda</p>
       <h1 className="text-title">Agenda</h1>
 
-      <Link href="/dashboard/agenda/nova" className="button link-button">
-        Nova marcação
-      </Link>
+      <div className="agenda-date-row">
+        <AgendaDatePicker view={view} dateKey={dateKey} label={capitalize(rangeLabel)} />
+        <nav className="agenda-date-nav" aria-label="Navegar datas">
+          <a
+            href={navHref(view, previousDateKey)}
+            className="nx-icon-button"
+            aria-label="Data anterior"
+          >
+            <ChevronLeft aria-hidden="true" />
+          </a>
+          {dateKey !== todayKey ? (
+            <a href={navHref(view, todayKey)} className="agenda-today-link">
+              Hoje
+            </a>
+          ) : null}
+          <a
+            href={navHref(view, nextDateKey)}
+            className="nx-icon-button"
+            aria-label="Data seguinte"
+          >
+            <ChevronRight aria-hidden="true" />
+          </a>
+        </nav>
+      </div>
 
-      <nav className="agenda-view-switcher" aria-label="Vista da agenda">
+      <div role="tablist" aria-label="Vista da agenda" className="nx-tabs nx-tabs-pill">
         <a
           href={navHref('day', dateKey)}
+          role="tab"
           aria-current={view === 'day' ? 'page' : undefined}
-          className="button-secondary button"
+          className="nx-tab"
         >
           Dia
         </a>
         <a
           href={navHref('week', dateKey)}
+          role="tab"
           aria-current={view === 'week' ? 'page' : undefined}
-          className="button-secondary button"
+          className="nx-tab"
         >
           Semana
         </a>
         <a
           href={navHref('month', dateKey)}
+          role="tab"
           aria-current={view === 'month' ? 'page' : undefined}
-          className="button-secondary button"
+          className="nx-tab"
         >
-          Mês
+          Lista
         </a>
-      </nav>
-
-      <nav className="agenda-date-nav" aria-label="Navegar datas">
-        <a href={navHref(view, previousDateKey)} className="button-secondary button">
-          Anterior
-        </a>
-        <span className="agenda-range-label">{capitalize(rangeLabel)}</span>
-        <a href={navHref(view, nextDateKey)} className="button-secondary button">
-          Seguinte
-        </a>
-        {dateKey !== todayKey ? (
-          <a href={navHref(view, todayKey)} className="button-secondary button">
-            Hoje
-          </a>
-        ) : null}
-      </nav>
+      </div>
 
       <Card className="agenda-free-slots">
         <details>
@@ -270,6 +300,7 @@ export default async function AgendaPage({
                         key={appointment.id}
                         appointment={appointment}
                         availableServices={availableServices}
+                        nowMs={nowMs}
                       />
                     ))}
                   </ul>
@@ -279,6 +310,10 @@ export default async function AgendaPage({
           })}
         </div>
       )}
+
+      <Link href="/dashboard/agenda/nova" className="agenda-fab" aria-label="Nova marcação">
+        <Plus size={24} aria-hidden="true" />
+      </Link>
     </div>
   );
 }

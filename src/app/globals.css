@@ -1349,6 +1349,96 @@ select {
 .appointment-card-actions .button {
   margin-top: 0;
 }
+/* Agenda timeline row (AppointmentCard.tsx, visual refinement mid-2026) — hora + ponto
+   + linha ligando a um atendimento ao seguinte, cartão compacto com uma única ação. */
+.appointment-timeline-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.75rem;
+}
+.appointment-timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding-top: 0.9rem;
+}
+.appointment-timeline-time {
+  font-weight: 700;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.appointment-timeline-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--pink-500);
+  flex-shrink: 0;
+}
+.appointment-timeline-line {
+  flex: 1;
+  width: 1px;
+  min-height: 1rem;
+  background: var(--pink-100);
+}
+.appointment-timeline-row:last-child .appointment-timeline-line {
+  display: none;
+}
+.appointment-timeline-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(253, 235, 243, 0.9));
+  box-shadow:
+    8px 8px 20px var(--shadow-dark),
+    -6px -6px 16px var(--shadow-light);
+}
+.appointment-timeline-card-due {
+  background: var(--pink-100);
+  box-shadow: none;
+}
+.appointment-timeline-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+.appointment-timeline-status {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.appointment-timeline-action {
+  flex-shrink: 0;
+}
+.appointment-timeline-action:has(.completion-panel) {
+  flex: 1 1 100%;
+}
+.appointment-timeline-whatsapp,
+.appointment-timeline-complete-trigger {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+}
+.appointment-timeline-whatsapp {
+  background: #e7f9ee;
+  color: #1f9d55;
+}
+.appointment-timeline-complete-trigger {
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  color: white;
+}
 .completion-panel {
   width: 100%;
 }
@@ -1390,27 +1480,70 @@ select {
   padding-top: 0.75rem;
 }
 
-.agenda-view-switcher,
 .agenda-date-nav {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-.agenda-view-switcher .button,
 .agenda-date-nav .button {
   margin-top: 0;
   min-width: 0;
 }
-.agenda-view-switcher a[aria-current='page'] {
-  background: var(--pink-100);
-  border-color: var(--pink-300);
-  color: var(--text);
-  font-weight: 800;
-}
 .agenda-range-label {
   font-weight: 800;
   padding: 0 0.5rem;
+}
+/* Agenda (/dashboard/agenda) — date row (native date input driving the picker) +
+   pill view tabs + timeline list. Visual refinement mid-2026 reference. */
+.agenda-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.agenda-date-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.agenda-date-picker svg {
+  color: var(--pink-500);
+}
+.agenda-date-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.agenda-today-link {
+  font-weight: 700;
+  color: var(--pink-600);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.agenda-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  color: white;
+  box-shadow: 0 10px 24px rgba(154, 43, 91, 0.32);
+  z-index: 15;
 }
 .agenda-day-groups {
   display: grid;
@@ -1573,7 +1706,8 @@ select {
   cursor: pointer;
   min-height: 44px;
 }
-.nx-tab[aria-selected='true'] {
+.nx-tab[aria-selected='true'],
+.nx-tab[aria-current='page'] {
   background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   border-color: var(--pink-600);
   color: white;
