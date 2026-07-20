@@ -25,6 +25,12 @@ alter table public.appointments
 -- `return query select` branches. Every other line — idempotency validation, the
 -- payload hash covering name/phone/email/services/package/start_at, the
 -- IDEMPOTENCY_CONFLICT branch, the tenant-published check — is unchanged from 0007.
+--
+-- Postgres refuses `create or replace function` when the return type itself changes
+-- (adding a column to a `returns table (...)` is a type change, not just a body edit) —
+-- the old 3-column signature must be dropped first.
+drop function if exists public.create_public_booking(uuid, text, text, text, uuid[], uuid, timestamptz, text);
+
 create or replace function public.create_public_booking(
   p_tenant_id uuid,
   p_client_name text,
