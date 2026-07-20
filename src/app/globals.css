@@ -575,6 +575,68 @@ a:focus-visible {
   font-size: 1.1rem;
   margin: 0.75rem 0;
 }
+
+/* Resumo da marcação (/b/[slug]/resumo) — icon rows inside otherwise-plain cards, no
+   pink-border emphasis on any single one (docs/UI_SCREEN_SPECIFICATIONS.md reference
+   for this screen shows all four cards reading the same). */
+.public-resumo-service-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.public-resumo-service-icon {
+  color: var(--pink-500);
+  flex-shrink: 0;
+}
+.public-datetime-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  color: var(--text);
+}
+.public-datetime-row svg {
+  color: var(--pink-500);
+  flex-shrink: 0;
+}
+.public-professional-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+.public-professional-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  color: white;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.public-professional-name {
+  font-weight: 700;
+}
+.public-resumo-footer {
+  display: grid;
+  gap: 0.75rem;
+}
+.public-resumo-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 0.25rem;
+}
+.public-resumo-total-value {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+.public-resumo-confirm {
+  width: 100%;
+}
 .public-summary .link-button[aria-disabled='true'] {
   pointer-events: none;
   opacity: 0.5;

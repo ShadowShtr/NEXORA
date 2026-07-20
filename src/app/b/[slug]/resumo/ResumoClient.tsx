@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock, SquareCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { initials } from '@/lib/initials';
 import { BookingConfirmation } from '../BookingConfirmation';
 import { createPublicBooking } from '../booking-actions';
 import { generateIdempotencyKey } from '../domain/idempotency-key';
@@ -157,12 +158,15 @@ export function ResumoClient({
         <h1 className="text-title">Resumo da marcação</h1>
       </header>
 
-      <div className="card public-summary">
+      <div className="card">
         <p className="public-step-label">Serviços</p>
         <ul className="public-service-list">
           {lines.map((line) => (
             <li key={line.id} className="public-service-item">
-              <span>{line.name}</span>
+              <span className="public-resumo-service-name">
+                <SquareCheck className="public-resumo-service-icon" size={16} aria-hidden="true" />
+                {line.name}
+              </span>
               <span className="public-service-meta">{formatEuros(line.priceCents)}</span>
             </li>
           ))}
@@ -171,24 +175,31 @@ export function ResumoClient({
 
       <div className="card">
         <p className="public-step-label">Data e horário</p>
-        <p>
-          {capitalize(
-            formatInTimeZone(
-              state.selectedSlotIso,
-              timezone,
-              "EEEE, dd 'de' MMMM 'de' yyyy 'às' HH:mm",
-              {
+        <div className="public-datetime-row">
+          <CalendarDays size={16} aria-hidden="true" />
+          <span>
+            {capitalize(
+              formatInTimeZone(state.selectedSlotIso, timezone, "EEEE, dd 'de' MMMM 'de' yyyy", {
                 locale: pt,
-              },
-            ),
-          )}
-        </p>
+              }),
+            )}
+          </span>
+        </div>
+        <div className="public-datetime-row">
+          <Clock size={16} aria-hidden="true" />
+          <span>{formatInTimeZone(state.selectedSlotIso, timezone, 'HH:mm')}</span>
+        </div>
       </div>
 
       {professionalName ? (
         <div className="card">
           <p className="public-step-label">Profissional</p>
-          <p>{professionalName}</p>
+          <div className="public-professional-row">
+            <span className="public-professional-avatar" aria-hidden="true">
+              {initials(professionalName)}
+            </span>
+            <span className="public-professional-name">{professionalName}</span>
+          </div>
         </div>
       ) : null}
 
@@ -205,14 +216,22 @@ export function ResumoClient({
         </label>
       </div>
 
-      <div className="card public-summary">
-        <p className="public-summary-total">Total estimado: {formatEuros(totalCents)}</p>
+      <div className="public-resumo-footer">
+        <div className="public-resumo-total-row">
+          <span className="text-support">Total estimado</span>
+          <span className="public-resumo-total-value">{formatEuros(totalCents)}</span>
+        </div>
         {bookingError ? (
           <p role="alert" className="form-error">
             {bookingError}
           </p>
         ) : null}
-        <Button type="button" disabled={isBooking} onClick={() => void handleConfirm()}>
+        <Button
+          type="button"
+          disabled={isBooking}
+          onClick={() => void handleConfirm()}
+          className="public-resumo-confirm"
+        >
           {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
         </Button>
       </div>
