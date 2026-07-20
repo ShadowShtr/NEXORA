@@ -269,7 +269,7 @@ export function ServicosClient({
                       checked={selectedPackageId === null}
                       onChange={() => selectPackage(null)}
                     />
-                    <span className="public-check-dot" aria-hidden="true" />
+                    <Check className="public-check-icon" size={14} aria-hidden="true" />
                   </span>
                 </label>
               </li>
@@ -291,7 +291,7 @@ export function ServicosClient({
                         checked={selectedPackageId === pkg.id}
                         onChange={() => selectPackage(pkg)}
                       />
-                      <span className="public-check-dot" aria-hidden="true" />
+                      <Check className="public-check-icon" size={14} aria-hidden="true" />
                     </span>
                   </label>
                 </li>

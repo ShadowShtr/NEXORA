@@ -429,6 +429,9 @@ a:focus-visible {
   width: 1.6rem;
   height: 1.6rem;
 }
+.public-check-circle:has(.public-check-input:disabled) {
+  opacity: 0.5;
+}
 .public-check-input {
   appearance: none;
   -webkit-appearance: none;
@@ -450,28 +453,17 @@ a:focus-visible {
 }
 .public-check-input:disabled {
   cursor: default;
-  opacity: 0.5;
 }
-.public-check-icon,
-.public-check-dot {
+.public-check-icon {
   position: absolute;
   inset: 0;
   margin: auto;
+  color: white;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.1s ease;
 }
-.public-check-icon {
-  color: white;
-}
-.public-check-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: white;
-}
-.public-check-input:checked + .public-check-icon,
-.public-check-input:checked + .public-check-dot {
+.public-check-input:checked + .public-check-icon {
   opacity: 1;
 }
 .public-service-choice:has(.public-check-input:disabled) {
@@ -511,12 +503,14 @@ a:focus-visible {
   color: var(--muted);
 }
 .public-booking-content {
-  /* Reserves room so the fixed cart bar never covers the last card's content. Extra
-     side padding on top of .shell's own margin — the paginated flow felt cramped
-     against the viewport edge without it. */
+  /* This route (paginated public flow) renders straight into <body>, no .shell wrapper
+     — without an explicit top padding here the step header sits flush against the
+     viewport/notch with no clearance at all. padding-bottom reserves room so the fixed
+     cart bar never covers the last card's content. */
+  padding-top: calc(1.75rem + env(safe-area-inset-top, 0px));
   padding-bottom: 6.5rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 .public-booking-content > * + * {
   margin-top: 0.85rem;
