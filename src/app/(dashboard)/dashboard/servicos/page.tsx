@@ -25,12 +25,12 @@ export default async function ServicosPage() {
       .order('sort_order'),
     supabase
       .from('services')
-      .select('id, name, price_cents, duration_minutes, category_id, is_active')
+      .select('id, name, price_cents, duration_minutes, category_id, is_active, photo_path')
       .eq('tenant_id', tenantId)
       .order('created_at'),
     supabase
       .from('packages')
-      .select('id, name, price_cents, is_active')
+      .select('id, name, price_cents, compare_at_price_cents, is_active')
       .eq('tenant_id', tenantId)
       .order('created_at'),
     supabase.from('package_services').select('package_id, service_id').eq('tenant_id', tenantId),
@@ -50,6 +50,9 @@ export default async function ServicosPage() {
     durationMinutes: row.duration_minutes,
     categoryId: row.category_id,
     isActive: row.is_active,
+    photoUrl: row.photo_path
+      ? supabase.storage.from('service-photos').getPublicUrl(row.photo_path).data.publicUrl
+      : null,
   }));
 
   const serviceIdsByPackageId = new Map<string, string[]>();
@@ -63,6 +66,7 @@ export default async function ServicosPage() {
     id: row.id,
     name: row.name,
     priceCents: row.price_cents,
+    compareAtPriceCents: row.compare_at_price_cents,
     isActive: row.is_active,
     serviceIds: serviceIdsByPackageId.get(row.id) ?? [],
   }));

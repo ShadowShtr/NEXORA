@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { packageDiscountPercent } from '@/features/catalog/domain/package';
 import { useBookingSession } from '../useBookingSession';
 import {
   cartLines,
@@ -209,7 +210,15 @@ export function ServicosClient({
                     return (
                       <li key={service.id} className="public-service-item">
                         <label className="public-service-choice">
-                          <span className="public-service-photo" aria-hidden="true" />
+                          <span
+                            className="public-service-photo"
+                            aria-hidden="true"
+                            style={
+                              service.photoUrl
+                                ? { backgroundImage: `url(${service.photoUrl})` }
+                                : undefined
+                            }
+                          />
                           <span className="public-service-info">
                             <span className="public-service-name">
                               {service.name}
@@ -257,7 +266,6 @@ export function ServicosClient({
             <ul className="public-service-list">
               <li className="public-service-item">
                 <label className="public-service-choice">
-                  <span className="public-service-photo" aria-hidden="true" />
                   <span className="public-service-info">
                     <span className="public-service-name">Nenhum pacote</span>
                   </span>
@@ -273,29 +281,53 @@ export function ServicosClient({
                   </span>
                 </label>
               </li>
-              {packages.map((pkg) => (
-                <li key={pkg.id} className="public-service-item">
-                  <label className="public-service-choice">
-                    <span className="public-service-photo" aria-hidden="true" />
-                    <span className="public-service-info">
-                      <span className="public-service-name">{pkg.name}</span>
-                      <span className="public-service-meta">
-                        {pkg.itemNames} · {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
+              {packages.map((pkg) => {
+                const compareAtPriceCents = pkg.compareAtPriceCents;
+                const discountPercent = packageDiscountPercent(pkg.priceCents, compareAtPriceCents);
+                const promo = discountPercent !== null && compareAtPriceCents !== null;
+                return (
+                  <li
+                    key={pkg.id}
+                    className={
+                      promo ? 'public-service-item public-package-promo' : 'public-service-item'
+                    }
+                  >
+                    <label className="public-service-choice">
+                      {promo ? (
+                        <span className="public-package-promo-badge">-{discountPercent}%</span>
+                      ) : null}
+                      <span className="public-service-info">
+                        <span className="public-service-name">{pkg.name}</span>
+                        <span className="public-service-meta">
+                          {pkg.itemNames} · {pkg.durationMinutes} min
+                        </span>
+                        {promo ? (
+                          <span className="public-package-promo-price">
+                            <span className="public-package-promo-price-original">
+                              {formatEuros(compareAtPriceCents)}
+                            </span>
+                            <span className="public-package-promo-price-current">
+                              {formatEuros(pkg.priceCents)}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="public-service-meta">{formatEuros(pkg.priceCents)}</span>
+                        )}
                       </span>
-                    </span>
-                    <span className="public-check-circle">
-                      <input
-                        type="radio"
-                        className="public-check-input"
-                        name="pacote"
-                        checked={selectedPackageId === pkg.id}
-                        onChange={() => selectPackage(pkg)}
-                      />
-                      <Check className="public-check-icon" size={14} aria-hidden="true" />
-                    </span>
-                  </label>
-                </li>
-              ))}
+                      <span className="public-check-circle">
+                        <input
+                          type="radio"
+                          className="public-check-input"
+                          name="pacote"
+                          checked={selectedPackageId === pkg.id}
+                          onChange={() => selectPackage(pkg)}
+                        />
+                        <Check className="public-check-icon" size={14} aria-hidden="true" />
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
             {packages.length === 0 ? (
               <p className="text-support">Sem pacotes disponíveis.</p>

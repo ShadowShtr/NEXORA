@@ -33,10 +33,13 @@ export default async function ServicosPage({ params }: { params: Promise<{ slug:
       .order('sort_order'),
     supabase
       .from('services')
-      .select('id, name, price_cents, duration_minutes, category_id, sort_order')
+      .select('id, name, price_cents, duration_minutes, category_id, sort_order, photo_path')
       .eq('tenant_id', tenant.id)
       .order('sort_order'),
-    supabase.from('packages').select('id, name, price_cents').eq('tenant_id', tenant.id),
+    supabase
+      .from('packages')
+      .select('id, name, price_cents, compare_at_price_cents')
+      .eq('tenant_id', tenant.id),
     supabase.from('package_services').select('package_id, service_id').eq('tenant_id', tenant.id),
   ]);
 
@@ -67,6 +70,9 @@ export default async function ServicosPage({ params }: { params: Promise<{ slug:
         name: service.name,
         priceCents: service.price_cents,
         durationMinutes: service.duration_minutes,
+        photoUrl: service.photo_path
+          ? supabase.storage.from('service-photos').getPublicUrl(service.photo_path).data.publicUrl
+          : null,
       })),
     }))
     .filter((group) => group.services.length > 0);
@@ -79,9 +85,11 @@ export default async function ServicosPage({ params }: { params: Promise<{ slug:
       id: pkg.id,
       name: pkg.name,
       priceCents: pkg.price_cents,
+      compareAtPriceCents: pkg.compare_at_price_cents,
       durationMinutes: items.reduce((total, service) => total + service.duration_minutes, 0),
       itemNames: items.map((service) => service.name).join(' + '),
       serviceIds: items.map((service) => service.id),
+      photoUrl: null,
     };
   });
 

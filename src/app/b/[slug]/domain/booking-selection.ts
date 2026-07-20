@@ -3,9 +3,14 @@ export type ServiceLine = {
   name: string;
   priceCents: number;
   durationMinutes: number;
+  photoUrl: string | null;
 };
 
-export type PackageOption = ServiceLine & { itemNames: string; serviceIds: string[] };
+export type PackageOption = ServiceLine & {
+  itemNames: string;
+  serviceIds: string[];
+  compareAtPriceCents: number | null;
+};
 
 export type BookingSelection = {
   selectedPackageId: string | null;

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { createPackage, togglePackageActive, updatePackage } from '@/features/catalog/actions';
 import {
   derivePackageDurationMinutes,
+  packageDiscountPercent,
   type PackageListItem,
 } from '@/features/catalog/domain/package';
 import { PackageCart } from '@/features/catalog/PackageCart';
@@ -35,6 +36,7 @@ function PackageRow({ pkg, services, servicesById }: PackageRowProps) {
   const error = [updateState, toggleState].find((state) => state && !state.ok) as
     { ok: false; error: { message: string } } | undefined;
   const durationMinutes = derivePackageDurationMinutes(pkg.serviceIds, servicesById);
+  const discountPercent = packageDiscountPercent(pkg.priceCents, pkg.compareAtPriceCents);
 
   return (
     <li className="catalog-row">
@@ -54,6 +56,20 @@ function PackageRow({ pkg, services, servicesById }: PackageRowProps) {
             required
           />
         </label>
+        <label>
+          Preço original (opcional — mostra como promoção com desconto)
+          <input
+            name="compareAtPriceEuros"
+            type="text"
+            inputMode="decimal"
+            defaultValue={
+              pkg.compareAtPriceCents !== null
+                ? (pkg.compareAtPriceCents / 100).toFixed(2).replace('.', ',')
+                : ''
+            }
+            placeholder="Deixe em branco para não promover"
+          />
+        </label>
         <PackageCart services={services} initialServiceIds={pkg.serviceIds} />
         <Button type="submit" disabled={updatePending}>
           Guardar
@@ -68,7 +84,14 @@ function PackageRow({ pkg, services, servicesById }: PackageRowProps) {
           </Button>
         </form>
         <p className="catalog-service-summary">
-          {formatEuros(pkg.priceCents)} · {durationMinutes} min (duração somada dos serviços)
+          {formatEuros(pkg.priceCents)}
+          {discountPercent !== null && pkg.compareAtPriceCents !== null ? (
+            <>
+              {' '}
+              (de {formatEuros(pkg.compareAtPriceCents)}, -{discountPercent}%)
+            </>
+          ) : null}{' '}
+          · {durationMinutes} min (duração somada dos serviços)
         </p>
       </div>
 
@@ -149,6 +172,15 @@ export function PackagesManager({
                 inputMode="decimal"
                 required
                 placeholder="45,00"
+              />
+            </label>
+            <label>
+              Preço original (opcional — mostra como promoção com desconto)
+              <input
+                name="compareAtPriceEuros"
+                type="text"
+                inputMode="decimal"
+                placeholder="Deixe em branco para não promover"
               />
             </label>
             <PackageCart key={cartResetKey} services={services} initialServiceIds={[]} />

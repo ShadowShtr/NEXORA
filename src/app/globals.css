@@ -267,6 +267,35 @@ a:focus-visible {
   padding: 0.4rem 0.9rem;
   font-size: 0.9rem;
 }
+.catalog-service-photo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem;
+  border: 1px dashed var(--pink-100);
+  border-radius: 0.85rem;
+}
+.catalog-service-photo-thumb {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  border: 1.5px solid var(--pink-100);
+}
+.catalog-service-photo-placeholder {
+  background: var(--pink-100);
+}
+.catalog-service-photo-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.catalog-service-photo-form label {
+  font-size: 0.85rem;
+}
 .catalog-package-items {
   border: 1px solid var(--pink-100);
   border-radius: 1rem;
@@ -469,6 +498,63 @@ a:focus-visible {
 .public-service-choice:has(.public-check-input:disabled) {
   cursor: default;
   color: var(--muted);
+}
+
+/* Promotional package card (owner-configured compare-at price, Dashboard → Serviços →
+   Pacotes) — a distinct gradient treatment so a discounted "Pacote Premium" reads as a
+   highlight against the plain white rows around it, not just another list item. */
+.public-package-promo {
+  position: relative;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--pink-500), var(--pink-600) 70%, #9a2b5b);
+  overflow: visible;
+}
+.public-package-promo .public-service-name,
+.public-package-promo .public-service-meta {
+  color: white;
+}
+.public-package-promo .public-service-meta {
+  opacity: 0.85;
+}
+.public-package-promo-badge {
+  position: absolute;
+  top: -0.6rem;
+  right: 0.75rem;
+  background: white;
+  color: var(--pink-600);
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+.public-package-promo-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+.public-package-promo-price-original {
+  text-decoration: line-through;
+  opacity: 0.75;
+  font-size: 0.85rem;
+  color: white;
+}
+.public-package-promo-price-current {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: white;
+}
+.public-package-promo .public-check-input {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.15);
+}
+.public-package-promo .public-check-input:checked {
+  border-color: white;
+  background: white;
+}
+.public-package-promo .public-check-icon {
+  color: var(--pink-600);
 }
 .public-package-fieldset {
   border: 0;

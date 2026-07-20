@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createService, toggleServiceActive, updateService } from '@/features/catalog/actions';
+import { removeServicePhoto, uploadServicePhoto } from '@/features/catalog/photo-actions';
 import type { CategoryListItem } from '@/features/catalog/domain/category';
 import type { ServiceListItem } from '@/features/catalog/domain/service';
 import type { Result } from '@/lib/result';
@@ -30,6 +31,73 @@ function CategorySelect({
         </option>
       ))}
     </select>
+  );
+}
+
+// Menu-style thumbnail shown on the public booking page (/b/[slug]/servicos) — one
+// photo per service, uploading replaces whatever was there before rather than adding to
+// a gallery (docs/01_PRODUCT_REQUIREMENTS.md #10's client-photos portfolio ban does not
+// apply here: this is the service's own catalog photo, meant to be public, same as its
+// name and price).
+function ServicePhotoField({ service }: { service: ServiceListItem }) {
+  const [uploadState, uploadFormAction, uploadPending] = useActionState<
+    Result<null> | null,
+    FormData
+  >(uploadServicePhoto, null);
+  const [removeState, removeFormAction, removePending] = useActionState<
+    Result<null> | null,
+    FormData
+  >(removeServicePhoto, null);
+
+  // Reset the file input after a successful upload — same "remount with a fresh key on
+  // success" pattern as ClientPhotosForm, so the field doesn't keep showing the filename
+  // of a photo that's already been sent.
+  const [formKey, setFormKey] = useState(0);
+  const [lastUploadState, setLastUploadState] = useState(uploadState);
+  if (uploadState !== lastUploadState) {
+    setLastUploadState(uploadState);
+    if (uploadState?.ok) setFormKey((key) => key + 1);
+  }
+
+  const error = [uploadState, removeState].find((state) => state && !state.ok) as
+    { ok: false; error: { message: string } } | undefined;
+
+  return (
+    <div className="catalog-service-photo">
+      {service.photoUrl ? (
+        // Public bucket URL, not an asset next/image needs to sign or refresh.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="catalog-service-photo-thumb" src={service.photoUrl} alt="" />
+      ) : (
+        <div
+          className="catalog-service-photo-thumb catalog-service-photo-placeholder"
+          aria-hidden="true"
+        />
+      )}
+      <form key={formKey} action={uploadFormAction} className="catalog-service-photo-form">
+        <input type="hidden" name="serviceId" value={service.id} />
+        <label>
+          Fotografia
+          <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required />
+        </label>
+        <Button type="submit" variant="secondary" disabled={uploadPending}>
+          {uploadPending ? 'A enviar…' : service.photoUrl ? 'Substituir foto' : 'Adicionar foto'}
+        </Button>
+      </form>
+      {service.photoUrl ? (
+        <form action={removeFormAction}>
+          <input type="hidden" name="serviceId" value={service.id} />
+          <Button type="submit" variant="secondary" disabled={removePending}>
+            {removePending ? 'A remover…' : 'Remover foto'}
+          </Button>
+        </form>
+      ) : null}
+      {error ? (
+        <p role="alert" className="form-error">
+          {error.error.message}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -93,6 +161,8 @@ function ServiceRow({ service, categories }: ServiceRowProps) {
           Guardar
         </Button>
       </form>
+
+      <ServicePhotoField service={service} />
 
       <div className="catalog-row-actions">
         <form action={toggleFormAction}>

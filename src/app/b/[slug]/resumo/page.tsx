@@ -50,9 +50,11 @@ export default async function ResumoPage({ params }: { params: Promise<{ slug: s
       id: pkg.id,
       name: pkg.name,
       priceCents: pkg.price_cents,
+      compareAtPriceCents: null,
       durationMinutes: items.reduce((total, service) => total + service.duration_minutes, 0),
       itemNames: items.map((service) => service.name).join(' + '),
       serviceIds: items.map((service) => service.id),
+      photoUrl: null,
     };
   });
 
@@ -76,6 +78,7 @@ export default async function ResumoPage({ params }: { params: Promise<{ slug: s
         name: service.name,
         priceCents: service.price_cents,
         durationMinutes: service.duration_minutes,
+        photoUrl: null,
       }))}
       packages={packages}
     />
