@@ -3,14 +3,13 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useBookingSession } from '../useBookingSession';
 import {
   cartLines,
   cartTotals,
   dropServicesCoveredByPackage,
-  itemCountLabel,
   type PackageOption,
   type ServiceLine,
 } from '../domain/booking-selection';
@@ -84,7 +83,7 @@ export function ServicosClient({
     servicesById,
     packages,
   );
-  const { totalCents, totalMinutes } = cartTotals(lines);
+  const { totalCents } = cartTotals(lines);
 
   const normalizedSearch = search.trim().toLowerCase();
   const visibleGroups = categoryGroups
@@ -161,6 +160,7 @@ export function ServicosClient({
         {tab === 'servicos' ? (
           <>
             <label className="public-search">
+              <Search className="public-search-icon" size={18} aria-hidden="true" />
               <span className="sr-only">Pesquisar serviços</span>
               <input
                 type="search"
@@ -209,20 +209,32 @@ export function ServicosClient({
                     return (
                       <li key={service.id} className="public-service-item">
                         <label className="public-service-choice">
-                          <input
-                            type="checkbox"
-                            checked={included || selectedServiceIds.has(service.id)}
-                            disabled={included}
-                            onChange={() => toggleService(service.id)}
-                          />
-                          {service.name}
-                          {included ? (
-                            <span className="public-service-included"> · Incluído no pacote</span>
-                          ) : null}
+                          <span className="public-service-photo" aria-hidden="true" />
+                          <span className="public-service-info">
+                            <span className="public-service-name">
+                              {service.name}
+                              {included ? (
+                                <span className="public-service-included">
+                                  {' '}
+                                  · Incluído no pacote
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="public-service-meta">
+                              {service.durationMinutes} min · {formatEuros(service.priceCents)}
+                            </span>
+                          </span>
+                          <span className="public-check-circle">
+                            <input
+                              type="checkbox"
+                              className="public-check-input"
+                              checked={included || selectedServiceIds.has(service.id)}
+                              disabled={included}
+                              onChange={() => toggleService(service.id)}
+                            />
+                            <Check className="public-check-icon" size={14} aria-hidden="true" />
+                          </span>
                         </label>
-                        <span className="public-service-meta">
-                          {service.durationMinutes} min · {formatEuros(service.priceCents)}
-                        </span>
                       </li>
                     );
                   })}
@@ -245,33 +257,43 @@ export function ServicosClient({
             <ul className="public-service-list">
               <li className="public-service-item">
                 <label className="public-service-choice">
-                  <input
-                    type="radio"
-                    name="pacote"
-                    checked={selectedPackageId === null}
-                    onChange={() => selectPackage(null)}
-                  />
-                  Nenhum pacote
+                  <span className="public-service-photo" aria-hidden="true" />
+                  <span className="public-service-info">
+                    <span className="public-service-name">Nenhum pacote</span>
+                  </span>
+                  <span className="public-check-circle">
+                    <input
+                      type="radio"
+                      className="public-check-input"
+                      name="pacote"
+                      checked={selectedPackageId === null}
+                      onChange={() => selectPackage(null)}
+                    />
+                    <span className="public-check-dot" aria-hidden="true" />
+                  </span>
                 </label>
               </li>
               {packages.map((pkg) => (
                 <li key={pkg.id} className="public-service-item">
                   <label className="public-service-choice">
-                    <input
-                      type="radio"
-                      name="pacote"
-                      checked={selectedPackageId === pkg.id}
-                      onChange={() => selectPackage(pkg)}
-                    />
-                    <span className="public-package-name">
-                      {pkg.name}
-                      <br />
-                      <small className="public-service-meta">{pkg.itemNames}</small>
+                    <span className="public-service-photo" aria-hidden="true" />
+                    <span className="public-service-info">
+                      <span className="public-service-name">{pkg.name}</span>
+                      <span className="public-service-meta">
+                        {pkg.itemNames} · {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
+                      </span>
+                    </span>
+                    <span className="public-check-circle">
+                      <input
+                        type="radio"
+                        className="public-check-input"
+                        name="pacote"
+                        checked={selectedPackageId === pkg.id}
+                        onChange={() => selectPackage(pkg)}
+                      />
+                      <span className="public-check-dot" aria-hidden="true" />
                     </span>
                   </label>
-                  <span className="public-service-meta">
-                    {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
-                  </span>
                 </li>
               ))}
             </ul>
@@ -288,8 +310,11 @@ export function ServicosClient({
         </p>
       ) : null}
       <div className="public-cart-bar">
-        <span className="public-cart-bar-summary" role="status">
-          {itemCountLabel(lines.length)} · {totalMinutes} min · {formatEuros(totalCents)}
+        <span className="public-cart-bar-totals" role="status">
+          <span className="public-cart-bar-label">
+            Total {lines.length} {lines.length === 1 ? 'Serviço' : 'Serviços'}
+          </span>
+          <span className="public-cart-bar-price">{formatEuros(totalCents)}</span>
         </span>
         <Button
           type="button"
