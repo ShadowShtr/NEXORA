@@ -369,7 +369,7 @@ a:focus-visible {
   gap: 0.4rem 1rem;
   border: 1.5px solid var(--pink-100);
   border-radius: 1rem;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem;
   transition: border-color 0.15s ease;
 }
 .public-service-item:has(input:checked) {
@@ -391,78 +391,92 @@ a:focus-visible {
 }
 .public-service-choice {
   display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
   font-weight: 600;
   cursor: pointer;
-  flex: 1 1 12rem;
   min-width: 0;
-}
-.public-package-name {
-  min-width: 0;
-  overflow-wrap: break-word;
 }
 .public-service-choice .public-service-meta {
   white-space: normal;
 }
-.public-service-choice input[type='checkbox'],
-.public-service-choice input[type='radio'] {
+.public-service-photo {
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.85rem;
+  background: var(--pink-100);
+  background-size: cover;
+  background-position: center;
+}
+.public-service-info {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.public-service-name {
+  overflow-wrap: break-word;
+}
+.public-service-included {
+  color: var(--pink-600);
+  font-weight: 700;
+}
+.public-check-circle {
+  position: relative;
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.public-check-input {
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
   min-height: auto;
-  width: 1.35rem;
-  height: 1.35rem;
-  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
   border: 2px solid var(--pink-300);
   border-radius: 50%;
   background: white;
-  display: grid;
-  place-items: center;
   cursor: pointer;
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
 }
-.public-service-choice input[type='checkbox']::after,
-.public-service-choice input[type='radio']::after {
-  content: '';
+.public-check-input:checked {
+  border-color: var(--pink-600);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+}
+.public-check-input:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.public-check-icon,
+.public-check-dot {
+  position: absolute;
+  inset: 0;
+  margin: auto;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.1s ease;
 }
-.public-service-choice input[type='radio']::after {
+.public-check-icon {
+  color: white;
+}
+.public-check-dot {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
   background: white;
 }
-.public-service-choice input[type='checkbox']::after {
-  width: 0.7rem;
-  height: 0.4rem;
-  border-left: 2px solid white;
-  border-bottom: 2px solid white;
-  transform: rotate(-45deg) translateY(-0.08rem);
-}
-.public-service-choice input[type='checkbox']:checked,
-.public-service-choice input[type='radio']:checked {
-  border-color: var(--pink-600);
-  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
-}
-.public-service-choice input[type='checkbox']:checked::after,
-.public-service-choice input[type='radio']:checked::after {
+.public-check-input:checked + .public-check-icon,
+.public-check-input:checked + .public-check-dot {
   opacity: 1;
 }
-.public-service-choice:has(input:disabled) {
+.public-service-choice:has(.public-check-input:disabled) {
   cursor: default;
   color: var(--muted);
-}
-.public-service-choice input:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
-.public-service-included {
-  color: var(--pink-600);
-  font-weight: 700;
 }
 .public-package-fieldset {
   border: 0;
@@ -500,9 +514,9 @@ a:focus-visible {
   /* Reserves room so the fixed cart bar never covers the last card's content. Extra
      side padding on top of .shell's own margin — the paginated flow felt cramped
      against the viewport edge without it. */
-  padding-bottom: 5.5rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-bottom: 6.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 .public-booking-content > * + * {
   margin-top: 0.85rem;
@@ -552,9 +566,9 @@ a:focus-visible {
 }
 .public-cart-bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   z-index: 20;
   display: flex;
   align-items: center;
@@ -562,15 +576,30 @@ a:focus-visible {
   gap: 0.75rem 1rem;
   flex-wrap: wrap;
   background: white;
-  border-top: 2px solid var(--pink-300);
-  box-shadow: 0 -0.5rem 1.5rem rgba(0, 0, 0, 0.08);
-  padding: 0.75rem 1rem;
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 30px rgba(154, 43, 91, 0.2);
+  padding: 0.85rem 1rem;
 }
 .public-cart-bar-summary {
   font-weight: 800;
   min-width: 0;
   overflow-wrap: break-word;
+}
+.public-cart-bar-totals {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.public-cart-bar-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.public-cart-bar-price {
+  font-size: 1.2rem;
+  font-weight: 800;
 }
 .public-slot-picker {
   display: grid;
@@ -1249,7 +1278,7 @@ select {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   z-index: 21;
   margin: 0 1rem;
   padding: 0.6rem 0.9rem;
@@ -1348,8 +1377,18 @@ a.public-info-row {
 }
 .public-search {
   display: block;
+  position: relative;
   margin: 0.75rem 0;
+}
+.public-search-icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
 }
 .public-search input {
   width: 100%;
+  padding-left: 2.7rem;
 }
