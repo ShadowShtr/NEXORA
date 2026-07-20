@@ -407,14 +407,58 @@ a:focus-visible {
 }
 .public-service-choice input[type='checkbox'],
 .public-service-choice input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
   min-height: auto;
   width: 1.35rem;
   height: 1.35rem;
-  accent-color: var(--pink-500);
+  flex-shrink: 0;
+  border: 2px solid var(--pink-300);
+  border-radius: 50%;
+  background: white;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.public-service-choice input[type='checkbox']::after,
+.public-service-choice input[type='radio']::after {
+  content: '';
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.public-service-choice input[type='radio']::after {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: white;
+}
+.public-service-choice input[type='checkbox']::after {
+  width: 0.7rem;
+  height: 0.4rem;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translateY(-0.08rem);
+}
+.public-service-choice input[type='checkbox']:checked,
+.public-service-choice input[type='radio']:checked {
+  border-color: var(--pink-600);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+}
+.public-service-choice input[type='checkbox']:checked::after,
+.public-service-choice input[type='radio']:checked::after {
+  opacity: 1;
 }
 .public-service-choice:has(input:disabled) {
   cursor: default;
   color: var(--muted);
+}
+.public-service-choice input:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 .public-service-included {
   color: var(--pink-600);

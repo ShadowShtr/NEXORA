@@ -18,20 +18,20 @@ export default async function DefinicoesPage() {
 
   return (
     <div className="shell">
-      <p className="eyebrow">Definições</p>
-      <h1>Definições</h1>
+      <p className="text-eyebrow">Definições</p>
+      <h1 className="text-title">Definições</h1>
       <Card>
-        <p>Esta área fica disponível numa próxima atualização.</p>
+        <p className="text-support">Esta área fica disponível numa próxima atualização.</p>
       </Card>
       <Card>
-        <p className="public-step-label">Política de faltas</p>
+        <p className="text-eyebrow">Política de faltas</p>
         <NoShowPolicyForm
           noShowLimit={settings?.no_show_limit ?? null}
           noShowWindowDays={settings?.no_show_window_days ?? 90}
         />
       </Card>
       <Card>
-        <p className="public-step-label">Mensagem do lembrete</p>
+        <p className="text-eyebrow">Mensagem do lembrete</p>
         <ReminderTemplateForm template={settings?.reminder_message_template ?? null} />
       </Card>
     </div>

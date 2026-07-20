@@ -41,7 +41,7 @@ export function NoShowPolicyForm({
           <option value="180">Últimos 180 dias</option>
         </select>
       </label>
-      <p className="public-service-meta">
+      <p className="text-support">
         Quando o limite é atingido, a ficha da cliente mostra um aviso. Nenhuma marcação é bloqueada
         automaticamente — a decisão é sempre sua.
       </p>

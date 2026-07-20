@@ -143,8 +143,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="shell">
-      <p className="eyebrow">Clientes</p>
-      <h1>{client.name}</h1>
+      <p className="text-eyebrow">Clientes</p>
+      <h1 className="text-title">{client.name}</h1>
 
       {noShowLimitExceeded ? (
         <Card className="form-error">
@@ -156,13 +156,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       ) : null}
 
       <Card>
-        <p className="public-step-label">Contacto</p>
+        <p className="text-eyebrow">Contacto</p>
         <p>{client.phone_e164}</p>
         {client.email ? <p>{client.email}</p> : null}
       </Card>
 
       <Card>
-        <p className="public-step-label">Resumo</p>
+        <p className="text-eyebrow">Resumo</p>
         <p>Primeira marcação: {firstAppointment ? formatDate(firstAppointment.start_at) : '—'}</p>
         <p>Última marcação: {lastCompleted ? formatDate(lastCompleted.start_at) : '—'}</p>
         <p>
@@ -185,19 +185,19 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       </Card>
 
       <Card>
-        <p className="public-step-label">Preferências</p>
+        <p className="text-eyebrow">Preferências</p>
         <ClientPreferencesForm clientId={client.id} preferences={preferences} />
       </Card>
 
       <Card>
-        <p className="public-step-label">Observações privadas</p>
+        <p className="text-eyebrow">Observações privadas</p>
         <ClientPrivateNotesForm clientId={client.id} privateNotes={client.private_notes ?? ''} />
       </Card>
 
       <Card>
-        <p className="public-step-label">Histórico</p>
+        <p className="text-eyebrow">Histórico</p>
         {allAppointments.length === 0 ? (
-          <p>Sem marcações ainda.</p>
+          <p className="text-support">Sem marcações ainda.</p>
         ) : (
           <ul className="appointment-card-list">
             {allAppointments.map((appointment) => (

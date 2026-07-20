@@ -69,12 +69,12 @@ export default async function LembretesPage({
 
   return (
     <div className="shell">
-      <p className="eyebrow">Lembretes</p>
-      <h1>Lembretes</h1>
+      <p className="text-eyebrow">Lembretes</p>
+      <h1 className="text-title">Lembretes</h1>
 
       {reminders.length === 0 ? (
         <Card>
-          <p>Sem lembretes pendentes.</p>
+          <p className="text-support">Sem lembretes pendentes.</p>
         </Card>
       ) : (
         <>
