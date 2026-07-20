@@ -119,12 +119,7 @@ export function ResumoClient({
 
     if (!result.ok) {
       if (result.error.code === 'SLOT_TAKEN') {
-        try {
-          await persist({ ...state, selectedSlotIso: null });
-        } catch {
-          // Best-effort: even if clearing the stale slot in the draft fails, still send
-          // the visitor back to pick a new one rather than leaving them stuck here.
-        }
+        persist({ ...state, selectedSlotIso: null });
         router.push(`/b/${tenantSlug}/horario?slotTaken=1`);
         return;
       }
