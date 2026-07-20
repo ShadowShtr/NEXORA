@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
-import { pt } from 'date-fns/locale/pt';
 import { Card } from '@/components/ui/Card';
 import { getPublicAvailability } from './availability-actions';
 import { groupSlotsByDay } from './domain/slot-formatting';
@@ -13,10 +12,14 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ready'; slotsIso: string[] };
 
-const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-function capitalize(label: string): string {
-  return label.length === 0 ? label : label[0]!.toUpperCase() + label.slice(1);
+// dateKey is always "yyyy-MM-dd" built from UTC year/month/day components (see
+// buildCalendarMonth) — reading it back with Date.UTC keeps day-of-week derivation
+// consistent with how the grid itself was built, no timezone library needed for this.
+function weekdayLabel(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number) as [number, number, number];
+  return WEEKDAY_SHORT[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]!;
 }
 
 // A month calendar (pick a day) feeding a time-of-day list (pick a slot), the shape
@@ -44,6 +47,7 @@ export function SlotPicker({
   const [todayKey] = useState(() => formatInTimeZone(Date.now(), timezone, 'yyyy-MM-dd'));
   const [monthKey, setMonthKey] = useState(todayKey.slice(0, 7));
   const [pickedDateKey, setPickedDateKey] = useState<string | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +93,15 @@ export function SlotPicker({
       ? pickedDateKey
       : (groups[0]?.dateKey ?? null);
 
+  // The strip only shows one screen's worth of days at a time — without this, landing
+  // on a month where the selected/default day is the 18th would leave it scrolled out of
+  // view to the right, with no visual hint it's even there.
+  useEffect(() => {
+    if (!selectedDateKey || !stripRef.current) return;
+    const el = stripRef.current.querySelector<HTMLElement>(`[data-date-key="${selectedDateKey}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [selectedDateKey, monthKey]);
+
   if (state.status === 'loading') {
     return (
       <Card className="public-slot-picker">
@@ -121,8 +134,6 @@ export function SlotPicker({
 
   return (
     <Card className="public-slot-picker">
-      <p className="public-step-label">Selecione a data e horário</p>
-
       <div className="calendar">
         <div className="calendar-header">
           <button
@@ -144,44 +155,36 @@ export function SlotPicker({
           </button>
         </div>
 
-        <div className="calendar-grid calendar-weekdays" aria-hidden="true">
-          {WEEKDAY_LABELS.map((label, index) => (
-            <span key={index}>{label}</span>
-          ))}
-        </div>
-
-        <div className="calendar-grid" role="grid">
-          {month.days.map((day) => {
-            const disabled = day.isPast || !day.hasSlots;
-            return (
-              <button
-                key={day.dateKey}
-                type="button"
-                role="gridcell"
-                className="calendar-day"
-                data-in-month={day.inCurrentMonth}
-                data-has-slots={day.hasSlots}
-                aria-selected={selectedDateKey === day.dateKey}
-                aria-label={day.dateKey}
-                disabled={disabled}
-                onClick={() => setPickedDateKey(day.dateKey)}
-              >
-                {day.dayOfMonth}
-              </button>
-            );
-          })}
+        <div className="calendar-strip" role="grid" ref={stripRef}>
+          {month.days
+            .filter((day) => day.inCurrentMonth)
+            .map((day) => {
+              const disabled = day.isPast || !day.hasSlots;
+              const selected = selectedDateKey === day.dateKey;
+              return (
+                <button
+                  key={day.dateKey}
+                  type="button"
+                  role="gridcell"
+                  className="calendar-day"
+                  data-date-key={day.dateKey}
+                  data-has-slots={day.hasSlots}
+                  aria-selected={selected}
+                  aria-label={day.dateKey}
+                  disabled={disabled}
+                  onClick={() => setPickedDateKey(day.dateKey)}
+                >
+                  <span className="calendar-day-weekday">{weekdayLabel(day.dateKey)}</span>
+                  <span className="calendar-day-number">{day.dayOfMonth}</span>
+                </button>
+              );
+            })}
         </div>
       </div>
 
       {selectedGroup ? (
         <div className="calendar-times">
-          <p className="calendar-times-label">
-            {capitalize(
-              formatInTimeZone(selectedGroup.slots[0]!.iso, timezone, "EEEE, dd 'de' MMMM", {
-                locale: pt,
-              }),
-            )}
-          </p>
+          <p className="calendar-times-label">Horários disponíveis</p>
           <ul className="public-slot-list">
             {selectedGroup.slots.map((slot) => (
               <li key={slot.iso}>

@@ -581,12 +581,12 @@ a:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
 }
 .public-slot-button {
   width: 100%;
-  min-height: 44px;
+  min-height: 52px;
   border: 1.5px solid var(--pink-100);
   border-radius: 0.85rem;
   background: white;
@@ -603,14 +603,15 @@ a:focus-visible {
   border-color: var(--pink-300);
 }
 .public-slot-button[aria-pressed='true'] {
-  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
-  border-color: var(--pink-600);
-  color: white;
+  background: var(--pink-100);
+  border-color: var(--pink-500);
+  color: var(--pink-600);
 }
 
-/* Calendar (SlotPicker): a Sunday-first month grid feeding a time-of-day list, styled
-   restrained and rounded rather than heavily bordered/boxed — days without computed
-   availability read as quietly disabled instead of drawing extra attention. */
+/* Calendar (SlotPicker): a horizontal, scrollable day strip feeding a time-of-day list
+   — a week at a glance rather than a full month grid, so the visitor scans one row
+   instead of a dense 5-6 row block. Days without computed availability are shown but
+   disabled rather than hidden, same reasoning as before this redesign. */
 .calendar {
   display: grid;
   gap: 1rem;
@@ -641,48 +642,55 @@ a:focus-visible {
 .calendar-nav:hover {
   border-color: var(--pink-300);
 }
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.25rem;
+.calendar-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 0.15rem;
+  margin: -0.15rem;
 }
-.calendar-weekdays {
-  text-align: center;
-  font-size: 0.75rem;
+.calendar-day {
+  scroll-snap-align: center;
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  padding: 0.15rem 0.1rem;
+}
+.calendar-day-weekday {
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.calendar-day {
-  aspect-ratio: 1;
-  min-height: 2.25rem;
-  border: none;
+.calendar-day-number {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
   border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
+  font-weight: 700;
 }
-.calendar-day[data-in-month='false'] {
-  color: var(--muted);
-  opacity: 0.45;
-}
-.calendar-day[data-has-slots='true']:not([data-in-month='false']) {
+.calendar-day[data-has-slots='true'] .calendar-day-number {
   font-weight: 800;
 }
 .calendar-day:disabled {
   cursor: default;
-  opacity: 0.3;
+  opacity: 0.35;
 }
-.calendar-day:not(:disabled):hover {
+.calendar-day:not(:disabled):hover .calendar-day-number {
   background: var(--pink-100);
 }
-.calendar-day[aria-pressed='true'] {
+.calendar-day[aria-selected='true'] .calendar-day-number {
   background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: white;
-  opacity: 1;
 }
 .calendar-times {
   display: grid;
