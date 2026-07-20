@@ -67,23 +67,42 @@ export default async function PublicBusinessPage({
         <p className="text-eyebrow">{tenant.name}</p>
         <h1 className="text-title">{settings.professional_name}</h1>
         <div className="public-info-rows">
-          <p className="public-info-row">
-            <User size={16} aria-hidden="true" />
-            {settings.professional_name}
-          </p>
-          <p className="public-info-row">
-            <MapPin size={16} aria-hidden="true" />
-            {settings.address_line}, {settings.postal_code} {settings.locality}
-          </p>
+          <div className="public-info-row">
+            <span className="public-info-icon" aria-hidden="true">
+              <User size={16} />
+            </span>
+            <span className="public-info-primary">{settings.professional_name}</span>
+          </div>
+          <div className="public-info-row">
+            <span className="public-info-icon" aria-hidden="true">
+              <MapPin size={16} />
+            </span>
+            <span>
+              <span className="public-info-primary">{settings.address_line}</span>
+              <span className="public-info-secondary">
+                {settings.postal_code} {settings.locality}
+              </span>
+            </span>
+          </div>
           {settings.phone_e164 ? (
-            <p className="public-info-row">
-              <Phone size={16} aria-hidden="true" />
-              {settings.phone_e164}
-            </p>
+            <div className="public-info-row">
+              <span className="public-info-icon" aria-hidden="true">
+                <Phone size={16} />
+              </span>
+              <span className="public-info-primary">{settings.phone_e164}</span>
+            </div>
           ) : null}
           {locationUrl ? (
-            <a href={locationUrl} target="_blank" rel="noreferrer" className="public-info-row">
-              Ver no mapa
+            <a
+              href={locationUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="public-info-row public-info-row-link"
+            >
+              <span className="public-info-icon" aria-hidden="true">
+                <MapPin size={16} />
+              </span>
+              <span className="public-info-primary">Ver no mapa</span>
             </a>
           ) : null}
         </div>
