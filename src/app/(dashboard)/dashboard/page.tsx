@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
-import { CalendarPlus, Share2 } from 'lucide-react';
+import { Bell, CalendarPlus, Share2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
@@ -35,6 +35,15 @@ function minutesUntilLabel(startAtMs: number, nowMs: number): string {
   return `Em ${Math.round(minutes / 60)} h`;
 }
 
+function dueDateLabel(dueAtMs: number, nowMs: number, timezone: string): string {
+  const dueKey = formatInTimeZone(dueAtMs, timezone, 'yyyy-MM-dd');
+  const todayKey = formatInTimeZone(nowMs, timezone, 'yyyy-MM-dd');
+  const tomorrowKey = formatInTimeZone(nowMs + 24 * 60 * 60_000, timezone, 'yyyy-MM-dd');
+  if (dueKey === todayKey) return 'Hoje';
+  if (dueKey === tomorrowKey) return 'Amanhã';
+  return formatInTimeZone(dueAtMs, timezone, 'dd MMM', { locale: pt });
+}
+
 // Data loading (including the Date.now() read) lives outside the component body: the
 // React Compiler purity rule forbids impure calls directly in render, since a component
 // must be safely re-callable. This is a plain async function the Server Component
@@ -65,6 +74,7 @@ async function loadDashboardData(tenantId: string) {
     { data: appointmentRows },
     { count: pendingRemindersCount },
     { data: paymentRows },
+    { data: upcomingReminderRows },
   ] = await Promise.all([
     supabase.from('profiles').select('display_name').eq('tenant_id', tenantId).maybeSingle(),
     supabase.from('tenants').select('slug').eq('id', tenantId).single(),
@@ -89,6 +99,13 @@ async function loadDashboardData(tenantId: string) {
       .eq('status', 'paid')
       .gte('paid_at', dayStartIso)
       .lt('paid_at', dayEndIso),
+    supabase
+      .from('reminders')
+      .select('id, due_at, appointments(start_at, clients(name))')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'pending')
+      .order('due_at')
+      .limit(3),
   ]);
 
   const appointmentsToday: AppointmentSummary[] = (appointmentRows ?? []).map((row) => {
@@ -129,12 +146,27 @@ async function loadDashboardData(tenantId: string) {
     nowMs,
   );
 
+  const upcomingReminders = (upcomingReminderRows ?? []).map((row) => {
+    const appointment = Array.isArray(row.appointments) ? row.appointments[0] : row.appointments;
+    const client = appointment
+      ? Array.isArray(appointment.clients)
+        ? appointment.clients[0]
+        : appointment.clients
+      : null;
+    return {
+      id: row.id,
+      clientName: client?.name ?? 'Cliente',
+      dueAtMs: new Date(row.due_at).getTime(),
+    };
+  });
+
   return {
     summary,
     timezone,
     nowMs,
     ownerName: profileRow?.display_name ?? '',
     tenantSlug: tenantRow?.slug ?? '',
+    upcomingReminders,
   };
 }
 
@@ -193,22 +225,39 @@ function NextClientCard({
 // (cookie-scoped, RLS-enforced) is the same client every other authenticated dashboard
 // page already uses, so there is no new authorization surface here.
 //
-// Visual refinement mid-2026: reference brought a "Lembretes" section (produto a
-// acabar, aniversário da cliente, formação) — none of that has a real data source in
-// this schema (no inventory/stock table, no client birthday field, no CPD/training
-// tracking), so it isn't built here rather than shown with invented numbers. Same
+// Visual refinement mid-2026: reference's "Lembretes" section showed stock/birthday/
+// training examples with no real data source in this schema (no inventory table, no
+// client birthday field, no CPD/training tracking) — shown here instead with the one
+// real reminder concept this schema has, appointment reminders (NEX-101). Same
 // reasoning trimmed "Atalhos rápidos" to the two shortcuts that lead somewhere real
 // today (nova marcação, link da página) instead of the reference's four — "novo
 // cliente" and "venda rápida" have no dedicated flow yet.
 export default async function DashboardPage() {
   const { tenantId } = await requireProfile();
-  const { summary, timezone, nowMs, ownerName, tenantSlug } = await loadDashboardData(tenantId);
+  const { summary, timezone, nowMs, ownerName, tenantSlug, upcomingReminders } =
+    await loadDashboardData(tenantId);
   const publicUrl = tenantSlug ? publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantSlug) : null;
 
   return (
     <div className="shell">
       <header className="dashboard-greeting">
-        <h1 className="text-title">Olá{ownerName ? `, ${firstName(ownerName)}` : ''}! 👋</h1>
+        <div className="dashboard-greeting-row">
+          <h1 className="text-title">Olá{ownerName ? `, ${firstName(ownerName)}` : ''}! 👋</h1>
+          <Link
+            href="/dashboard/lembretes"
+            className="dashboard-bell"
+            aria-label={
+              summary.pendingRemindersCount > 0
+                ? `Lembretes (${summary.pendingRemindersCount} pendentes)`
+                : 'Lembretes'
+            }
+          >
+            <Bell aria-hidden="true" size={20} />
+            {summary.pendingRemindersCount > 0 ? (
+              <span className="dashboard-bell-badge" aria-hidden="true" />
+            ) : null}
+          </Link>
+        </div>
         <p className="text-support">
           {capitalize(formatInTimeZone(nowMs, timezone, "EEEE, dd 'de' MMMM", { locale: pt }))}
         </p>
@@ -231,6 +280,29 @@ export default async function DashboardPage() {
           <span className="text-meta">Pendente</span>
         </div>
       </div>
+
+      {upcomingReminders.length > 0 ? (
+        <>
+          <p className="text-eyebrow dashboard-section-title">Lembretes</p>
+          <div className="card dashboard-reminders">
+            <ul>
+              {upcomingReminders.map((reminder) => (
+                <li key={reminder.id} className="dashboard-reminder-row">
+                  <span className="dashboard-reminder-icon" aria-hidden="true">
+                    <Bell size={16} />
+                  </span>
+                  <span className="dashboard-reminder-text">
+                    Enviar lembrete a {reminder.clientName}
+                  </span>
+                  <span className="dashboard-reminder-badge">
+                    {dueDateLabel(reminder.dueAtMs, nowMs, timezone)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      ) : null}
 
       <p className="text-eyebrow dashboard-section-title">Atalhos rápidos</p>
       <div className="dashboard-shortcuts">
