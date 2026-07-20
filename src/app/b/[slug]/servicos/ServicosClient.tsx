@@ -43,6 +43,9 @@ export function ServicosClient({
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 
   if (ready && !hydrated) {
     setHydrated(true);
@@ -83,14 +86,40 @@ export function ServicosClient({
   );
   const { totalCents, totalMinutes } = cartTotals(lines);
 
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleGroups = categoryGroups
+    .filter((group) => !activeCategoryId || group.id === activeCategoryId)
+    .map((group) => ({
+      ...group,
+      services: normalizedSearch
+        ? group.services.filter((service) => service.name.toLowerCase().includes(normalizedSearch))
+        : group.services,
+    }))
+    .filter((group) => group.services.length > 0);
+
+  // A rejected persist() (e.g. a transient server error) must never leave "Continuar"
+  // stuck mid-click forever with no feedback — the draft is how the next page finds out
+  // what was selected, not just a nice-to-have, so a failed save has to be visible and
+  // retryable rather than silently swallowed or navigated past with stale state.
   async function handleContinue() {
     setPending(true);
-    await persist({
-      ...state,
-      selectedPackageId,
-      selectedServiceIds: Array.from(selectedServiceIds),
-    });
-    router.push(`/b/${tenantSlug}/horario`);
+    setContinueError(null);
+    try {
+      const result = await persist({
+        ...state,
+        selectedPackageId,
+        selectedServiceIds: Array.from(selectedServiceIds),
+      });
+      if (!result.ok) {
+        setContinueError(result.error.message);
+        setPending(false);
+        return;
+      }
+      router.push(`/b/${tenantSlug}/horario`);
+    } catch {
+      setContinueError('Não foi possível continuar. Tente novamente.');
+      setPending(false);
+    }
   }
 
   return (
@@ -131,7 +160,47 @@ export function ServicosClient({
 
         {tab === 'servicos' ? (
           <>
-            {categoryGroups.map((group) => (
+            <label className="public-search">
+              <span className="sr-only">Pesquisar serviços</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Pesquisar serviços"
+              />
+            </label>
+
+            {categoryGroups.length > 1 ? (
+              <div
+                role="tablist"
+                aria-label="Filtrar por categoria"
+                className="nx-tabs nx-tabs-pill public-tabs"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  className="nx-tab"
+                  aria-selected={activeCategoryId === null}
+                  onClick={() => setActiveCategoryId(null)}
+                >
+                  Todos
+                </button>
+                {categoryGroups.map((group) => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    role="tab"
+                    className="nx-tab"
+                    aria-selected={activeCategoryId === group.id}
+                    onClick={() => setActiveCategoryId(group.id)}
+                  >
+                    {group.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {visibleGroups.map((group) => (
               <div key={group.id} className="card">
                 <h2 className="text-subtitle">{group.name}</h2>
                 <ul className="public-service-list">
@@ -163,6 +232,11 @@ export function ServicosClient({
             {categoryGroups.length === 0 ? (
               <div className="card">
                 <p className="text-support">Ainda não há serviços disponíveis.</p>
+              </div>
+            ) : null}
+            {categoryGroups.length > 0 && visibleGroups.length === 0 ? (
+              <div className="card">
+                <p className="text-support">Nenhum serviço encontrado.</p>
               </div>
             ) : null}
           </>
@@ -208,6 +282,11 @@ export function ServicosClient({
         )}
       </div>
 
+      {continueError ? (
+        <p role="alert" className="form-error public-continue-error">
+          {continueError}
+        </p>
+      ) : null}
       <div className="public-cart-bar">
         <span className="public-cart-bar-summary" role="status">
           {itemCountLabel(lines.length)} · {totalMinutes} min · {formatEuros(totalCents)}

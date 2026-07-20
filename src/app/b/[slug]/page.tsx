@@ -1,8 +1,15 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { MapPin, Phone, User } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { createClient } from '@/lib/supabase/server';
 import { resolveLocationUrl } from '@/lib/open-location';
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  return (parts[0]![0] + (parts[1]?.[0] ?? '')).toUpperCase();
+}
 
 function whatsappLink(phoneE164: string, businessName: string) {
   const digits = phoneE164.replace('+', '');
@@ -46,13 +53,40 @@ export default async function PublicBusinessPage({
   });
 
   return (
-    <main className="shell stack">
+    <main className="shell stack public-landing">
+      {/* No cover-photo upload exists yet (out of scope of this pass) — a brand-toned
+          gradient banner stands in for it, matching the reference's proportions
+          (docs/UI_SCREEN_SPECIFICATIONS.md #03) without pretending there's a real photo. */}
+      <div className="public-cover">
+        <div className="public-cover-avatar" aria-hidden="true">
+          {initials(settings.professional_name || tenant.name)}
+        </div>
+      </div>
+
       <Card className="public-header">
         <p className="text-eyebrow">{tenant.name}</p>
         <h1 className="text-title">{settings.professional_name}</h1>
-        <p className="text-support public-address">
-          {settings.address_line}, {settings.postal_code} {settings.locality}
-        </p>
+        <div className="public-info-rows">
+          <p className="public-info-row">
+            <User size={16} aria-hidden="true" />
+            {settings.professional_name}
+          </p>
+          <p className="public-info-row">
+            <MapPin size={16} aria-hidden="true" />
+            {settings.address_line}, {settings.postal_code} {settings.locality}
+          </p>
+          {settings.phone_e164 ? (
+            <p className="public-info-row">
+              <Phone size={16} aria-hidden="true" />
+              {settings.phone_e164}
+            </p>
+          ) : null}
+          {locationUrl ? (
+            <a href={locationUrl} target="_blank" rel="noreferrer" className="public-info-row">
+              Ver no mapa
+            </a>
+          ) : null}
+        </div>
       </Card>
 
       {/* Visual refinement mid-2026: entry point into the multi-page flow
