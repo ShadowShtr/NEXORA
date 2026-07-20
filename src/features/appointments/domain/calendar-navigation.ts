@@ -96,7 +96,7 @@ export function formatRangeLabel(
   const anchor = (key: string) => fromZonedTime(`${key}T12:00:00`, timezone);
 
   if (view === 'day') {
-    return formatInTimeZone(anchor(first), timezone, "dd 'de' MMMM 'de' yyyy", { locale: pt });
+    return formatInTimeZone(anchor(first), timezone, "dd 'de' MMMM, EEEE", { locale: pt });
   }
   if (view === 'week') {
     return `${formatInTimeZone(anchor(first), timezone, 'dd/MM')} – ${formatInTimeZone(anchor(last), timezone, 'dd/MM')}`;

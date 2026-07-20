@@ -99,9 +99,9 @@ describe('shiftCalendarDate', () => {
 });
 
 describe('formatRangeLabel', () => {
-  it('formats a day label in pt-PT', () => {
+  it('formats a day label in pt-PT with the weekday', () => {
     const range = resolveCalendarRange('day', '2026-06-15', TZ);
-    expect(formatRangeLabel('day', range.dateKeys, TZ)).toBe('15 de junho de 2026');
+    expect(formatRangeLabel('day', range.dateKeys, TZ)).toBe('15 de junho, segunda-feira');
   });
 
   it('formats a week label as a dd/MM range', () => {
