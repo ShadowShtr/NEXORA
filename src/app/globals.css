@@ -1171,3 +1171,62 @@ select {
   cursor: pointer;
   font: inherit;
 }
+
+/* Fluxo público paginado (visual refinement mid-2026) — cabeçalho de passo (seta voltar
+   + título) e tabs em pílula (Serviços/Pacotes). Nomes .nx- reservados para quando o
+   design system pixel-perfect (feature/visual-redesign) chegar a esta área; por agora
+   só o mínimo necessário para separar os passos em páginas. */
+.public-step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.public-step-header h1 {
+  margin: 0;
+}
+.nx-icon-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--pink-100);
+  background: white;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.nx-icon-button svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+}
+.nx-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+.nx-tab {
+  flex-shrink: 0;
+  border: 1px solid var(--pink-100);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 44px;
+}
+.nx-tab[aria-selected='true'] {
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  border-color: var(--pink-600);
+  color: white;
+}
+.nx-tab:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.public-tabs {
+  margin: 0.75rem 0;
+}

@@ -1,0 +1,225 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { useBookingSession } from '../useBookingSession';
+import {
+  cartLines,
+  cartTotals,
+  dropServicesCoveredByPackage,
+  itemCountLabel,
+  type PackageOption,
+  type ServiceLine,
+} from '../domain/booking-selection';
+
+type CategoryGroup = { id: string; name: string; services: ServiceLine[] };
+
+function formatEuros(cents: number) {
+  return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
+}
+
+// Visual refinement mid-2026: step 1 of the paginated public flow
+// (docs/UI_SCREEN_SPECIFICATIONS.md #04/#05) — services and packages are two tabs of the
+// same step, not two separate pages, since a visitor commonly checks both before
+// deciding; "Continuar" is the one action that actually advances.
+export function ServicosClient({
+  tenantId,
+  tenantSlug,
+  categoryGroups,
+  packages,
+}: {
+  tenantId: string;
+  tenantSlug: string;
+  categoryGroups: CategoryGroup[];
+  packages: PackageOption[];
+}) {
+  const router = useRouter();
+  const { state, ready, persist } = useBookingSession(tenantId, tenantSlug);
+  const [tab, setTab] = useState<'servicos' | 'pacotes'>('servicos');
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
+  const [hydrated, setHydrated] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  if (ready && !hydrated) {
+    setHydrated(true);
+    setSelectedPackageId(state.selectedPackageId);
+    setSelectedServiceIds(new Set(state.selectedServiceIds));
+  }
+
+  const servicesById = useMemo(() => {
+    const map = new Map<string, ServiceLine>();
+    for (const group of categoryGroups) {
+      for (const service of group.services) map.set(service.id, service);
+    }
+    return map;
+  }, [categoryGroups]);
+
+  const selectedPackage = packages.find((pkg) => pkg.id === selectedPackageId) ?? null;
+  const coveredByPackage = new Set(selectedPackage?.serviceIds ?? []);
+
+  function toggleService(id: string) {
+    if (coveredByPackage.has(id)) return;
+    setSelectedServiceIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectPackage(pkg: PackageOption | null) {
+    setSelectedPackageId(pkg?.id ?? null);
+    setSelectedServiceIds((current) => new Set(dropServicesCoveredByPackage([...current], pkg)));
+  }
+
+  const lines = cartLines(
+    { selectedPackageId, selectedServiceIds: Array.from(selectedServiceIds) },
+    servicesById,
+    packages,
+  );
+  const { totalCents, totalMinutes } = cartTotals(lines);
+
+  async function handleContinue() {
+    setPending(true);
+    await persist({
+      ...state,
+      selectedPackageId,
+      selectedServiceIds: Array.from(selectedServiceIds),
+    });
+    router.push(`/b/${tenantSlug}/horario`);
+  }
+
+  return (
+    <>
+      <div className="public-booking-content">
+        <header className="public-step-header">
+          <Link href={`/b/${tenantSlug}`} className="nx-icon-button" aria-label="Voltar">
+            <ArrowLeft aria-hidden="true" />
+          </Link>
+          <h1 className="text-title">{tab === 'servicos' ? 'Serviços' : 'Pacotes'}</h1>
+        </header>
+
+        <div
+          role="tablist"
+          aria-label="Serviços ou pacotes"
+          className="nx-tabs nx-tabs-pill public-tabs"
+        >
+          <button
+            type="button"
+            role="tab"
+            className="nx-tab"
+            aria-selected={tab === 'servicos'}
+            onClick={() => setTab('servicos')}
+          >
+            Serviços
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className="nx-tab"
+            aria-selected={tab === 'pacotes'}
+            onClick={() => setTab('pacotes')}
+            disabled={packages.length === 0}
+          >
+            Pacotes
+          </button>
+        </div>
+
+        {tab === 'servicos' ? (
+          <>
+            {categoryGroups.map((group) => (
+              <div key={group.id} className="card">
+                <h2 className="text-subtitle">{group.name}</h2>
+                <ul className="public-service-list">
+                  {group.services.map((service) => {
+                    const included = coveredByPackage.has(service.id);
+                    return (
+                      <li key={service.id} className="public-service-item">
+                        <label className="public-service-choice">
+                          <input
+                            type="checkbox"
+                            checked={included || selectedServiceIds.has(service.id)}
+                            disabled={included}
+                            onChange={() => toggleService(service.id)}
+                          />
+                          {service.name}
+                          {included ? (
+                            <span className="public-service-included"> · Incluído no pacote</span>
+                          ) : null}
+                        </label>
+                        <span className="public-service-meta">
+                          {service.durationMinutes} min · {formatEuros(service.priceCents)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+            {categoryGroups.length === 0 ? (
+              <div className="card">
+                <p className="text-support">Ainda não há serviços disponíveis.</p>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="card">
+            <ul className="public-service-list">
+              <li className="public-service-item">
+                <label className="public-service-choice">
+                  <input
+                    type="radio"
+                    name="pacote"
+                    checked={selectedPackageId === null}
+                    onChange={() => selectPackage(null)}
+                  />
+                  Nenhum pacote
+                </label>
+              </li>
+              {packages.map((pkg) => (
+                <li key={pkg.id} className="public-service-item">
+                  <label className="public-service-choice">
+                    <input
+                      type="radio"
+                      name="pacote"
+                      checked={selectedPackageId === pkg.id}
+                      onChange={() => selectPackage(pkg)}
+                    />
+                    <span className="public-package-name">
+                      {pkg.name}
+                      <br />
+                      <small className="public-service-meta">{pkg.itemNames}</small>
+                    </span>
+                  </label>
+                  <span className="public-service-meta">
+                    {pkg.durationMinutes} min · {formatEuros(pkg.priceCents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {packages.length === 0 ? (
+              <p className="text-support">Sem pacotes disponíveis.</p>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      <div className="public-cart-bar">
+        <span className="public-cart-bar-summary" role="status">
+          {itemCountLabel(lines.length)} · {totalMinutes} min · {formatEuros(totalCents)}
+        </span>
+        <Button
+          type="button"
+          disabled={lines.length === 0 || pending}
+          onClick={() => void handleContinue()}
+        >
+          {pending ? 'A continuar…' : 'Continuar'}
+        </Button>
+      </div>
+    </>
+  );
+}

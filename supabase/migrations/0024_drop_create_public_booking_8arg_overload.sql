@@ -1,0 +1,11 @@
+-- 0023 added p_client_observation as a new trailing parameter to create_public_booking
+-- via `create or replace function`. That does NOT replace a function whose parameter
+-- list differs — Postgres treats a different parameter list (even one that's a strict
+-- superset with a default on the new param) as a distinct overload, so 0023 actually
+-- *added* a second, 9-argument create_public_booking alongside the original 8-argument
+-- one instead of replacing it. PostgREST then can't disambiguate an RPC call between the
+-- two: "Could not choose the best candidate function... Try renaming the parameters or
+-- the function itself" (PGRST203). Confirmed live — create_public_booking is broken
+-- again right now because of this. Drop the old 8-argument overload explicitly so only
+-- the 9-argument (with p_client_observation) version remains.
+drop function if exists public.create_public_booking(uuid, text, text, text, uuid[], uuid, timestamptz, text);
