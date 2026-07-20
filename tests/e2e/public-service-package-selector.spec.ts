@@ -6,7 +6,6 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
 
 // Seeds two individual services (Verniz gel, Massagem) and one package that only
 // covers Verniz gel — Massagem stays a genuine "extra" the client can add on top,
@@ -73,7 +72,6 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await seedServicesAndPackage(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
 
     const results = await new AxeBuilder({ page }).analyze();
@@ -87,7 +85,6 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await seedServicesAndPackage(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
 
     // Verniz gel is covered by the package: shown as included, disabled, and not
@@ -110,7 +107,6 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await seedServicesAndPackage(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
 
     await page.getByRole('checkbox', { name: /Verniz gel/ }).check();
     await expect(page.getByText('Total: 25,00 € · 60 min')).toBeVisible();
@@ -127,7 +123,6 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await seedServicesAndPackage(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
     await expect(page.getByRole('checkbox', { name: /Verniz gel/ })).toBeDisabled();
 
@@ -144,7 +139,6 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await seedServicesAndPackage(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
 
     await page.getByRole('checkbox', { name: 'Massagem' }).focus();
     await page.keyboard.press('Space');

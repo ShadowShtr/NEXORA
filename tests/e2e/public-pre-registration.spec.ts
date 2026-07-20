@@ -6,9 +6,9 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
+import { completeRegistration, selectFirstService, selectFirstSlot } from './support/public-page';
 
-async function publishTenant(user: ProvisionedTestUser) {
+async function publishTenantWithService(user: ProvisionedTestUser) {
   const { data: tenant } = await user.admin
     .from('tenants')
     .select('id')
@@ -16,9 +16,33 @@ async function publishTenant(user: ProvisionedTestUser) {
     .single();
   await user.admin
     .from('business_settings')
-    .update({ published_at: new Date().toISOString() })
+    .update({ published_at: new Date().toISOString(), min_notice_hours: 1 })
     .eq('tenant_id', tenant!.id);
   await user.admin.from('tenants').update({ status: 'active' }).eq('id', tenant!.id);
+  await user.admin.from('business_hours').insert(
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({
+      tenant_id: tenant!.id,
+      day_of_week: dayOfWeek,
+      is_open: true,
+      opens_at: '00:00',
+      closes_at: '23:30',
+    })),
+  );
+
+  const { data: category } = await user.admin
+    .from('service_categories')
+    .insert({ tenant_id: tenant!.id, name: 'Unhas', sort_order: 0, is_visible: true })
+    .select('id')
+    .single();
+  await user.admin.from('services').insert({
+    tenant_id: tenant!.id,
+    category_id: category!.id,
+    name: 'Manicure',
+    price_cents: 1500,
+    duration_minutes: 30,
+    is_active: true,
+  });
+
   return tenant!.id as string;
 }
 
@@ -29,8 +53,12 @@ test.describe('public pre-registration step (NEX-051)', () => {
 
   test.beforeEach(async ({ page }) => {
     user = await createProvisionedTestUser('nex051');
-    await publishTenant(user);
+    await publishTenantWithService(user);
     await page.goto(`/b/${user.slug}`);
+    // Reach Passo 3 — the registration form only renders once a service and slot are
+    // both picked, since that step now comes after them in the flow.
+    await selectFirstService(page);
+    await selectFirstSlot(page);
   });
 
   test.afterEach(async () => {
@@ -75,7 +103,7 @@ test.describe('public pre-registration step (NEX-051)', () => {
   test('proceeds with just name and phone, email left empty', async ({ page }) => {
     await completeRegistration(page, 'Ana Cliente', '911111111');
     await expect(page.getByText('Ana Cliente · +351911111111')).toBeVisible();
-    await expect(page.getByText('Passo 2 · Escolha o que quer marcar')).toBeVisible();
+    await expect(page.getByText('Passo 4 · Confirmar')).toBeVisible();
   });
 
   test('"Alterar dados" returns to the registration form', async ({ page }) => {
@@ -91,7 +119,7 @@ test.describe('public pre-registration step (NEX-051)', () => {
       .eq('slug', user.slug)
       .single();
     await completeRegistration(page, 'Ana Cliente', '911111111');
-    await expect(page.getByText('Passo 2 · Escolha o que quer marcar')).toBeVisible();
+    await expect(page.getByText('Passo 4 · Confirmar')).toBeVisible();
 
     // "Abandon" — navigate away without ever reaching "Confirmar por WhatsApp".
     await page.goto('about:blank');

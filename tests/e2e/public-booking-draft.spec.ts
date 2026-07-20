@@ -42,9 +42,22 @@ async function publishTenantWithOneService(user: ProvisionedTestUser) {
     .single();
   await user.admin
     .from('business_settings')
-    .update({ phone_e164: '+351912345678', published_at: new Date().toISOString() })
+    .update({
+      phone_e164: '+351912345678',
+      published_at: new Date().toISOString(),
+      min_notice_hours: 1,
+    })
     .eq('tenant_id', tenant!.id);
   await user.admin.from('tenants').update({ status: 'active' }).eq('id', tenant!.id);
+  await user.admin.from('business_hours').insert(
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({
+      tenant_id: tenant!.id,
+      day_of_week: dayOfWeek,
+      is_open: true,
+      opens_at: '00:00',
+      closes_at: '23:30',
+    })),
+  );
   const { data: category } = await user.admin
     .from('service_categories')
     .insert({ tenant_id: tenant!.id, name: 'Manicure' })
@@ -81,22 +94,24 @@ test.describe('public booking draft recovery (NEX-052)', () => {
 
     const key = draftStorageKey(user.slug);
     await page.goto(`/b/${user.slug}`);
+    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
+    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
+    await page.locator('.public-slot-picker .public-slot-button').first().click();
     await completeRegistration(page, 'Ana Cliente', '911111111');
     await waitForDraftToken(page, key);
-    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
-    await settleDraftSave(page);
 
     const tokenBeforeReload = await page.evaluate((k) => window.localStorage.getItem(k), key);
     expect(tokenBeforeReload).not.toBeNull();
 
     await page.reload();
 
-    // Straight back to Passo 2 — the pre-registration form (Passo 1, which has no
-    // e-mail requirement of its own) never reappears.
-    await expect(page.getByLabel('O seu nome')).not.toBeVisible();
-    await expect(page.getByText('Ana Cliente · +351911111111')).toBeVisible();
+    // Straight back to the selection, registration already resumed — the
+    // pre-registration form doesn't gate anything anymore, but its resumed state
+    // (name/phone) shows immediately once the service+slot selection is redone.
     await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).toBeChecked();
     await expect(page.getByText('Total: 25,00 € · 60 min')).toBeVisible();
+    await page.locator('.public-slot-picker .public-slot-button').first().click();
+    await expect(page.getByText('Ana Cliente · +351911111111')).toBeVisible();
 
     // Editing the resumed draft reuses the same row/token instead of creating a new
     // one (saveBookingDraft's existingToken parameter) — no orphaned rows left behind.
@@ -105,7 +120,7 @@ test.describe('public booking draft recovery (NEX-052)', () => {
     expect(await page.evaluate((k) => window.localStorage.getItem(k), key)).toBe(tokenBeforeReload);
   });
 
-  test('ignores an unrecognized resume token without crashing and shows Passo 1 fresh', async ({
+  test('ignores an unrecognized resume token without crashing and shows the catalog fresh', async ({
     page,
   }) => {
     user = await createProvisionedTestUser('nex052');
@@ -119,7 +134,7 @@ test.describe('public booking draft recovery (NEX-052)', () => {
 
     const response = await page.goto(`/b/${user.slug}`);
     expect(response?.status()).toBe(200);
-    await expect(page.getByLabel('O seu nome')).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).not.toBeChecked();
 
     // The dead token is cleared, not left behind to be retried forever.
     await expect.poll(() => page.evaluate((k) => window.localStorage.getItem(k), key)).toBeNull();
@@ -133,6 +148,9 @@ test.describe('public booking draft recovery (NEX-052)', () => {
 
     const key = draftStorageKey(user.slug);
     await page.goto(`/b/${user.slug}`);
+    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
+    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
+    await page.locator('.public-slot-picker .public-slot-button').first().click();
     await completeRegistration(page, 'Beatriz Cliente', '922222222');
     await waitForDraftToken(page, key);
     const token = await page.evaluate((k) => window.localStorage.getItem(k), key);
@@ -155,7 +173,9 @@ test.describe('public booking draft recovery (NEX-052)', () => {
 
     await page.reload();
 
-    await expect(page.getByLabel('O seu nome')).toBeVisible();
+    // The expired draft is rejected on resume, so the cart starts empty again — no
+    // service pre-checked, unlike a valid resume.
+    await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).not.toBeChecked();
 
     const { data: draftAfter } = await user.admin
       .from('booking_drafts')

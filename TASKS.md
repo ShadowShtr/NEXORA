@@ -65,52 +65,52 @@
 
 - [x] **NEX-060** — Modelar horários e exceções _(depende: NEX-011,NEX-032)_
 - [x] **NEX-061** — Implementar gerador de slots timezone-aware _(depende: NEX-060)_
-- [ ] **NEX-062** — Implementar consulta pública de disponibilidade _(depende: NEX-061,NEX-054)_
-- [ ] **NEX-063** — Implementar constraint de não sobreposição _(depende: NEX-011)_
-- [ ] **NEX-064** — Implementar booking transacional/idempotente _(depende: NEX-063,NEX-051)_
-- [ ] **NEX-065** — Tratar SLOT_TAKEN na UX _(depende: NEX-064)_
-- [ ] **NEX-066** — Rate limit e bot protection _(depende: NEX-064)_
+- [x] **NEX-062** — Implementar consulta pública de disponibilidade _(depende: NEX-061,NEX-054)_
+- [x] **NEX-063** — Implementar constraint de não sobreposição _(depende: NEX-011)_
+- [x] **NEX-064** — Implementar booking transacional/idempotente _(depende: NEX-063,NEX-051)_
+- [x] **NEX-065** — Tratar SLOT_TAKEN na UX _(depende: NEX-064)_
+- [x] **NEX-066** — Rate limit e bot protection _(depende: NEX-064)_
 
 ### EPIC-07 — Confirmação e link da marcação
 
-- [ ] **NEX-070** — Criar ecrã final de confirmação _(depende: NEX-064)_
-- [ ] **NEX-071** — Criar link público seguro _(depende: NEX-064)_
-- [ ] **NEX-072** — Gerar ficheiro ICS _(depende: NEX-071)_
-- [ ] **NEX-073** — Implementar abrir localização _(depende: NEX-071)_
-- [ ] **NEX-074** — Implementar e-mail opcional _(depende: NEX-071)_
+- [x] **NEX-070** — Criar ecrã final de confirmação _(depende: NEX-064)_
+- [x] **NEX-071** — Criar link público seguro _(depende: NEX-064)_
+- [x] **NEX-072** — Gerar ficheiro ICS _(depende: NEX-071)_
+- [x] **NEX-073** — Implementar abrir localização _(depende: NEX-071)_
+- [x] **NEX-074** — Implementar e-mail opcional _(depende: NEX-071)_
 
 ### EPIC-08 — Dashboard e agenda da dona
 
-- [ ] **NEX-080** — Dashboard combinado _(depende: NEX-023,NEX-064)_
-- [ ] **NEX-081** — Cartões de marcação _(depende: NEX-080)_
-- [ ] **NEX-082** — Visualizações dia/semana/mês _(depende: NEX-080)_
-- [ ] **NEX-083** — Resumo/lista de horários livres _(depende: NEX-061,NEX-080)_
-- [ ] **NEX-084** — Detalhes, cancelar e reagendar _(depende: NEX-081)_
-- [ ] **NEX-085** — Marcação manual completa _(depende: NEX-041,NEX-061,NEX-080)_
+- [x] **NEX-080** — Dashboard combinado _(depende: NEX-023,NEX-064)_
+- [x] **NEX-081** — Cartões de marcação _(depende: NEX-080)_
+- [x] **NEX-082** — Visualizações dia/semana/mês _(depende: NEX-080)_
+- [x] **NEX-083** — Resumo/lista de horários livres _(depende: NEX-061,NEX-080)_
+- [x] **NEX-084** — Detalhes, cancelar e reagendar _(depende: NEX-081)_
+- [x] **NEX-085** — Marcação manual completa _(depende: NEX-041,NEX-061,NEX-080)_
 
 ### EPIC-09 — Clientes e histórico
 
-- [ ] **NEX-090** — Lista e pesquisa de clientes _(depende: NEX-064,NEX-023)_
-- [ ] **NEX-091** — Ficha completa da cliente _(depende: NEX-090)_
-- [ ] **NEX-092** — Sugestão/deduplicação no booking manual _(depende: NEX-090,NEX-085)_
-- [ ] **NEX-093** — Observações privadas _(depende: NEX-091)_
+- [x] **NEX-090** — Lista e pesquisa de clientes _(depende: NEX-064,NEX-023)_
+- [x] **NEX-091** — Ficha completa da cliente _(depende: NEX-090)_
+- [x] **NEX-092** — Sugestão/deduplicação no booking manual _(depende: NEX-090,NEX-085)_
+- [x] **NEX-093** — Observações privadas _(depende: NEX-091)_
 - [ ] **NEX-094** — Fotografias privadas _(depende: NEX-091)_
-- [ ] **NEX-095** — Política configurável de faltas _(depende: NEX-091)_
+- [x] **NEX-095** — Política configurável de faltas _(depende: NEX-091)_
 
 ### EPIC-10 — Lembretes e WhatsApp manual
 
-- [ ] **NEX-100** — Gerar lembrete 24h _(depende: NEX-064)_
-- [ ] **NEX-101** — Lista de lembretes pendentes _(depende: NEX-100,NEX-080)_
-- [ ] **NEX-102** — Gerar deep link WhatsApp _(depende: NEX-101)_
-- [ ] **NEX-103** — Registar aberto e marcado enviado _(depende: NEX-102)_
-- [ ] **NEX-104** — Personalizar template simples _(depende: NEX-102)_
+- [x] **NEX-100** — Gerar lembrete 24h _(depende: NEX-064)_
+- [x] **NEX-101** — Lista de lembretes pendentes _(depende: NEX-100,NEX-080)_
+- [x] **NEX-102** — Gerar deep link WhatsApp _(depende: NEX-101)_
+- [x] **NEX-103** — Registar aberto e marcado enviado _(depende: NEX-102)_
+- [x] **NEX-104** — Personalizar template simples _(depende: NEX-102)_
 
 ### EPIC-11 — Conclusão, pagamentos e pendências
 
-- [ ] **NEX-110** — Modal de conclusão rápida _(depende: NEX-081)_
-- [ ] **NEX-111** — Tela Ver mais e extras _(depende: NEX-110)_
-- [ ] **NEX-112** — Descontos fixos/percentuais _(depende: NEX-111)_
-- [ ] **NEX-113** — Transação de conclusão _(depende: NEX-110)_
+- [x] **NEX-110** — Modal de conclusão rápida _(depende: NEX-081)_
+- [x] **NEX-111** — Tela Ver mais e extras _(depende: NEX-110)_
+- [x] **NEX-112** — Descontos fixos/percentuais _(depende: NEX-111)_
+- [x] **NEX-113** — Transação de conclusão _(depende: NEX-110)_
 - [ ] **NEX-114** — Área de pagamentos pendentes _(depende: NEX-113)_
 - [ ] **NEX-115** — Reabrir/corrigir com auditoria _(depende: NEX-113)_
 

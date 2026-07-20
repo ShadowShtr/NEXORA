@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { createClient } from '@/lib/supabase/server';
+import { resolveLocationUrl } from '@/lib/open-location';
 import { PublicBookingCart } from './PublicBookingCart';
 
 function whatsappLink(phoneE164: string, businessName: string) {
@@ -35,7 +36,9 @@ export default async function PublicBusinessPage({
   ] = await Promise.all([
     supabase
       .from('business_settings')
-      .select('professional_name, phone_e164, address_line, postal_code, locality, maps_url')
+      .select(
+        'professional_name, phone_e164, address_line, postal_code, locality, maps_url, timezone',
+      )
       .eq('tenant_id', tenant.id)
       .maybeSingle(),
     supabase
@@ -101,36 +104,20 @@ export default async function PublicBusinessPage({
     };
   });
 
+  const locationUrl = resolveLocationUrl(settings.maps_url, {
+    addressLine: settings.address_line,
+    postalCode: settings.postal_code,
+    locality: settings.locality,
+  });
+
   return (
     <main className="shell stack">
       <Card className="public-header">
-        <p className="eyebrow">{tenant.name}</p>
-        <h1>{settings.professional_name}</h1>
-        <p className="public-address">
+        <p className="text-eyebrow">{tenant.name}</p>
+        <h1 className="text-title">{settings.professional_name}</h1>
+        <p className="text-support public-address">
           {settings.address_line}, {settings.postal_code} {settings.locality}
         </p>
-        <div className="public-cta">
-          {settings.phone_e164 ? (
-            <a className="button link-button" href={whatsappLink(settings.phone_e164, tenant.name)}>
-              Marcar por WhatsApp
-            </a>
-          ) : null}
-          {settings.phone_e164 ? (
-            <a className="button link-button" href={`tel:${settings.phone_e164}`}>
-              Ligar agora
-            </a>
-          ) : null}
-          {settings.maps_url ? (
-            <a
-              className="button link-button"
-              href={settings.maps_url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Ver no mapa
-            </a>
-          ) : null}
-        </div>
       </Card>
 
       <PublicBookingCart
@@ -138,9 +125,48 @@ export default async function PublicBusinessPage({
         tenantSlug={slug}
         businessName={tenant.name}
         phoneE164={settings.phone_e164}
+        timezone={settings.timezone}
+        locationUrl={locationUrl}
         categoryGroups={categoryGroups}
         packages={packageOptions}
       />
+
+      {/* Contact footer: at the end of the page, not competing with the header for
+          attention — a visitor who wants to skip the self-service flow and talk to the
+          dona directly can, but it's the secondary path, not the first thing shown. */}
+      {settings.phone_e164 || locationUrl ? (
+        <div className="public-contact-footer">
+          <p className="text-meta public-contact-footer-label">Prefere combinar diretamente?</p>
+          <div className="public-contact-row">
+            {settings.phone_e164 ? (
+              <a
+                className="public-contact-button"
+                href={whatsappLink(settings.phone_e164, tenant.name)}
+              >
+                <span aria-hidden="true">💬</span>
+                WhatsApp
+              </a>
+            ) : null}
+            {settings.phone_e164 ? (
+              <a className="public-contact-button" href={`tel:${settings.phone_e164}`}>
+                <span aria-hidden="true">📞</span>
+                Ligar
+              </a>
+            ) : null}
+            {locationUrl ? (
+              <a
+                className="public-contact-button"
+                href={locationUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span aria-hidden="true">📍</span>
+                Mapa
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

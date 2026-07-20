@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PreRegistrationStep } from './PreRegistrationStep';
+import { SlotPicker } from './SlotPicker';
+import { BookingConfirmation } from './BookingConfirmation';
 import { resumeBookingDraft, saveBookingDraft } from './draft-actions';
+import { createPublicBooking } from './booking-actions';
+import { generateIdempotencyKey } from './domain/idempotency-key';
 import {
   cartLines,
   cartTotals,
@@ -56,6 +60,8 @@ export function PublicBookingCart({
   tenantSlug,
   businessName,
   phoneE164,
+  timezone,
+  locationUrl,
   categoryGroups,
   packages,
 }: {
@@ -63,6 +69,8 @@ export function PublicBookingCart({
   tenantSlug: string;
   businessName: string;
   phoneE164: string | null;
+  timezone: string;
+  locationUrl: string | null;
   categoryGroups: CategoryGroup[];
   packages: PackageOption[];
 }) {
@@ -70,6 +78,15 @@ export function PublicBookingCart({
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [resumeChecked, setResumeChecked] = useState(false);
+  const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
+  const [slotReloadKey, setSlotReloadKey] = useState(0);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isBooking, setIsBooking] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState<{
+    bookingToken: string;
+    lookupCode: string;
+  } | null>(null);
 
   // Attempt a same-device resume once, on mount. setState only ever happens inside
   // this nested async function (never directly in the effect body), and only if the
@@ -175,24 +192,80 @@ export function PublicBookingCart({
         )
       : null;
 
+  // A cart change invalidates whatever slot/attempt was in progress — the previously
+  // computed slots were sized for a different total duration, and retrying a stale
+  // idempotency key against a new payload would only ever hit IDEMPOTENCY_CONFLICT.
+  function handleSelectSlot(iso: string) {
+    setSelectedSlotIso(iso);
+    setIdempotencyKey(generateIdempotencyKey());
+    setBookingError(null);
+  }
+
+  async function handleConfirmBooking() {
+    if (!registration || !selectedSlotIso || !idempotencyKey) return;
+    setIsBooking(true);
+    setBookingError(null);
+
+    const result = await createPublicBooking({
+      tenantId,
+      registration,
+      selectedServiceIds: Array.from(selectedServiceIds),
+      selectedPackageId,
+      startAtIso: selectedSlotIso,
+      idempotencyKey,
+    });
+
+    setIsBooking(false);
+
+    if (!result.ok) {
+      if (result.error.code === 'SLOT_TAKEN') {
+        // Mensagem clara, refresh de slots e carrinho preservado (NEX-065 acceptance
+        // criteria): the cart selection is untouched, only the slot choice and the
+        // attempt's idempotency key reset, and SlotPicker is told to refetch via
+        // slotReloadKey — the just-taken slot won't be offered again.
+        setBookingError('Este horário acabou de ser reservado por outra pessoa. Escolha outro.');
+        setSelectedSlotIso(null);
+        setIdempotencyKey(null);
+        setSlotReloadKey((key) => key + 1);
+        return;
+      }
+      setBookingError(result.error.message);
+      return;
+    }
+
+    if (window.localStorage) {
+      window.localStorage.removeItem(draftStorageKey(tenantSlug));
+    }
+    // bookingToken/lookupCode are only ever null on an idempotent replay
+    // (create_public_booking, NEX-064) — unreachable here since a fresh idempotencyKey
+    // is minted on every slot selection (handleSelectSlot), so this attempt can never
+    // collide with a prior one.
+    if (result.value.bookingToken && result.value.lookupCode) {
+      setConfirmedBooking({
+        bookingToken: result.value.bookingToken,
+        lookupCode: result.value.lookupCode,
+      });
+    }
+  }
+
   if (!resumeChecked) return null;
 
-  if (!registration) {
-    return <PreRegistrationStep onComplete={setRegistration} />;
+  if (confirmedBooking) {
+    return (
+      <BookingConfirmation
+        bookingToken={confirmedBooking.bookingToken}
+        lookupCode={confirmedBooking.lookupCode}
+        locationUrl={locationUrl}
+        phoneE164={phoneE164}
+        businessName={businessName}
+      />
+    );
   }
 
   return (
     <>
       <div className="public-booking-content">
-        <div className="public-registration-summary">
-          <span>
-            {registration.name} · {registration.phone}
-          </span>
-          <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
-            Alterar dados
-          </Button>
-        </div>
-        <p className="public-step-label">Passo 2 · Escolha o que quer marcar</p>
+        <p className="public-step-label">Passo 1 · Escolha o que quer marcar</p>
 
         {categoryGroups.map((group) => (
           <Card key={group.id}>
@@ -269,8 +342,8 @@ export function PublicBookingCart({
           </Card>
         ) : null}
 
-        <Card className="public-summary" id="confirmar">
-          <p className="public-step-label">Passo 3 · Confirmar</p>
+        <Card className="public-summary">
+          <p className="public-step-label">Resumo</p>
           {lines.length === 0 ? (
             <p>Escolha pelo menos um serviço ou pacote acima.</p>
           ) : (
@@ -286,16 +359,62 @@ export function PublicBookingCart({
           <p className="public-summary-total">
             Total: {formatEuros(totalCents)} · {totalMinutes} min
           </p>
-          {whatsappHref ? (
-            <a
-              className="button link-button"
-              href={whatsappHref}
-              aria-disabled={lines.length === 0}
-            >
-              Confirmar por WhatsApp
-            </a>
-          ) : null}
         </Card>
+
+        {lines.length > 0 ? (
+          <div id="horario">
+            <p className="public-step-label">Passo 2 · Escolha o horário</p>
+            <SlotPicker
+              tenantId={tenantId}
+              timezone={timezone}
+              totalMinutes={totalMinutes}
+              selectedIso={selectedSlotIso}
+              onSelect={handleSelectSlot}
+              reloadKey={slotReloadKey}
+            />
+          </div>
+        ) : null}
+
+        {lines.length > 0 && selectedSlotIso ? (
+          <Card id="dados">
+            <p className="public-step-label">Passo 3 · Os seus dados</p>
+            {registration ? (
+              <div className="public-registration-summary">
+                <span>
+                  {registration.name} · {registration.phone}
+                </span>
+                <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
+                  Alterar dados
+                </Button>
+              </div>
+            ) : (
+              <PreRegistrationStep onComplete={setRegistration} embedded />
+            )}
+          </Card>
+        ) : null}
+
+        {lines.length > 0 && selectedSlotIso && registration ? (
+          <Card className="public-summary" id="confirmar">
+            <p className="public-step-label">Passo 4 · Confirmar</p>
+            {bookingError ? (
+              <p role="alert" className="form-error">
+                {bookingError}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              disabled={lines.length === 0 || !selectedSlotIso || isBooking}
+              onClick={() => void handleConfirmBooking()}
+            >
+              {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
+            </Button>
+            {whatsappHref ? (
+              <a className="button link-button" href={whatsappHref}>
+                Prefere combinar por WhatsApp?
+              </a>
+            ) : null}
+          </Card>
+        ) : null}
       </div>
 
       {/* PRD 01 §3.6: "Barra fixa mostra quantidade, duração e valor do carrinho" — kept
@@ -308,11 +427,15 @@ export function PublicBookingCart({
         <Button
           type="button"
           disabled={lines.length === 0}
-          onClick={() =>
+          onClick={() => {
+            // Scrolls to whichever step is next in the flow, not always "confirmar" —
+            // a card only renders once its own prerequisite (a slot, then registration)
+            // is satisfied, so #confirmar may not exist in the DOM yet.
+            const targetId = !selectedSlotIso ? 'horario' : !registration ? 'dados' : 'confirmar';
             document
-              .getElementById('confirmar')
-              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+              .getElementById(targetId)
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
         >
           Continuar
         </Button>

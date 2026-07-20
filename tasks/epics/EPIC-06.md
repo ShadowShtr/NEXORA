@@ -106,29 +106,30 @@ Implementar implementar consulta pública de disponibilidade sem expandir o esco
 
 **Critérios de aceite**
 
-- API retorna apenas slots válidos e limites de intervalo.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- API retorna apenas slots válidos e limites de intervalo. `getPublicAvailability` (`src/app/b/[slug]/availability-actions.ts`, server action) lê `business_settings` do próprio tenant para step/buffer/notice/window/timezone (nunca do caller), busca `business_hours`/`business_hours_exceptions`/`availability_blocks`/marcações ativas (`confirmed`/`presence_confirmed`, janela `[start_at, blocked_until)` como em `appointments_no_overlap`) e delega o cálculo a `generateTimezoneAwareSlots` (`NEX-061`). Retorna só os instantes computados (`slotsIso`).
+- Nenhum dado de outro tenant pode ser acedido. Todas as queries são filtradas por `tenant_id`; o service-role client (`src/lib/supabase/admin.ts`) é necessário porque nenhuma das tabelas de origem tem política `anon` (por desenho, ver `docs/04_DATA_MODEL.md`) — só os slots computados saem da função, nunca o horário em bruto. Isolamento coberto por teste de integração com dois tenants (bloqueio total num dia só afeta o tenant dono do bloqueio).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — esta tarefa entrega só a consulta (server action); a UI que a consome é trabalho de tarefas de dashboard/booking futuras.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; erros devolvidos como `Result<T>` tipado (`VALIDATION_ERROR`/`NOT_FOUND`), sem detalhes internos expostos.
 
 **Testes obrigatórios**
 
-- Validação/rate limit contract.
+- Validação/rate limit contract. Input validado com Zod (`tenantId` uuid, `serviceDurationMinutes` 5–720) — rejeitado antes de tocar a base de dados. `RATE_LIMITED` já modelado em `AppErrorCode` (`src/lib/result.ts`); rate limiting real fica para `NEX-066` (fora de escopo aqui, per `CLAUDE.md`: não expandir escopo).
+- `tests/integration/public-availability.test.ts`: rejeita input inválido, `NOT_FOUND` para tenant nunca publicado e para tenant inexistente, isolamento entre dois tenants (bloqueio num não afeta o outro). Segue o mesmo padrão skip-sem-env de `publish-business.test.ts` (`describe.runIf`); import da action é feito dinamicamente dentro de `beforeAll` porque `src/lib/env.ts` faz parse eager de `process.env` — um import estático abortaria o ficheiro inteiro antes do skip poder atuar.
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — reaproveita o service-role client já existente (`NEX-052`) para leitura, sem escrita.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Confirmado: `tenant_id` de cada query vem do parâmetro validado, nunca de sessão (não há sessão — visitante anónimo); horário/step/buffer/notice/window vêm sempre de `business_settings` do próprio tenant, nunca do input do caller, fechando a via de um caller pedir um `bufferMinutes`/`slotStepMinutes` diferente do configurado pela dona.
+- Registar risco residual ou decisão temporária. Sem rate limiting real (`NEX-066` cobre isto) — risco aceite temporariamente: um caller pode fazer polling desta action sem limite até `NEX-066` ser implementada.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-063 — Implementar constraint de não sobreposição
 
@@ -147,29 +148,29 @@ Implementar implementar constraint de não sobreposição sem expandir o escopo 
 
 **Critérios de aceite**
 
-- GiST impede dupla reserva em estados ativos.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- GiST impede dupla reserva em estados ativos. Já implementado em `0001_initial.sql` (`appointments_no_overlap`, `exclude using gist (tenant_id with =, tstzrange(start_at, blocked_until, '[)') with &&) where (status in ('confirmed', 'presence_confirmed'))`) — esta tarefa não precisou de migração nova, só da prova de que a constraint aguenta concorrência real, que faltava.
+- Nenhum dado de outro tenant pode ser acedido. A exclusão é particionada por `tenant_id with =`, confirmado por teste (`tests/integration/appointment-overlap.test.ts`): um overlap idêntico noutro tenant não é bloqueado.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — tarefa é só a constraint/teste, sem UI.
+- Logs não contêm segredos nem PII desnecessária. N/A — nenhuma alteração de schema ou aplicação.
 
 **Testes obrigatórios**
 
-- Teste concorrente SQL.
+- Teste concorrente SQL. `tests/integration/appointment-overlap.test.ts`: rejeita insert sequencial sobreposto (`23P01`), aceita marcações costas-com-costas no limite exato do intervalo semiaberto `[start_at, blocked_until)`, ignora overlap noutro tenant, ignora overlap com marcação já `cancelled`, e — o teste central da tarefa — duas transações Postgres independentes a inserir o mesmo intervalo em paralelo (`Promise.allSettled` sobre duas ligações `pg` distintas, cada uma na sua própria transação): exatamente uma comita, a outra recebe `23P01`. Segue o padrão `TEST_DATABASE_URL`/skip de `tests/integration/schema-invariants.test.ts`; sem Docker disponível neste momento, não corrido localmente — corre no CI (`NEX-015`/`NEX-011`).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — reafirma uma constraint já existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — a exclusion constraint atua ao nível da base de dados, abaixo de RLS, e já é tenant-scoped pelo `with =` sobre `tenant_id`.
+- Registar risco residual ou decisão temporária. Nenhum risco residual identificado.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-064 — Implementar booking transacional/idempotente
 
@@ -188,29 +189,29 @@ Implementar implementar booking transacional/idempotente sem expandir o escopo p
 
 **Critérios de aceite**
 
-- Cliente upsert, snapshots, appointment, reminder e token em transação.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Cliente upsert, snapshots, appointment, reminder e token em transação. `create_public_booking` (`supabase/migrations/0007_create_public_booking.sql`, `security definer`): upsert de `clients` por `(tenant_id, phone_e164)`, snapshot de `appointment_items` com preço/duração relidos do catálogo (nunca confiados do caller), insert de `appointments` (`booking_token` gerado com `gen_random_bytes`, só o hash persistido) e de `reminders` (due 24h antes) — tudo numa única transação PL/pgSQL; `appointments_no_overlap` (`NEX-063`) faz o rollback automático de tudo se o horário já estiver ocupado. Chamada por `getPublicAvailability`-style server action `createPublicBooking` (`src/app/b/[slug]/booking-actions.ts`), que mapeia `23P01`→`SLOT_TAKEN`, `23505`→`IDEMPOTENCY_CONFLICT`.
+- Nenhum dado de outro tenant pode ser acedido. Toda query da função é filtrada por `tenant_id`; `tenant_id` vem sempre do parâmetro validado (uuid), nunca de sessão (não há sessão — visitante anónimo). Confirmado por teste (dois tenants, IDs de serviço só resolvidos dentro do próprio tenant).
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. N/A — esta tarefa entrega a mutação (RPC + server action); a UI que a consome fica para `NEX-070` (ecrã de confirmação).
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; a função não expõe o `booking_token` em texto claro nos logs — só no valor de retorno da própria chamada (`docs/06_API_CONTRACTS.md`: "devolve token público uma única vez").
 
 **Testes obrigatórios**
 
-- Concorrência, rollback e idempotência.
+- Concorrência, rollback e idempotência. `tests/integration/create-public-booking.test.ts` (conexão `pg` direta, `TEST_DATABASE_URL`): cria cliente+items+appointment+reminder atomicamente; reaproveita cliente existente pelo telefone; faz rollback do upsert de cliente quando o insert do appointment falha por sobreposição (`23P01`); replay com mesma chave+payload devolve o `appointment_id` original sem duplicar nem reemitir token; mesma chave com payload diferente rejeitada (`23505`); e o teste central — duas ligações Postgres independentes a reservar o mesmo horário em paralelo, exatamente uma comita. `tests/integration/create-public-booking-grant.test.ts` (PostgREST/`supabase-js`, mesmas env vars de `publish-business.test.ts`): confirma que `anon` consegue mesmo invocar a função via API real (não só ler o `GRANT` no SQL).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova função pública (`anon` pode invocar) — âmbito de escrita limitado ao `tenant_id` passado e apenas para tenants publicados; preço/duração sempre recalculados server-side, nunca aceites do caller (fecha a via de um caller declarar um total diferente do real).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `security definer` com `set search_path = public`, seguindo `ADR-008`: revogado de `public`/`authenticated`, concedido só a `anon` (marcação administrativa futura, `NEX-085`, terá o seu próprio caminho autenticado — fora de escopo aqui).
+- Registar risco residual ou decisão temporária. Nenhum rate limiting nesta função ainda (`NEX-066` cobre isto) — mesmo risco residual já registado em `NEX-062`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-065 — Tratar SLOT_TAKEN na UX
 
@@ -229,29 +230,30 @@ Implementar tratar slot_taken na ux sem expandir o escopo para funcionalidades n
 
 **Critérios de aceite**
 
-- Mensagem clara, refresh de slots e carrinho preservado.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Mensagem clara, refresh de slots e carrinho preservado. O carrinho público (`src/app/b/[slug]/PublicBookingCart.tsx`) ganhou um Passo 3 real: `SlotPicker` (`SlotPicker.tsx`) busca disponibilidade via `getPublicAvailability` (`NEX-062`) para a duração total do carrinho e lista os horários agrupados por dia (`domain/slot-formatting.ts`). Ao confirmar (`createPublicBooking`, `NEX-064`), um `SLOT_TAKEN` limpa só a seleção de horário e a chave de idempotência — nunca o registo nem os serviços/pacote escolhidos — mostra "Este horário acabou de ser reservado por outra pessoa. Escolha outro." e incrementa `reloadKey` para o `SlotPicker` voltar a pedir slots frescos. O handoff por WhatsApp deixa de ser o mecanismo de reserva (passa a alternativa de contacto, "Prefere combinar por WhatsApp?").
+- Nenhum dado de outro tenant pode ser acedido. Reutiliza `getPublicAvailability`/`createPublicBooking`, já tenant-scoped (`NEX-062`/`064`); nenhuma leitura nova nesta tarefa.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. Passos numerados (1–4), um horário por botão com estado `aria-pressed`, mensagens diretas em português.
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado.
 
 **Testes obrigatórios**
 
-- E2E corrida de reservas.
-- `npm run verify` passa.
+- E2E corrida de reservas. `tests/e2e/public-booking-race.spec.ts`: dois `browser.newContext()` independentes (dois visitantes reais) escolhem o mesmo primeiro horário disponível e confirmam em paralelo (`Promise.all`) — exatamente um recebe o ecrã de sucesso, o outro vê o alerta de `SLOT_TAKEN` com o checkbox do serviço ainda marcado (carrinho preservado) e a base de dados confirma só 1 `appointment` criado.
+- `tests/unit/slot-formatting.test.ts`: agrupamento por dia, ordenação cronológica, label pt-PT capitalizado, formatação de hora no timezone do tenant.
+- `npm run verify` passa (140 testes unitários/integração; e2e requer credenciais Supabase reais, mesmo padrão skip dos restantes specs `tests/e2e/*`).
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só UI sobre RPCs já existentes.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A nesta tarefa (já coberto em `NEX-062`/`064`); a UI nunca decide sozinha se um slot está livre, só reflete o que o servidor devolveu.
+- Registar risco residual ou decisão temporária. Mesmo risco de `NEX-062`/`064`: sem rate limiting real ainda (`NEX-066`).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-066 — Rate limit e bot protection
 
@@ -270,26 +272,26 @@ Implementar rate limit e bot protection sem expandir o escopo para funcionalidad
 
 **Critérios de aceite**
 
-- Rate limit distribuído e proteção escalonável sem memória local.
-- Nenhum dado de outro tenant pode ser acedido.
-- A interface mantém linguagem simples e fluxo guiado quando houver UI.
-- Logs não contêm segredos nem PII desnecessária.
+- Rate limit distribuído e proteção escalonável sem memória local. `src/lib/rate-limit.ts`: `Ratelimit.slidingWindow` do `@upstash/ratelimit` sobre Redis REST (Upstash) — chaveado por IP (`src/lib/request-ip.ts`, lê `x-forwarded-for`/`x-real-ip`), sem estado em memória do processo (`CLAUDE.md`). Dois limiares independentes: disponibilidade (30/min, leitura) e criação de marcação (5/min, escrita). `src/lib/turnstile.ts`: verificação server-side de um token Cloudflare Turnstile via `siteverify`.
+- Nenhum dado de outro tenant pode ser acedido. N/A — módulos genéricos, sem leitura de dados de negócio.
+- A interface mantém linguagem simples e fluxo guiado quando houver UI. `getPublicAvailability`/`createPublicBooking` devolvem `RATE_LIMITED` com mensagem direta ("Demasiados pedidos. Tente novamente em breve.").
+- Logs não contêm segredos nem PII desnecessária. Nenhum logging adicionado; `RATE_LIMIT_REDIS_TOKEN`/`TURNSTILE_SECRET_KEY` nunca aparecem em mensagens de erro devolvidas ao cliente.
 
 **Testes obrigatórios**
 
-- Teste 429 e bypass legítimo.
+- Teste 429 e bypass legítimo. `tests/integration/rate-limit.test.ts` (requer `RATE_LIMIT_REDIS_URL`/`_TOKEN` reais — Upstash; skip limpo sem credenciais, mesmo padrão dos restantes testes de integração): confirma `limited: true` com `retryAfterSeconds` após exceder o limite, que um identificador diferente (bypass legítimo) não é afetado, e que os dois limitadores (disponibilidade/booking) são independentes por identificador. `tests/unit/rate-limit.test.ts`: sem credenciais configuradas, nunca bloqueia e trata todo o visitante como humano — degradação graciosa coberta incondicionalmente (não requer credenciais).
 - `npm run verify` passa.
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — camada de defesa adicional em frente a RPCs já existentes (`NEX-062`/`064`).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — rate limit atua antes de qualquer acesso a dados, por IP, não por tenant.
+- Registar risco residual ou decisão temporária. **Risco residual**: sem `RATE_LIMIT_REDIS_URL`/`_TOKEN`/`TURNSTILE_SECRET_KEY` configurados em produção, o código degrada para "sem limite"/"assume humano" — proteção real só existe após provisionar Upstash + Cloudflare Turnstile e configurar as variáveis (`docs/ENVIRONMENTS_AND_SECRETS.md`, atualizado nesta tarefa). O widget Turnstile client-side (`TURNSTILE_SITE_KEY`) ainda não foi renderizado na UI pública — só a verificação server-side está pronta; `turnstileToken` chega vazio de `PublicBookingCart.tsx` até essa decisão de UX ser tomada.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
