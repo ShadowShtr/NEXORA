@@ -1135,6 +1135,31 @@ select {
   opacity: 0.5;
 }
 
+.client-photo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.75rem;
+}
+.client-photo-item {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+}
+.client-photo-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 1rem;
+  border: 1.5px solid var(--pink-100);
+  background: white;
+}
+.client-photo-thumb-error {
+  background: var(--pink-100);
+}
+
 .client-suggestions {
   border: 2px solid var(--pink-300);
   border-radius: 1rem;

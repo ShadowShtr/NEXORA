@@ -7,7 +7,11 @@ import { createClient } from '@/lib/supabase/server';
 import { parseClientPreferences } from '@/features/clients/domain/preferences';
 import { ClientPreferencesForm } from '@/features/clients/ClientPreferencesForm';
 import { ClientPrivateNotesForm } from '@/features/clients/ClientPrivateNotesForm';
+import { ClientPhotosForm, type ClientPhotoItem } from '@/features/clients/ClientPhotosForm';
+import { isClientPhotoKind } from '@/features/clients/domain/photos';
 import { countRecentNoShows, exceedsNoShowLimit } from '@/features/clients/domain/no-show-policy';
+
+const PHOTO_SIGNED_URL_TTL_SECONDS = 300;
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -42,14 +46,37 @@ async function loadClientDetail(tenantId: string, clientId: string) {
 
   const timezone = settings?.timezone ?? 'Europe/Lisbon';
 
-  const { data: appointments } = await supabase
-    .from('appointments')
-    .select(
-      'id, start_at, status, expected_total_cents, final_total_cents, appointment_items(description), payments(method, status)',
-    )
-    .eq('client_id', client.id)
-    .eq('tenant_id', tenantId)
-    .order('start_at', { ascending: false });
+  const [{ data: appointments }, { data: photoRows }] = await Promise.all([
+    supabase
+      .from('appointments')
+      .select(
+        'id, start_at, status, expected_total_cents, final_total_cents, appointment_items(description), payments(method, status)',
+      )
+      .eq('client_id', client.id)
+      .eq('tenant_id', tenantId)
+      .order('start_at', { ascending: false }),
+    supabase
+      .from('client_photos')
+      .select('id, kind, storage_path')
+      .eq('client_id', client.id)
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false }),
+  ]);
+
+  const photoPaths = (photoRows ?? []).map((row) => row.storage_path);
+  const { data: signedUrls } =
+    photoPaths.length > 0
+      ? await supabase.storage
+          .from('client-photos')
+          .createSignedUrls(photoPaths, PHOTO_SIGNED_URL_TTL_SECONDS)
+      : { data: [] };
+  const signedUrlByPath = new Map((signedUrls ?? []).map((entry) => [entry.path, entry.signedUrl]));
+
+  const photos: ClientPhotoItem[] = (photoRows ?? []).map((row) => ({
+    id: row.id,
+    kind: isClientPhotoKind(row.kind) ? row.kind : 'other',
+    signedUrl: signedUrlByPath.get(row.storage_path) ?? null,
+  }));
 
   const allAppointments = appointments ?? [];
   const nowMs = Date.now();
@@ -92,6 +119,7 @@ async function loadClientDetail(tenantId: string, clientId: string) {
     client,
     timezone,
     allAppointments,
+    photos,
     firstAppointment,
     lastCompleted,
     nextAppointment,
@@ -105,14 +133,13 @@ async function loadClientDetail(tenantId: string, clientId: string) {
   };
 }
 
-// NEX-091: "Resumo, histórico, preferências, faltas, valores"
-// (docs/01_PRODUCT_REQUIREMENTS.md §10: "dados de contacto; primeira, última e próxima
-// marcação; histórico de serviços e valores; faltas, cancelamentos e reagendamentos;
-// forma de pagamento; preferências; observações privadas; fotografias internas" — the
-// last two are NEX-093/094, out of scope here but the layout leaves room for them).
-// requireProfile() + a tenant_id filter on the client lookup keeps a tenant from ever
-// viewing another tenant's client by guessing an id — RLS (createClient(), cookie-
-// scoped) enforces the same thing as defense in depth.
+// NEX-091/NEX-093/NEX-094: "Resumo, histórico, preferências, faltas, valores, observações
+// privadas, fotografias" (docs/01_PRODUCT_REQUIREMENTS.md §10). requireProfile() + a
+// tenant_id filter on the client lookup keeps a tenant from ever viewing another
+// tenant's client by guessing an id — RLS (createClient(), cookie-scoped) enforces the
+// same thing as defense in depth, including on client_photos and the signed URLs derived
+// from it (a storage_path for another tenant's photo is never selectable in the first
+// place, NEX-094, 0001_initial.sql / 0019_client_photos_storage.sql).
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { tenantId } = await requireProfile();
   const { id } = await params;
@@ -123,6 +150,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     client,
     timezone,
     allAppointments,
+    photos,
     firstAppointment,
     lastCompleted,
     nextAppointment,
@@ -192,6 +220,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <Card>
         <p className="text-eyebrow">Observações privadas</p>
         <ClientPrivateNotesForm clientId={client.id} privateNotes={client.private_notes ?? ''} />
+      </Card>
+
+      <Card>
+        <p className="text-eyebrow">Fotografias</p>
+        <ClientPhotosForm clientId={client.id} photos={photos} />
       </Card>
 
       <Card>
