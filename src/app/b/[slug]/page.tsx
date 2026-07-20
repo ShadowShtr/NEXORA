@@ -4,12 +4,7 @@ import { MapPin, Phone, User } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { createClient } from '@/lib/supabase/server';
 import { resolveLocationUrl } from '@/lib/open-location';
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  return (parts[0]![0] + (parts[1]?.[0] ?? '')).toUpperCase();
-}
+import { initials } from '@/lib/initials';
 
 function whatsappLink(phoneE164: string, businessName: string) {
   const digits = phoneE164.replace('+', '');
