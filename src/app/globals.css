@@ -1079,14 +1079,34 @@ textarea {
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
+/* docs/DESIGN_SYSTEM_PIXEL_PERFECT.md §12 "Cartão de agenda": grid horário/conteúdo/
+   ações, altura mínima 84px, raio 16px. .appointment-card-header/-status/-total (abaixo)
+   continuam em uso por ReminderCard.tsx e o histórico da ficha da cliente — layout em
+   pilha vertical simples, não migrado nesta ronda. */
 .appointment-card {
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 1.5rem;
-  padding: 1.25rem;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(253, 235, 243, 0.9));
+  min-height: 84px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  padding: 0.85rem 1rem;
+  background: var(--nx-surface);
   box-shadow:
-    12px 12px 28px var(--shadow-dark),
-    -10px -10px 24px var(--shadow-light);
+    0 6px 18px rgba(33, 20, 26, 0.055),
+    0 1px 3px rgba(33, 20, 26, 0.035);
+}
+.appointment-card-cancelled,
+.appointment-card-no_show {
+  opacity: 0.75;
+}
+.appointment-card-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.appointment-card-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 .appointment-card-header {
   display: flex;
@@ -1095,8 +1115,12 @@ textarea {
   gap: 0.75rem;
 }
 .appointment-card-time {
-  font-weight: 800;
-  font-size: 1.1rem;
+  font-family: var(--nx-font-body);
+  font-weight: 700;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  width: 3rem;
+  flex-shrink: 0;
 }
 .appointment-card-status {
   font-weight: 700;
@@ -1111,6 +1135,21 @@ textarea {
 .appointment-card-completed .appointment-card-status,
 .appointment-card-marked_sent .appointment-card-status {
   color: var(--success);
+}
+.appointment-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.appointment-card-body .appointment-card-client {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.appointment-card-body .appointment-card-items {
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .appointment-card-client {
   font-weight: 700;

@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
 import {
   APPOINTMENT_STATUS_LABELS,
   buildAppointmentReminderMessage,
@@ -10,6 +13,17 @@ import type { AvailableService } from './domain/extras';
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
 }
+
+const STATUS_BADGE_VARIANT: Record<
+  AppointmentCardStatus,
+  'info' | 'primary' | 'success' | 'danger' | 'warning'
+> = {
+  confirmed: 'info',
+  presence_confirmed: 'primary',
+  completed: 'success',
+  cancelled: 'danger',
+  no_show: 'warning',
+};
 
 export type AppointmentCardData = {
   id: string;
@@ -25,7 +39,8 @@ export type AppointmentCardData = {
 // C) — horário, cliente, itens, valor, estado, e the two quick actions the flow calls
 // for: "Abrir WhatsApp" (a real deep link) and "Concluir" (Fluxo C: "abre modal
 // rápido" — AppointmentCompletionPanel, an inline reveal-in-place panel rather than a
-// new overlay component, consistent with cancel/reschedule/mark-no-show).
+// new overlay component, consistent with cancel/reschedule/mark-no-show). Layout:
+// docs/DESIGN_SYSTEM_PIXEL_PERFECT.md §12 "Cartão de agenda" (grid horário/conteúdo/ações).
 export function AppointmentCard({
   appointment,
   availableServices,
@@ -44,34 +59,41 @@ export function AppointmentCard({
 
   return (
     <li className={`appointment-card appointment-card-${appointment.status}`}>
-      <div className="appointment-card-header">
+      <div className="appointment-card-row">
         <span className="appointment-card-time">{appointment.timeLabel}</span>
-        <span className="appointment-card-status">
-          {APPOINTMENT_STATUS_LABELS[appointment.status]}
-        </span>
+        <div className="appointment-card-body">
+          <p className="appointment-card-client">{appointment.clientName}</p>
+          <p className="appointment-card-items">
+            {appointment.itemDescriptions.length > 0
+              ? `${appointment.itemDescriptions.join(', ')} · `
+              : ''}
+            {formatEuros(appointment.totalCents)}
+          </p>
+        </div>
+        <div className="appointment-card-quick-actions">
+          {isActive && whatsappHref ? (
+            <a
+              className="nx-icon-button"
+              href={whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Abrir WhatsApp"
+            >
+              <MessageCircle aria-hidden="true" />
+            </a>
+          ) : null}
+          <Badge variant={STATUS_BADGE_VARIANT[appointment.status]}>
+            {APPOINTMENT_STATUS_LABELS[appointment.status]}
+          </Badge>
+        </div>
       </div>
-      <p className="appointment-card-client">{appointment.clientName}</p>
-      {appointment.itemDescriptions.length > 0 ? (
-        <p className="appointment-card-items">{appointment.itemDescriptions.join(', ')}</p>
-      ) : null}
-      <p className="appointment-card-total">{formatEuros(appointment.totalCents)}</p>
       <div className="appointment-card-actions">
-        <a
+        <Link
           className="button button-secondary link-button"
           href={`/dashboard/agenda/${appointment.id}`}
         >
           Ver detalhes
-        </a>
-        {isActive && whatsappHref ? (
-          <a
-            className="button button-secondary link-button"
-            href={whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Abrir WhatsApp
-          </a>
-        ) : null}
+        </Link>
         {isActive ? (
           <AppointmentCompletionPanel
             appointmentId={appointment.id}

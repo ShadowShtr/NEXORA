@@ -1,6 +1,7 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
@@ -160,44 +161,58 @@ export default async function AgendaPage({
 
   return (
     <div className="shell">
-      <p className="text-eyebrow">Agenda</p>
-      <h1 className="text-title">Agenda</h1>
+      <header className="nx-page-header">
+        <div>
+          <p className="text-eyebrow">Agenda</p>
+          <h1 className="text-title">Agenda</h1>
+        </div>
+        <Link href="/dashboard/agenda/nova" className="nx-icon-button" aria-label="Nova marcação">
+          <Plus aria-hidden="true" />
+        </Link>
+      </header>
 
-      <Link href="/dashboard/agenda/nova" className="button link-button">
-        Nova marcação
-      </Link>
-
-      <nav className="agenda-view-switcher" aria-label="Vista da agenda">
+      <div role="tablist" aria-label="Vista da agenda" className="nx-tabs nx-tabs-pill">
         <a
           href={navHref('day', dateKey)}
-          aria-current={view === 'day' ? 'page' : undefined}
-          className="button-secondary button"
+          role="tab"
+          aria-selected={view === 'day'}
+          className="nx-tab"
         >
           Dia
         </a>
         <a
           href={navHref('week', dateKey)}
-          aria-current={view === 'week' ? 'page' : undefined}
-          className="button-secondary button"
+          role="tab"
+          aria-selected={view === 'week'}
+          className="nx-tab"
         >
           Semana
         </a>
         <a
           href={navHref('month', dateKey)}
-          aria-current={view === 'month' ? 'page' : undefined}
-          className="button-secondary button"
+          role="tab"
+          aria-selected={view === 'month'}
+          className="nx-tab"
         >
           Mês
         </a>
-      </nav>
+      </div>
 
       <nav className="agenda-date-nav" aria-label="Navegar datas">
-        <a href={navHref(view, previousDateKey)} className="button-secondary button">
-          Anterior
+        <a
+          href={navHref(view, previousDateKey)}
+          className="nx-icon-button"
+          aria-label="Período anterior"
+        >
+          <ChevronLeft aria-hidden="true" />
         </a>
         <span className="agenda-range-label">{capitalize(rangeLabel)}</span>
-        <a href={navHref(view, nextDateKey)} className="button-secondary button">
-          Seguinte
+        <a
+          href={navHref(view, nextDateKey)}
+          className="nx-icon-button"
+          aria-label="Período seguinte"
+        >
+          <ChevronRight aria-hidden="true" />
         </a>
         {dateKey !== todayKey ? (
           <a href={navHref(view, todayKey)} className="button-secondary button">
