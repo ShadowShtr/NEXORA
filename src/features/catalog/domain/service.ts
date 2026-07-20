@@ -34,4 +34,5 @@ export type ServiceListItem = {
   durationMinutes: number;
   categoryId: string;
   isActive: boolean;
+  photoUrl: string | null;
 };

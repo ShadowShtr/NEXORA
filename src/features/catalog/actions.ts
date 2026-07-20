@@ -361,6 +361,7 @@ export async function createPackage(
   const parsed = createPackageSchema.safeParse({
     name: formData.get('name'),
     priceEuros: formData.get('priceEuros'),
+    compareAtPriceEuros: formData.get('compareAtPriceEuros'),
     serviceIds: formData.getAll('serviceIds'),
   });
   if (!parsed.success) {
@@ -378,7 +379,12 @@ export async function createPackage(
 
   const { data: created, error: packageError } = await supabase
     .from('packages')
-    .insert({ tenant_id: tenantId, name: parsed.data.name, price_cents: parsed.data.priceEuros })
+    .insert({
+      tenant_id: tenantId,
+      name: parsed.data.name,
+      price_cents: parsed.data.priceEuros,
+      compare_at_price_cents: parsed.data.compareAtPriceEuros,
+    })
     .select('id')
     .single();
 
@@ -419,6 +425,7 @@ export async function updatePackage(
     id: formData.get('id'),
     name: formData.get('name'),
     priceEuros: formData.get('priceEuros'),
+    compareAtPriceEuros: formData.get('compareAtPriceEuros'),
     serviceIds: formData.getAll('serviceIds'),
   });
   if (!parsed.success) {
@@ -436,7 +443,11 @@ export async function updatePackage(
 
   const { error: packageError } = await supabase
     .from('packages')
-    .update({ name: parsed.data.name, price_cents: parsed.data.priceEuros })
+    .update({
+      name: parsed.data.name,
+      price_cents: parsed.data.priceEuros,
+      compare_at_price_cents: parsed.data.compareAtPriceEuros,
+    })
     .eq('id', parsed.data.id)
     .eq('tenant_id', tenantId);
 

@@ -13,18 +13,21 @@ const verniz: ServiceLine = {
   name: 'Verniz gel',
   priceCents: 2500,
   durationMinutes: 60,
+  photoUrl: null,
 };
 const massagem: ServiceLine = {
   id: 'svc-2',
   name: 'Massagem',
   priceCents: 3000,
   durationMinutes: 45,
+  photoUrl: null,
 };
 const pedicure: ServiceLine = {
   id: 'svc-3',
   name: 'Pedicure',
   priceCents: 2000,
   durationMinutes: 40,
+  photoUrl: null,
 };
 const services = new Map([
   [verniz.id, verniz],
@@ -36,9 +39,11 @@ const combo: PackageOption = {
   id: 'pkg-1',
   name: 'Combo mãos e pés',
   priceCents: 4000,
+  compareAtPriceCents: null,
   durationMinutes: 100,
   itemNames: 'Verniz gel + Pedicure',
   serviceIds: [verniz.id, pedicure.id],
+  photoUrl: null,
 };
 
 describe('cartLines', () => {
@@ -107,6 +112,7 @@ describe('cartTotals', () => {
       name: 'Sobrancelhas',
       priceCents: 1333,
       durationMinutes: 17,
+      photoUrl: null,
     };
     const { totalCents, totalMinutes } = cartTotals([verniz, oddPriced, massagem]);
     expect(Number.isInteger(totalCents)).toBe(true);
