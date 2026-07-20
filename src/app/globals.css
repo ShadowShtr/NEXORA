@@ -793,6 +793,12 @@ select {
   display: grid;
   gap: 0.5rem;
 }
+.completion-discount {
+  display: grid;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.75rem;
+}
 
 .agenda-view-switcher,
 .agenda-date-nav {
