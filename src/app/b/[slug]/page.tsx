@@ -113,28 +113,11 @@ export default async function PublicBusinessPage({
   return (
     <main className="shell stack">
       <Card className="public-header">
-        <p className="eyebrow">{tenant.name}</p>
-        <h1>{settings.professional_name}</h1>
-        <p className="public-address">
+        <p className="text-eyebrow">{tenant.name}</p>
+        <h1 className="text-title">{settings.professional_name}</h1>
+        <p className="text-support public-address">
           {settings.address_line}, {settings.postal_code} {settings.locality}
         </p>
-        <div className="public-cta">
-          {settings.phone_e164 ? (
-            <a className="button link-button" href={whatsappLink(settings.phone_e164, tenant.name)}>
-              Marcar por WhatsApp
-            </a>
-          ) : null}
-          {settings.phone_e164 ? (
-            <a className="button link-button" href={`tel:${settings.phone_e164}`}>
-              Ligar agora
-            </a>
-          ) : null}
-          {locationUrl ? (
-            <a className="button link-button" href={locationUrl} target="_blank" rel="noreferrer">
-              Ver no mapa
-            </a>
-          ) : null}
-        </div>
       </Card>
 
       <PublicBookingCart
@@ -147,6 +130,43 @@ export default async function PublicBusinessPage({
         categoryGroups={categoryGroups}
         packages={packageOptions}
       />
+
+      {/* Contact footer: at the end of the page, not competing with the header for
+          attention — a visitor who wants to skip the self-service flow and talk to the
+          dona directly can, but it's the secondary path, not the first thing shown. */}
+      {settings.phone_e164 || locationUrl ? (
+        <div className="public-contact-footer">
+          <p className="text-meta public-contact-footer-label">Prefere combinar diretamente?</p>
+          <div className="public-contact-row">
+            {settings.phone_e164 ? (
+              <a
+                className="public-contact-button"
+                href={whatsappLink(settings.phone_e164, tenant.name)}
+              >
+                <span aria-hidden="true">💬</span>
+                WhatsApp
+              </a>
+            ) : null}
+            {settings.phone_e164 ? (
+              <a className="public-contact-button" href={`tel:${settings.phone_e164}`}>
+                <span aria-hidden="true">📞</span>
+                Ligar
+              </a>
+            ) : null}
+            {locationUrl ? (
+              <a
+                className="public-contact-button"
+                href={locationUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span aria-hidden="true">📍</span>
+                Mapa
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

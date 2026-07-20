@@ -39,9 +39,14 @@ export type CreateBookingRequest = z.infer<typeof requestSchema>;
 // too, but going through the service-role client keeps this consistent with every other
 // public write in this feature (draft-actions.ts, NEX-052) and avoids depending on the
 // browser session/cookie state that a server action call may or may not carry.
-export async function createPublicBooking(
-  request: CreateBookingRequest,
-): Promise<Result<{ appointmentId: string; bookingToken: string | null; isReplay: boolean }>> {
+export async function createPublicBooking(request: CreateBookingRequest): Promise<
+  Result<{
+    appointmentId: string;
+    bookingToken: string | null;
+    lookupCode: string | null;
+    isReplay: boolean;
+  }>
+> {
   const parsed = requestSchema.safeParse(request);
   if (!parsed.success) {
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Dados inválidos.' } };
@@ -80,6 +85,7 @@ export async function createPublicBooking(
   type CreatePublicBookingRow = {
     appointment_id: string;
     booking_token: string | null;
+    lookup_code: string | null;
     is_replay: boolean;
   };
 
@@ -128,8 +134,8 @@ export async function createPublicBooking(
   // immediately regardless of how long/whether this succeeds. registration.email is
   // optional (docs/01_PRODUCT_REQUIREMENTS.md §3.2: "telemóvel e e-mail opcional"), so
   // this only fires when the client actually provided one.
-  if (registration.email && !data.is_replay && data.booking_token) {
-    void sendBookingConfirmationEmail(registration.email, data.booking_token);
+  if (registration.email && !data.is_replay && data.booking_token && data.lookup_code) {
+    void sendBookingConfirmationEmail(registration.email, data.booking_token, data.lookup_code);
   }
 
   return {
@@ -137,12 +143,17 @@ export async function createPublicBooking(
     value: {
       appointmentId: data.appointment_id,
       bookingToken: data.booking_token,
+      lookupCode: data.lookup_code,
       isReplay: data.is_replay,
     },
   };
 }
 
-async function sendBookingConfirmationEmail(email: string, bookingToken: string) {
+async function sendBookingConfirmationEmail(
+  email: string,
+  bookingToken: string,
+  lookupCode: string,
+) {
   // resolveBookingByToken (src/lib/booking-token-lookup.ts, NEX-071) already resolves
   // tenant name/timezone and priced items from the token alone — reusing it here avoids
   // re-querying the same tables with slightly different shapes.
@@ -160,6 +171,7 @@ async function sendBookingConfirmationEmail(email: string, bookingToken: string)
     })),
     totalCents: booking.totalCents,
     bookingUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/marcacao/${bookingToken}`,
+    lookupCode,
   });
 
   const provider = getEmailProvider();

@@ -17,18 +17,18 @@ A aplicação trata dados pessoais de clientes em Portugal/UE. A aplicabilidade 
 
 ## Ameaças principais
 
-| ID  | Ameaça                         | Impacto                | Controlo principal                                 |
-| --- | ------------------------------ | ---------------------- | -------------------------------------------------- |
-| T1  | Acesso entre tenants           | violação de dados      | RLS + tenant derivado da sessão + testes negativos |
-| T2  | Dupla reserva concorrente      | perda operacional      | constraint GiST + transação                        |
-| T3  | Enumeração de links            | exposição de marcações | token aleatório 256-bit, hash em DB, rate limit    |
-| T4  | Abuso de marcação pública      | spam/DoS               | rate limit distribuído, bot protection em produção |
-| T5  | Sequestro de sessão            | acesso à agenda        | cookies seguros, validação server-side, revogação  |
-| T6  | Service role exposta           | comprometimento total  | segredo somente server, scans, env separation      |
-| T7  | Upload malicioso               | malware/exposição      | tipo/tamanho, bucket privado, nomes aleatórios     |
-| T8  | Logs com PII                   | vazamento secundário   | redaction, allowlist de campos                     |
-| T9  | Alteração financeira sem rasto | fraude/erro            | audit log append-only                              |
-| T10 | Supply chain                   | execução de código     | lockfile, Dependabot, CodeQL, review, pin actions  |
+| ID  | Ameaça                         | Impacto                | Controlo principal                                                                                                                                                                                                                                                                                            |
+| --- | ------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | Acesso entre tenants           | violação de dados      | RLS + tenant derivado da sessão + testes negativos                                                                                                                                                                                                                                                            |
+| T2  | Dupla reserva concorrente      | perda operacional      | constraint GiST + transação                                                                                                                                                                                                                                                                                   |
+| T3  | Enumeração de links            | exposição de marcações | token aleatório 256-bit, hash em DB, rate limit; código de consulta curto (`/marcacao`) usa alfabeto de 32 símbolos × 8 caracteres (~1e12 combinações), hash em DB, mesmo rate limit — decisão de produto rejeitou um código de 6 caracteres sem telefone/e-mail emparelhado por ser varrível por força bruta |
+| T4  | Abuso de marcação pública      | spam/DoS               | rate limit distribuído, bot protection em produção                                                                                                                                                                                                                                                            |
+| T5  | Sequestro de sessão            | acesso à agenda        | cookies seguros, validação server-side, revogação                                                                                                                                                                                                                                                             |
+| T6  | Service role exposta           | comprometimento total  | segredo somente server, scans, env separation                                                                                                                                                                                                                                                                 |
+| T7  | Upload malicioso               | malware/exposição      | tipo/tamanho, bucket privado, nomes aleatórios                                                                                                                                                                                                                                                                |
+| T8  | Logs com PII                   | vazamento secundário   | redaction, allowlist de campos                                                                                                                                                                                                                                                                                |
+| T9  | Alteração financeira sem rasto | fraude/erro            | audit log append-only                                                                                                                                                                                                                                                                                         |
+| T10 | Supply chain                   | execução de código     | lockfile, Dependabot, CodeQL, review, pin actions                                                                                                                                                                                                                                                             |
 
 ## Autenticação
 

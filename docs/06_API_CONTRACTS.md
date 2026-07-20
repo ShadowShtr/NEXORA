@@ -48,7 +48,7 @@ Output: lista de slots com início/fim ISO.
 - valida cliente, itens, slot e observação;
 - cria/atualiza cliente por telemóvel;
 - cria appointment e snapshots em transação;
-- devolve token público uma única vez.
+- devolve token público e código de consulta de 8 caracteres uma única vez cada (`create_public_booking`, `0018_booking_lookup_code.sql`).
 
 ### `GET /api/bookings/{token}`
 
@@ -57,6 +57,10 @@ Retorna visão pública mínima da marcação.
 ### `GET /api/bookings/{token}/calendar.ics`
 
 Gera ICS sem dados excessivos.
+
+### `/marcacao` (página, não API JSON)
+
+Formulário de consulta por código de 8 caracteres — alternativa ao link `/marcacao/{token}` para quem perdeu a mensagem original mas guardou o código. Server action `lookupBookingByCode` (`src/app/marcacao/lookup-actions.ts`) chama `resolve_booking_lookup_code`, rate-limited pelo mesmo limiter de `GET /api/bookings/{token}` (`checkBookingLookupRateLimit`). Resposta uniforme (vazio) tanto para código malformado quanto desconhecido.
 
 ## Rotas privadas previstas
 

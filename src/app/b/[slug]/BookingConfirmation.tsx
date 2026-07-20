@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 
 function whatsappLink(phoneE164: string, businessName: string) {
@@ -19,48 +20,75 @@ function whatsappLink(phoneE164: string, businessName: string) {
 // instead of recomputed here). "Contactar WhatsApp" is a later visual-refinement
 // addition: after confirming, the client can reach the dona directly for anything the
 // automated flow can't handle (a last-minute question, a special request).
+//
+// "Ver marcação" is the one action with real informational weight (the full appointment
+// detail page), so it's the sole full-width primary button — calendário/mapa/WhatsApp
+// are secondary utility actions, shown as a row of equal-weight icon buttons rather
+// than four stacked buttons that all look equally important when they aren't.
+//
+// lookupCode (NEX-095b): an 8-character code the client can use later at /marcacao to
+// look the booking back up without needing this exact link — see
+// src/lib/booking-lookup-code.ts for why 8 characters, not a shorter PIN.
 export function BookingConfirmation({
   bookingToken,
+  lookupCode,
   locationUrl,
   phoneE164,
   businessName,
 }: {
   bookingToken: string;
+  lookupCode: string;
   locationUrl: string | null;
   phoneE164: string | null;
   businessName: string;
 }) {
   return (
-    <Card className="public-summary public-confirmation">
-      <p className="public-step-label">Marcação confirmada</p>
-      <p className="public-confirmation-lead">A sua marcação foi confirmada com sucesso.</p>
-      <div className="public-confirmation-actions">
-        <a className="button link-button" href={`/marcacao/${bookingToken}`}>
-          Ver marcação
-        </a>
-        <a className="button link-button" href={`/api/bookings/${bookingToken}/calendar.ics`}>
-          Adicionar ao calendário
+    <Card className="public-confirmation">
+      <div className="public-confirmation-icon" aria-hidden="true">
+        ✓
+      </div>
+      <h2 className="text-title">Marcação confirmada</h2>
+      <p className="text-support public-confirmation-lead">
+        A sua marcação foi confirmada com sucesso.
+      </p>
+
+      <a
+        className="button link-button public-confirmation-primary"
+        href={`/marcacao/${bookingToken}`}
+      >
+        Ver marcação
+      </a>
+
+      <div className="public-contact-row">
+        <a className="public-contact-button" href={`/api/bookings/${bookingToken}/calendar.ics`}>
+          <span aria-hidden="true">📅</span>
+          Calendário
         </a>
         {locationUrl ? (
-          <a
-            className="button button-secondary link-button"
-            href={locationUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Ver no mapa
+          <a className="public-contact-button" href={locationUrl} target="_blank" rel="noreferrer">
+            <span aria-hidden="true">📍</span>
+            Mapa
           </a>
         ) : null}
         {phoneE164 ? (
           <a
-            className="button button-secondary link-button"
+            className="public-contact-button"
             href={whatsappLink(phoneE164, businessName)}
             target="_blank"
             rel="noreferrer"
           >
-            Contactar WhatsApp
+            <span aria-hidden="true">💬</span>
+            WhatsApp
           </a>
         ) : null}
+      </div>
+
+      <div className="public-lookup-code">
+        <p className="text-meta">Guarde este código para consultar a marcação mais tarde:</p>
+        <p className="public-lookup-code-value">{lookupCode}</p>
+        <p className="text-support">
+          Em <Link href="/marcacao">nexora.app/marcacao</Link>, sem precisar deste link.
+        </p>
       </div>
     </Card>
   );

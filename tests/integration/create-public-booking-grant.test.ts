@@ -77,5 +77,76 @@ describe.runIf(canRun)('create_public_booking grant (NEX-064)', () => {
     expect(error).toBeNull();
     expect(data).toMatchObject({ is_replay: false });
     expect((data as { booking_token: string }).booking_token).toHaveLength(64);
+    expect((data as { lookup_code: string }).lookup_code).toMatch(
+      /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/,
+    );
+  });
+});
+
+// Confirms the EXECUTE grant on resolve_booking_lookup_code
+// (supabase/migrations/0018_booking_lookup_code.sql) also reaches anon through
+// PostgREST — same ADR-008 concern as create_public_booking above.
+describe.runIf(canRun)('resolve_booking_lookup_code grant', () => {
+  let admin: SupabaseClient;
+  let anon: SupabaseClient;
+
+  const tenantId = randomUUID();
+  const categoryId = randomUUID();
+  const serviceId = randomUUID();
+  const slug = `nex095b-grant-${tenantId.slice(0, 8)}`;
+  let lookupCode: string;
+
+  beforeAll(async () => {
+    admin = createClient(url!, serviceRoleKey!);
+    anon = createClient(url!, publishableKey!);
+
+    await admin
+      .from('tenants')
+      .insert({ id: tenantId, slug, name: 'Lookup Grant Tenant', status: 'active' });
+    await admin
+      .from('business_settings')
+      .insert({ tenant_id: tenantId, buffer_minutes: 15, published_at: new Date().toISOString() });
+    await admin
+      .from('service_categories')
+      .insert({ id: categoryId, tenant_id: tenantId, name: 'Manicure' });
+    await admin.from('services').insert({
+      id: serviceId,
+      tenant_id: tenantId,
+      category_id: categoryId,
+      name: 'Verniz Gel',
+      price_cents: 3000,
+      duration_minutes: 60,
+      is_active: true,
+    });
+
+    const idempotencyKey = randomUUID().replace(/-/g, '').padEnd(64, '0');
+    const { data } = await anon
+      .rpc('create_public_booking', {
+        p_tenant_id: tenantId,
+        p_client_name: 'Anon Visitor',
+        p_client_phone_e164: '+351977777777',
+        p_client_email: null,
+        p_selected_service_ids: [serviceId],
+        p_selected_package_id: null,
+        p_start_at: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+        p_idempotency_key: idempotencyKey,
+      })
+      .single<{ lookup_code: string }>();
+    lookupCode = data!.lookup_code;
+  });
+
+  afterAll(async () => {
+    await admin.from('appointments').delete().eq('tenant_id', tenantId);
+    await admin.from('clients').delete().eq('tenant_id', tenantId);
+    await admin.from('tenants').delete().eq('id', tenantId);
+  });
+
+  it('is callable by anon and resolves the booking created above', async () => {
+    const { data, error } = await anon
+      .rpc('resolve_booking_lookup_code', { p_code: lookupCode })
+      .single();
+
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ status: 'confirmed', tenant_name: 'Lookup Grant Tenant' });
   });
 });

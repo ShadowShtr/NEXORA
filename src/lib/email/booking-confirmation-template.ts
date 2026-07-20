@@ -26,6 +26,7 @@ export type BookingConfirmationEmailInput = {
   items: { description: string; unitPriceCents: number }[];
   totalCents: number;
   bookingUrl: string;
+  lookupCode: string;
 };
 
 // NEX-074: the confirmation e-mail sent after a successful public booking (NEX-064).
@@ -53,6 +54,8 @@ export function buildBookingConfirmationEmail(input: BookingConfirmationEmailInp
     `Total: ${formatEuros(input.totalCents)}`,
     '',
     `Ver marcação: ${input.bookingUrl}`,
+    '',
+    `Código para consultar mais tarde: ${input.lookupCode}`,
   ].join('\n');
 
   const html = `
@@ -63,6 +66,7 @@ export function buildBookingConfirmationEmail(input: BookingConfirmationEmailInp
     </ul>
     <p><strong>Total: ${formatEuros(input.totalCents)}</strong></p>
     <p><a href="${escapeHtml(input.bookingUrl)}">Ver marcação</a></p>
+    <p>Código para consultar mais tarde: <strong>${escapeHtml(input.lookupCode)}</strong></p>
   `.trim();
 
   return {

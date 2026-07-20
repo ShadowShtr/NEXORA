@@ -76,7 +76,14 @@ describe.runIf(Boolean(connectionString))('create_public_booking (NEX-064)', () 
     const row = result.rows[0];
     expect(row.appointment_id).toBeTruthy();
     expect(row.booking_token).toHaveLength(64);
+    expect(row.lookup_code).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/);
     expect(row.is_replay).toBe(false);
+
+    const storedHash = await client.query(
+      `select booking_lookup_code_hash from public.appointments where id = $1`,
+      [row.appointment_id],
+    );
+    expect(storedHash.rows[0].booking_lookup_code_hash).toHaveLength(64);
 
     const client_ = await client.query(
       `select name, phone_e164 from public.clients where tenant_id = $1`,
@@ -217,8 +224,10 @@ describe.runIf(Boolean(connectionString))('create_public_booking (NEX-064)', () 
 
     expect(first.rows[0].is_replay).toBe(false);
     expect(first.rows[0].booking_token).not.toBeNull();
+    expect(first.rows[0].lookup_code).not.toBeNull();
     expect(second.rows[0].is_replay).toBe(true);
     expect(second.rows[0].booking_token).toBeNull();
+    expect(second.rows[0].lookup_code).toBeNull();
     expect(second.rows[0].appointment_id).toBe(first.rows[0].appointment_id);
 
     const appointments = await client.query(

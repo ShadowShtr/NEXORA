@@ -124,6 +124,7 @@ describe('buildBookingConfirmationEmail', () => {
       items: [{ description: 'Verniz Gel', unitPriceCents: 2500 }],
       totalCents: 2500,
       bookingUrl: 'https://nexora.pt/marcacao/abc123',
+      lookupCode: 'AB23CD45',
     });
 
     expect(message.to).toBe('client@example.test');
@@ -131,8 +132,10 @@ describe('buildBookingConfirmationEmail', () => {
     expect(message.text).toContain('Verniz Gel');
     expect(message.text).toContain('25,00');
     expect(message.text).toContain('https://nexora.pt/marcacao/abc123');
+    expect(message.text).toContain('AB23CD45');
     expect(message.html).toContain('Verniz Gel');
     expect(message.html).toContain('href="https://nexora.pt/marcacao/abc123"');
+    expect(message.html).toContain('AB23CD45');
   });
 
   it('escapes HTML-significant characters in business/item names', () => {
@@ -144,6 +147,7 @@ describe('buildBookingConfirmationEmail', () => {
       items: [],
       totalCents: 0,
       bookingUrl: 'https://nexora.pt/marcacao/abc123',
+      lookupCode: 'AB23CD45',
     });
 
     expect(message.html).not.toContain('<script>alert(1)</script>');

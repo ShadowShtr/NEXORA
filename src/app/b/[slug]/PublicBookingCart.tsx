@@ -83,7 +83,10 @@ export function PublicBookingCart({
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
-  const [confirmedBooking, setConfirmedBooking] = useState<{ bookingToken: string } | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<{
+    bookingToken: string;
+    lookupCode: string;
+  } | null>(null);
 
   // Attempt a same-device resume once, on mount. setState only ever happens inside
   // this nested async function (never directly in the effect body), and only if the
@@ -233,11 +236,15 @@ export function PublicBookingCart({
     if (window.localStorage) {
       window.localStorage.removeItem(draftStorageKey(tenantSlug));
     }
-    // bookingToken is only ever null on an idempotent replay (create_public_booking,
-    // NEX-064) — unreachable here since a fresh idempotencyKey is minted on every slot
-    // selection (handleSelectSlot), so this attempt can never collide with a prior one.
-    if (result.value.bookingToken) {
-      setConfirmedBooking({ bookingToken: result.value.bookingToken });
+    // bookingToken/lookupCode are only ever null on an idempotent replay
+    // (create_public_booking, NEX-064) — unreachable here since a fresh idempotencyKey
+    // is minted on every slot selection (handleSelectSlot), so this attempt can never
+    // collide with a prior one.
+    if (result.value.bookingToken && result.value.lookupCode) {
+      setConfirmedBooking({
+        bookingToken: result.value.bookingToken,
+        lookupCode: result.value.lookupCode,
+      });
     }
   }
 
@@ -247,6 +254,7 @@ export function PublicBookingCart({
     return (
       <BookingConfirmation
         bookingToken={confirmedBooking.bookingToken}
+        lookupCode={confirmedBooking.lookupCode}
         locationUrl={locationUrl}
         phoneE164={phoneE164}
         businessName={businessName}
