@@ -15,6 +15,7 @@ function appointment(overrides: Partial<AppointmentSummary> = {}): AppointmentSu
     endAtMs: hour,
     status: 'confirmed',
     itemDescriptions: ['Verniz Gel'],
+    totalCents: 3000,
     ...overrides,
   };
 }
@@ -33,7 +34,7 @@ describe('buildDashboardSummary', () => {
       }),
     ];
 
-    const summary = buildDashboardSummary(appointments, 0, 0, now);
+    const summary = buildDashboardSummary(appointments, 0, 0, 0, now);
     expect(summary.nextAppointment?.id).toBe('sooner');
   });
 
@@ -46,7 +47,7 @@ describe('buildDashboardSummary', () => {
       appointment({ id: 'confirmed', startAtMs: 4 * hour, endAtMs: 5 * hour, status: 'confirmed' }),
     ];
 
-    const summary = buildDashboardSummary(appointments, 0, 0, now);
+    const summary = buildDashboardSummary(appointments, 0, 0, 0, now);
     expect(summary.nextAppointment?.id).toBe('confirmed');
   });
 
@@ -54,7 +55,7 @@ describe('buildDashboardSummary', () => {
     const now = 30 * minute;
     const appointments = [appointment({ id: 'in-progress', startAtMs: 0, endAtMs: hour })];
 
-    const summary = buildDashboardSummary(appointments, 0, 0, now);
+    const summary = buildDashboardSummary(appointments, 0, 0, 0, now);
     expect(summary.nextAppointment?.id).toBe('in-progress');
   });
 
@@ -62,7 +63,7 @@ describe('buildDashboardSummary', () => {
     const now = 20 * hour;
     const appointments = [appointment({ id: 'past', startAtMs: 5 * hour, endAtMs: 6 * hour })];
 
-    const summary = buildDashboardSummary(appointments, 0, 0, now);
+    const summary = buildDashboardSummary(appointments, 0, 0, 0, now);
     expect(summary.nextAppointment).toBeNull();
   });
 
@@ -74,13 +75,25 @@ describe('buildDashboardSummary', () => {
       appointment({ id: 'd', status: 'no_show' }),
     ];
 
-    const summary = buildDashboardSummary(appointments, 0, 0, 0);
+    const summary = buildDashboardSummary(appointments, 0, 0, 0, 0);
     expect(summary.todayCount).toBe(2);
   });
 
-  it('passes through pendingRemindersCount and receivedTodayCents unchanged', () => {
-    const summary = buildDashboardSummary([], 3, 4500, 0);
+  it('sums totalCents across only active appointments for invoicedTodayCents', () => {
+    const appointments = [
+      appointment({ id: 'a', status: 'confirmed', totalCents: 2000 }),
+      appointment({ id: 'b', status: 'presence_confirmed', totalCents: 1500 }),
+      appointment({ id: 'c', status: 'cancelled', totalCents: 9999 }),
+    ];
+
+    const summary = buildDashboardSummary(appointments, 0, 0, 0, 0);
+    expect(summary.invoicedTodayCents).toBe(3500);
+  });
+
+  it('passes through pendingRemindersCount, receivedTodayCents and pendingTodayCents unchanged', () => {
+    const summary = buildDashboardSummary([], 3, 4500, 1200, 0);
     expect(summary.pendingRemindersCount).toBe(3);
     expect(summary.receivedTodayCents).toBe(4500);
+    expect(summary.pendingTodayCents).toBe(1200);
   });
 });
