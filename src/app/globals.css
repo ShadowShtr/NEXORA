@@ -1303,21 +1303,36 @@ select {
   justify-items: start;
 }
 .public-info-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
   margin: 0;
-  color: var(--muted);
+  color: var(--text);
   font-size: 0.85rem;
   text-decoration: none;
 }
-.public-info-row svg {
+.public-info-icon {
   flex-shrink: 0;
-  color: var(--pink-500);
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--pink-100);
+  color: var(--pink-600);
+}
+.public-info-primary {
+  font-weight: 700;
+}
+.public-info-secondary {
+  display: block;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
 }
 a.public-info-row {
   color: var(--pink-600);
-  font-weight: 700;
 }
 
 .sr-only {
