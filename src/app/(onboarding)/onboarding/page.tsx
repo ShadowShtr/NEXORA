@@ -68,10 +68,10 @@ export default async function OnboardingPage() {
   return (
     <main className="shell centered">
       <Card className="wizard-card">
-        <p className="eyebrow">
+        <p className="text-eyebrow">
           Passo {step} de {TOTAL_STEPS}
         </p>
-        <h1>{title}</h1>
+        <h1 className="text-title">{title}</h1>
         {step === 1 ? (
           <BusinessStep
             initialValues={{

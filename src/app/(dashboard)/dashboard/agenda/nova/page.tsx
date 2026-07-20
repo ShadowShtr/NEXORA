@@ -79,8 +79,8 @@ export default async function NewManualBookingPage() {
 
   return (
     <div className="shell">
-      <p className="eyebrow">Agenda</p>
-      <h1>Nova marcação</h1>
+      <p className="text-eyebrow">Agenda</p>
+      <h1 className="text-title">Nova marcação</h1>
       <Card>
         <ManualBookingForm
           clients={(clientRows ?? []).map((client) => ({

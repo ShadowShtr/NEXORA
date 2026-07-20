@@ -163,7 +163,7 @@ export function ManualBookingForm({
   return (
     <form action={formAction} className="stack">
       <fieldset>
-        <legend>Cliente</legend>
+        <legend className="text-subtitle">Cliente</legend>
         {clients.length > 0 ? (
           <div className="stack">
             <label>
@@ -232,7 +232,7 @@ export function ManualBookingForm({
 
             {suggestions.length > 0 ? (
               <div className="client-suggestions" role="status">
-                <p className="public-service-meta">Já existe uma cliente parecida:</p>
+                <p className="text-support">Já existe uma cliente parecida:</p>
                 <ul className="clients-list">
                   {suggestions.map((client) => (
                     <li key={client.id}>
@@ -256,10 +256,10 @@ export function ManualBookingForm({
       </fieldset>
 
       <fieldset>
-        <legend>Serviços</legend>
+        <legend className="text-subtitle">Serviços</legend>
         {categoryGroups.map((group) => (
           <div key={group.id}>
-            <p className="public-step-label">{group.name}</p>
+            <p className="text-eyebrow">{group.name}</p>
             <ul className="public-service-list">
               {group.services.map((service) => {
                 const included = coveredByPackage.has(service.id);
@@ -288,7 +288,7 @@ export function ManualBookingForm({
 
         {packages.length > 0 ? (
           <div>
-            <p className="public-step-label">Pacotes</p>
+            <p className="text-eyebrow">Pacotes</p>
             <ul className="public-service-list">
               <li className="public-service-item">
                 <label className="public-service-choice">
@@ -328,7 +328,7 @@ export function ManualBookingForm({
       </p>
 
       <fieldset>
-        <legend>Horário</legend>
+        <legend className="text-subtitle">Horário</legend>
         {totalMinutes <= 0 ? (
           <p>Escolha pelo menos um serviço ou pacote.</p>
         ) : slotsError ? (

@@ -3,10 +3,10 @@ import { Card } from '@/components/ui/Card';
 export default function FinanceiroPage() {
   return (
     <div className="shell">
-      <p className="eyebrow">Financeiro</p>
-      <h1>Financeiro</h1>
+      <p className="text-eyebrow">Financeiro</p>
+      <h1 className="text-title">Financeiro</h1>
       <Card>
-        <p>Esta área fica disponível numa próxima atualização.</p>
+        <p className="text-support">Esta área fica disponível numa próxima atualização.</p>
       </Card>
     </div>
   );

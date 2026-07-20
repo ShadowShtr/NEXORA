@@ -160,8 +160,8 @@ export default async function AgendaPage({
 
   return (
     <div className="shell">
-      <p className="eyebrow">Agenda</p>
-      <h1>Agenda</h1>
+      <p className="text-eyebrow">Agenda</p>
+      <h1 className="text-title">Agenda</h1>
 
       <Link href="/dashboard/agenda/nova" className="button link-button">
         Nova marcação
@@ -240,7 +240,7 @@ export default async function AgendaPage({
 
       {totalAppointments === 0 ? (
         <Card>
-          <p>Sem marcações neste período.</p>
+          <p className="text-support">Sem marcações neste período.</p>
         </Card>
       ) : (
         <div className="agenda-day-groups">

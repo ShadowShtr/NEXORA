@@ -69,8 +69,8 @@ export default async function ServicosPage() {
 
   return (
     <div className="shell">
-      <p className="eyebrow">Serviços</p>
-      <h1>Serviços</h1>
+      <p className="text-eyebrow">Serviços</p>
+      <h1 className="text-title">Serviços</h1>
       <Card>
         <CategoriesManager categories={categories} />
       </Card>

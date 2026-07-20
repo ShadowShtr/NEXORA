@@ -93,16 +93,16 @@ function NextAppointmentCard({
   if (!nextAppointment) {
     return (
       <Card>
-        <strong>Próxima cliente</strong>
-        <p>Nenhuma marcação.</p>
+        <p className="text-eyebrow">Próxima cliente</p>
+        <p className="text-support">Nenhuma marcação.</p>
       </Card>
     );
   }
 
   return (
     <Card>
-      <strong>Próxima cliente</strong>
-      <p>
+      <p className="text-eyebrow">Próxima cliente</p>
+      <p className="text-support">
         {formatInTimeZone(nextAppointment.startAtMs, timezone, 'HH:mm')} ·{' '}
         {nextAppointment.clientName}
         {nextAppointment.itemDescriptions.length > 0
@@ -125,21 +125,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="shell">
-      <p className="eyebrow">Hoje</p>
-      <h1>Olá! Vamos organizar o seu dia.</h1>
+      <p className="text-eyebrow">Hoje</p>
+      <h1 className="text-title">Olá! Vamos organizar o seu dia.</h1>
       <section className="dashboard-grid" aria-label="Resumo do dia">
         <NextAppointmentCard nextAppointment={summary.nextAppointment} timezone={timezone} />
         <Card>
-          <strong>Marcações</strong>
-          <p>{summary.todayCount} hoje</p>
+          <p className="text-eyebrow">Marcações</p>
+          <p className="text-numeral">{summary.todayCount} hoje</p>
         </Card>
         <Card>
-          <strong>Lembretes</strong>
-          <p>{summary.pendingRemindersCount} pendentes</p>
+          <p className="text-eyebrow">Lembretes</p>
+          <p className="text-numeral">{summary.pendingRemindersCount} pendentes</p>
         </Card>
         <Card>
-          <strong>Recebido</strong>
-          <p>{formatEuros(summary.receivedTodayCents)}</p>
+          <p className="text-eyebrow">Recebido</p>
+          <p className="text-numeral">{formatEuros(summary.receivedTodayCents)}</p>
         </Card>
       </section>
     </div>

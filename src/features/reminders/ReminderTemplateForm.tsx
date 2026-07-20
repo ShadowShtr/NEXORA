@@ -36,12 +36,12 @@ export function ReminderTemplateForm({ template }: { template: string | null }) 
           aria-describedby="reminder-template-hint"
         />
       </label>
-      <p id="reminder-template-hint" className="public-service-meta">
+      <p id="reminder-template-hint" className="text-support">
         Placeholders disponíveis: <code>{'{{cliente}}'}</code>, <code>{'{{data}}'}</code>,{' '}
         <code>{'{{hora}}'}</code>.
       </p>
       <div className="public-summary" aria-live="polite">
-        <p className="public-step-label">Pré-visualização</p>
+        <p className="text-eyebrow">Pré-visualização</p>
         <p>{renderReminderTemplate(draft, PREVIEW_VALUES)}</p>
       </div>
       {state && !state.ok ? (

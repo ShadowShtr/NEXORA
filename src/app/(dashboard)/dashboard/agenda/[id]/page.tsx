@@ -54,11 +54,11 @@ export default async function AppointmentDetailPage({
 
   return (
     <div className="shell">
-      <p className="eyebrow">Agenda</p>
-      <h1>Detalhes da marcação</h1>
+      <p className="text-eyebrow">Agenda</p>
+      <h1 className="text-title">Detalhes da marcação</h1>
 
       <Card className="public-summary">
-        <p className="public-step-label">{APPOINTMENT_STATUS_LABELS[status]}</p>
+        <p className="text-eyebrow">{APPOINTMENT_STATUS_LABELS[status]}</p>
         <p className="public-summary-total">
           {capitalize(
             formatInTimeZone(appointment.start_at, timezone, "EEEE, dd 'de' MMMM 'às' HH:mm", {

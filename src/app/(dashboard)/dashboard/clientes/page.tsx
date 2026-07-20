@@ -55,8 +55,8 @@ export default async function ClientesPage({
 
   return (
     <div className="shell">
-      <p className="eyebrow">Clientes</p>
-      <h1>Clientes</h1>
+      <p className="text-eyebrow">Clientes</p>
+      <h1 className="text-title">Clientes</h1>
 
       <Card>
         <form className="clients-search-form" method="get">
@@ -70,7 +70,7 @@ export default async function ClientesPage({
 
       {!clients || clients.length === 0 ? (
         <Card>
-          <p>
+          <p className="text-support">
             {query
               ? 'Nenhuma cliente encontrada para essa pesquisa.'
               : 'Ainda não tem clientes registadas.'}
