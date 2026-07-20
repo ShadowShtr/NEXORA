@@ -15,7 +15,6 @@ export function DadosClient({ tenantId, tenantSlug }: { tenantId: string; tenant
   const router = useRouter();
   const { state, ready, persist } = useBookingSession(tenantId, tenantSlug);
   const [pending, setPending] = useState(false);
-  const [continueError, setContinueError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -25,21 +24,10 @@ export function DadosClient({ tenantId, tenantSlug }: { tenantId: string; tenant
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  async function handleComplete(registration: ClientContactInput) {
+  function handleComplete(registration: ClientContactInput) {
     setPending(true);
-    setContinueError(null);
-    try {
-      const result = await persist({ ...state, registration });
-      if (!result.ok) {
-        setContinueError(result.error.message);
-        setPending(false);
-        return;
-      }
-      router.push(`/b/${tenantSlug}/resumo`);
-    } catch {
-      setContinueError('Não foi possível continuar. Tente novamente.');
-      setPending(false);
-    }
+    persist({ ...state, registration });
+    router.push(`/b/${tenantSlug}/resumo`);
   }
 
   if (!ready || !state.selectedSlotIso) return null;
@@ -55,16 +43,8 @@ export function DadosClient({ tenantId, tenantSlug }: { tenantId: string; tenant
 
       <div className="card">
         <fieldset disabled={pending} style={{ border: 0, padding: 0, margin: 0 }}>
-          <PreRegistrationStep
-            onComplete={(registration) => void handleComplete(registration)}
-            embedded
-          />
+          <PreRegistrationStep onComplete={handleComplete} embedded />
         </fieldset>
-        {continueError ? (
-          <p role="alert" className="form-error">
-            {continueError}
-          </p>
-        ) : null}
       </div>
     </div>
   );

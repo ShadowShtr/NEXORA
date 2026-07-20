@@ -43,7 +43,6 @@ export function ServicosClient({
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState(false);
-  const [continueError, setContinueError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 
@@ -97,29 +96,18 @@ export function ServicosClient({
     }))
     .filter((group) => group.services.length > 0);
 
-  // A rejected persist() (e.g. a transient server error) must never leave "Continuar"
-  // stuck mid-click forever with no feedback — the draft is how the next page finds out
-  // what was selected, not just a nice-to-have, so a failed save has to be visible and
-  // retryable rather than silently swallowed or navigated past with stale state.
-  async function handleContinue() {
+  // persist() updates state and a same-tab cache synchronously and saves to the DB in
+  // the background (src/app/b/[slug]/useBookingSession.ts) — navigation no longer
+  // waits on a network round trip, and the next page reads the cache instead of
+  // re-fetching what this page just saved.
+  function handleContinue() {
     setPending(true);
-    setContinueError(null);
-    try {
-      const result = await persist({
-        ...state,
-        selectedPackageId,
-        selectedServiceIds: Array.from(selectedServiceIds),
-      });
-      if (!result.ok) {
-        setContinueError(result.error.message);
-        setPending(false);
-        return;
-      }
-      router.push(`/b/${tenantSlug}/horario`);
-    } catch {
-      setContinueError('Não foi possível continuar. Tente novamente.');
-      setPending(false);
-    }
+    persist({
+      ...state,
+      selectedPackageId,
+      selectedServiceIds: Array.from(selectedServiceIds),
+    });
+    router.push(`/b/${tenantSlug}/horario`);
   }
 
   return (
@@ -336,11 +324,6 @@ export function ServicosClient({
         )}
       </div>
 
-      {continueError ? (
-        <p role="alert" className="form-error public-continue-error">
-          {continueError}
-        </p>
-      ) : null}
       <div className="public-cart-bar">
         <span className="public-cart-bar-totals" role="status">
           <span className="public-cart-bar-label">
@@ -348,11 +331,7 @@ export function ServicosClient({
           </span>
           <span className="public-cart-bar-price">{formatEuros(totalCents)}</span>
         </span>
-        <Button
-          type="button"
-          disabled={lines.length === 0 || pending}
-          onClick={() => void handleContinue()}
-        >
+        <Button type="button" disabled={lines.length === 0 || pending} onClick={handleContinue}>
           {pending ? 'A continuar…' : 'Continuar'}
         </Button>
       </div>

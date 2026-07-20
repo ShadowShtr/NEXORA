@@ -1423,17 +1423,23 @@ select {
 .public-tabs {
   margin: 0.75rem 0;
 }
-.public-continue-error {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
-  z-index: 21;
-  margin: 0 1rem;
-  padding: 0.6rem 0.9rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+.public-loading {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+}
+.public-loading-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 3px solid var(--pink-100);
+  border-top-color: var(--pink-500);
+  animation: public-loading-spin 0.7s linear infinite;
+}
+@keyframes public-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Landing pública (/b/[slug]) — cabeçalho com "capa" + avatar sobreposto
