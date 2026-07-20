@@ -1257,6 +1257,10 @@ select {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
 }
+.public-landing .link-button {
+  justify-content: center;
+  width: 100%;
+}
 .public-cover {
   height: 160px;
   border-radius: 1.75rem 1.75rem 0.75rem 0.75rem;
