@@ -243,28 +243,21 @@ export function PublicBookingCart({
 
   if (!resumeChecked) return null;
 
-  if (!registration) {
-    return <PreRegistrationStep onComplete={setRegistration} />;
-  }
-
   if (confirmedBooking) {
     return (
-      <BookingConfirmation bookingToken={confirmedBooking.bookingToken} locationUrl={locationUrl} />
+      <BookingConfirmation
+        bookingToken={confirmedBooking.bookingToken}
+        locationUrl={locationUrl}
+        phoneE164={phoneE164}
+        businessName={businessName}
+      />
     );
   }
 
   return (
     <>
       <div className="public-booking-content">
-        <div className="public-registration-summary">
-          <span>
-            {registration.name} · {registration.phone}
-          </span>
-          <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
-            Alterar dados
-          </Button>
-        </div>
-        <p className="public-step-label">Passo 2 · Escolha o que quer marcar</p>
+        <p className="public-step-label">Passo 1 · Escolha o que quer marcar</p>
 
         {categoryGroups.map((group) => (
           <Card key={group.id}>
@@ -361,36 +354,59 @@ export function PublicBookingCart({
         </Card>
 
         {lines.length > 0 ? (
-          <SlotPicker
-            tenantId={tenantId}
-            timezone={timezone}
-            totalMinutes={totalMinutes}
-            selectedIso={selectedSlotIso}
-            onSelect={handleSelectSlot}
-            reloadKey={slotReloadKey}
-          />
+          <div id="horario">
+            <p className="public-step-label">Passo 2 · Escolha o horário</p>
+            <SlotPicker
+              tenantId={tenantId}
+              timezone={timezone}
+              totalMinutes={totalMinutes}
+              selectedIso={selectedSlotIso}
+              onSelect={handleSelectSlot}
+              reloadKey={slotReloadKey}
+            />
+          </div>
         ) : null}
 
-        <Card className="public-summary" id="confirmar">
-          <p className="public-step-label">Passo 4 · Confirmar</p>
-          {bookingError ? (
-            <p role="alert" className="form-error">
-              {bookingError}
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            disabled={lines.length === 0 || !selectedSlotIso || isBooking}
-            onClick={() => void handleConfirmBooking()}
-          >
-            {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
-          </Button>
-          {whatsappHref ? (
-            <a className="button link-button" href={whatsappHref}>
-              Prefere combinar por WhatsApp?
-            </a>
-          ) : null}
-        </Card>
+        {lines.length > 0 && selectedSlotIso ? (
+          <Card id="dados">
+            <p className="public-step-label">Passo 3 · Os seus dados</p>
+            {registration ? (
+              <div className="public-registration-summary">
+                <span>
+                  {registration.name} · {registration.phone}
+                </span>
+                <Button type="button" variant="secondary" onClick={() => setRegistration(null)}>
+                  Alterar dados
+                </Button>
+              </div>
+            ) : (
+              <PreRegistrationStep onComplete={setRegistration} embedded />
+            )}
+          </Card>
+        ) : null}
+
+        {lines.length > 0 && selectedSlotIso && registration ? (
+          <Card className="public-summary" id="confirmar">
+            <p className="public-step-label">Passo 4 · Confirmar</p>
+            {bookingError ? (
+              <p role="alert" className="form-error">
+                {bookingError}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              disabled={lines.length === 0 || !selectedSlotIso || isBooking}
+              onClick={() => void handleConfirmBooking()}
+            >
+              {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
+            </Button>
+            {whatsappHref ? (
+              <a className="button link-button" href={whatsappHref}>
+                Prefere combinar por WhatsApp?
+              </a>
+            ) : null}
+          </Card>
+        ) : null}
       </div>
 
       {/* PRD 01 §3.6: "Barra fixa mostra quantidade, duração e valor do carrinho" — kept
@@ -403,11 +419,15 @@ export function PublicBookingCart({
         <Button
           type="button"
           disabled={lines.length === 0}
-          onClick={() =>
+          onClick={() => {
+            // Scrolls to whichever step is next in the flow, not always "confirmar" —
+            // a card only renders once its own prerequisite (a slot, then registration)
+            // is satisfied, so #confirmar may not exist in the DOM yet.
+            const targetId = !selectedSlotIso ? 'horario' : !registration ? 'dados' : 'confirmar';
             document
-              .getElementById('confirmar')
-              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+              .getElementById(targetId)
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
         >
           Continuar
         </Button>

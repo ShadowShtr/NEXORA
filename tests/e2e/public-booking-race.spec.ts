@@ -78,8 +78,6 @@ test.describe('public booking race (NEX-065)', () => {
 
     await pageA.goto(`/b/${user.slug}`);
     await pageB.goto(`/b/${user.slug}`);
-    await completeRegistration(pageA, 'Cliente A', '911111111');
-    await completeRegistration(pageB, 'Cliente B', '922222222');
 
     await pageA.getByRole('checkbox', { name: 'Verniz gel' }).check();
     await pageB.getByRole('checkbox', { name: 'Verniz gel' }).check();
@@ -87,8 +85,8 @@ test.describe('public booking race (NEX-065)', () => {
     await pageA.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
     await pageB.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
 
-    const firstSlotButtonA = pageA.locator('.public-slot-button').first();
-    const firstSlotButtonB = pageB.locator('.public-slot-button').first();
+    const firstSlotButtonA = pageA.locator('.public-slot-picker .public-slot-button').first();
+    const firstSlotButtonB = pageB.locator('.public-slot-picker .public-slot-button').first();
     await expect(firstSlotButtonA).toBeVisible();
     await expect(firstSlotButtonB).toBeVisible();
 
@@ -97,6 +95,9 @@ test.describe('public booking race (NEX-065)', () => {
     // picking "the first slot" on each page is picking the same slot.
     await firstSlotButtonA.click();
     await firstSlotButtonB.click();
+
+    await completeRegistration(pageA, 'Cliente A', '911111111');
+    await completeRegistration(pageB, 'Cliente B', '922222222');
 
     const confirmA = pageA.getByRole('button', { name: 'Confirmar marcação' });
     const confirmB = pageB.getByRole('button', { name: 'Confirmar marcação' });

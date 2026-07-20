@@ -30,4 +30,14 @@ describe('groupSlotsByDay', () => {
   it('returns an empty array for no slots', () => {
     expect(groupSlotsByDay([], 'Europe/Lisbon')).toEqual([]);
   });
+
+  it('formats a "start - end" range when durationMinutes is given', () => {
+    const groups = groupSlotsByDay(['2026-01-05T09:00:00.000Z'], 'Europe/Lisbon', 30);
+    expect(groups[0]!.slots[0]!.timeLabel).toBe('09:00 - 09:30');
+  });
+
+  it('carries a range across an hour boundary', () => {
+    const groups = groupSlotsByDay(['2026-01-05T09:45:00.000Z'], 'Europe/Lisbon', 30);
+    expect(groups[0]!.slots[0]!.timeLabel).toBe('09:45 - 10:15');
+  });
 });

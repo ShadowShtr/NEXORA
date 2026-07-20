@@ -29,9 +29,22 @@ async function seedManyServices(user: ProvisionedTestUser) {
     .single();
   await user.admin
     .from('business_settings')
-    .update({ phone_e164: '+351912345678', published_at: new Date().toISOString() })
+    .update({
+      phone_e164: '+351912345678',
+      published_at: new Date().toISOString(),
+      min_notice_hours: 1,
+    })
     .eq('tenant_id', tenant!.id);
   await user.admin.from('tenants').update({ status: 'active' }).eq('id', tenant!.id);
+  await user.admin.from('business_hours').insert(
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({
+      tenant_id: tenant!.id,
+      day_of_week: dayOfWeek,
+      is_open: true,
+      opens_at: '00:00',
+      closes_at: '23:30',
+    })),
+  );
   const { data: category } = await user.admin
     .from('service_categories')
     .insert({ tenant_id: tenant!.id, name: 'Manicure' })
@@ -63,7 +76,6 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     await seedManyServices(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
     await expect(page.locator('.public-cart-bar')).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
@@ -76,7 +88,6 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     await seedManyServices(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
 
     const bar = page.locator('.public-cart-bar');
     await expect(bar.getByText('0 itens · 0 min · 0,00 €')).toBeVisible();
@@ -95,7 +106,6 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     await seedManyServices(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
 
     const bar = page.locator('.public-cart-bar');
     const before = await bar.boundingBox();
@@ -111,16 +121,30 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     expect(after!.y).toBeCloseTo(before!.y, 0);
   });
 
-  test('"Continuar" scrolls the confirmation card into view', async ({ page }) => {
+  test('"Continuar" scrolls to whichever step is next in the flow', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
     await page.getByRole('checkbox', { name: 'Serviço 0' }).check();
+    const cartBarContinue = page.locator('.public-cart-bar').getByRole('button', {
+      name: 'Continuar',
+    });
 
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
+    // No slot picked yet — scrolls to Passo 2.
+    await cartBarContinue.click();
+    await expect(page.locator('#horario')).toBeInViewport();
 
+    await page.locator('.public-slot-picker .public-slot-button').first().click();
+
+    // Slot picked, not registered yet — scrolls to Passo 3.
+    await cartBarContinue.click();
+    await expect(page.locator('#dados')).toBeInViewport();
+
+    await completeRegistration(page, 'Ana Cliente', '911111111');
+
+    // Registered — scrolls to Passo 4.
+    await cartBarContinue.click();
     await expect(page.locator('#confirmar')).toBeInViewport();
     // WhatsApp is now an alternative contact, not the booking mechanism (NEX-065
     // replaced it with a real slot picker + createPublicBooking) — the confirmation

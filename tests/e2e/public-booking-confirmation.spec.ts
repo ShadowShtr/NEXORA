@@ -72,11 +72,11 @@ test.describe('public booking confirmation screen (NEX-070)', () => {
     await seedOpenTenant(user);
 
     await page.goto(`/b/${user.slug}`);
-    await completeRegistration(page, 'Cliente Confirmação', '911111111');
     await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
     await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
 
-    await page.locator('.public-slot-button').first().click();
+    await page.locator('.public-slot-picker .public-slot-button').first().click();
+    await completeRegistration(page, 'Cliente Confirmação', '911111111');
     await page.getByRole('button', { name: 'Confirmar marcação' }).click();
 
     await expect(page.getByText('A sua marcação foi confirmada com sucesso.')).toBeVisible({
@@ -86,10 +86,13 @@ test.describe('public booking confirmation screen (NEX-070)', () => {
     const viewBookingLink = page.getByRole('link', { name: 'Ver marcação' });
     const calendarLink = page.getByRole('link', { name: 'Adicionar ao calendário' });
     const mapLink = page.getByRole('link', { name: 'Ver no mapa' });
+    const whatsappLink = page.getByRole('link', { name: 'Contactar WhatsApp' });
 
     await expect(viewBookingLink).toBeVisible();
     await expect(calendarLink).toBeVisible();
     await expect(mapLink).toBeVisible();
+    await expect(whatsappLink).toBeVisible();
+    await expect(whatsappLink).toHaveAttribute('href', /^https:\/\/wa\.me\/351912345678\?text=/);
 
     const viewBookingHref = await viewBookingLink.getAttribute('href');
     expect(viewBookingHref).toMatch(/^\/marcacao\/[0-9a-f]{64}$/);

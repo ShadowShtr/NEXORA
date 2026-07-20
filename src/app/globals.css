@@ -299,20 +299,22 @@ a:focus-visible {
   margin: 0.5rem 0 0;
   padding: 0;
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 .public-service-item {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
-  border-bottom: 1px solid var(--pink-100);
-  padding-bottom: 0.75rem;
+  border: 1.5px solid var(--pink-100);
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  transition: border-color 0.15s ease;
 }
-.public-service-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.public-service-item:has(input:checked) {
+  border-color: var(--pink-500);
+  background: var(--pink-50);
 }
 .public-service-meta {
   color: var(--muted);
@@ -425,32 +427,32 @@ a:focus-visible {
   min-width: 0;
   overflow-wrap: break-word;
 }
-.public-slot-days {
+.public-slot-picker {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
-}
-.public-slot-day-label {
-  font-weight: 800;
-  margin: 0 0 0.5rem;
 }
 .public-slot-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.6rem;
 }
 .public-slot-button {
   width: 100%;
   min-height: 44px;
-  border: 2px solid var(--pink-100);
-  border-radius: 0.75rem;
+  border: 1.5px solid var(--pink-100);
+  border-radius: 0.85rem;
   background: white;
   color: var(--text);
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .public-slot-button:hover {
   border-color: var(--pink-300);
@@ -459,6 +461,94 @@ a:focus-visible {
   background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   border-color: var(--pink-600);
   color: white;
+}
+
+/* Calendar (SlotPicker): a Sunday-first month grid feeding a time-of-day list, styled
+   restrained and rounded rather than heavily bordered/boxed — days without computed
+   availability read as quietly disabled instead of drawing extra attention. */
+.calendar {
+  display: grid;
+  gap: 1rem;
+}
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.calendar-month-label {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.calendar-nav {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--pink-100);
+  border-radius: 999px;
+  background: white;
+  color: var(--pink-600);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.calendar-nav:hover {
+  border-color: var(--pink-300);
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+.calendar-weekdays {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.calendar-day {
+  aspect-ratio: 1;
+  min-height: 2.25rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.calendar-day[data-in-month='false'] {
+  color: var(--muted);
+  opacity: 0.45;
+}
+.calendar-day[data-has-slots='true']:not([data-in-month='false']) {
+  font-weight: 800;
+}
+.calendar-day:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+.calendar-day:not(:disabled):hover {
+  background: var(--pink-100);
+}
+.calendar-day[aria-pressed='true'] {
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  color: white;
+  opacity: 1;
+}
+.calendar-times {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--pink-100);
+}
+.calendar-times-label {
+  margin: 0;
+  font-weight: 700;
+  color: var(--muted);
 }
 .hours-list {
   display: grid;
