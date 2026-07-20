@@ -69,13 +69,13 @@ export default async function PublicBusinessPage({
         <div className="public-info-rows">
           <div className="public-info-row">
             <span className="public-info-icon" aria-hidden="true">
-              <User size={16} />
+              <User size={20} />
             </span>
             <span className="public-info-primary">{settings.professional_name}</span>
           </div>
           <div className="public-info-row">
             <span className="public-info-icon" aria-hidden="true">
-              <MapPin size={16} />
+              <MapPin size={20} />
             </span>
             <span>
               <span className="public-info-primary">{settings.address_line}</span>
@@ -87,7 +87,7 @@ export default async function PublicBusinessPage({
           {settings.phone_e164 ? (
             <div className="public-info-row">
               <span className="public-info-icon" aria-hidden="true">
-                <Phone size={16} />
+                <Phone size={20} />
               </span>
               <span className="public-info-primary">{settings.phone_e164}</span>
             </div>
@@ -100,7 +100,7 @@ export default async function PublicBusinessPage({
               className="public-info-row public-info-row-link"
             >
               <span className="public-info-icon" aria-hidden="true">
-                <MapPin size={16} />
+                <MapPin size={20} />
               </span>
               <span className="public-info-primary">Ver no mapa</span>
             </a>
