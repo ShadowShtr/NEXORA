@@ -1270,8 +1270,8 @@ select {
   width: 100%;
 }
 .public-cover {
-  height: 160px;
-  border-radius: 1.75rem 1.75rem 0.75rem 0.75rem;
+  height: 220px;
+  border-radius: 1.75rem 1.75rem 3.5rem 3.5rem;
   background: linear-gradient(135deg, var(--pink-300), var(--pink-500) 60%, var(--pink-600));
   position: relative;
   margin-bottom: 2.5rem;
@@ -1300,7 +1300,7 @@ select {
   display: grid;
   gap: 0.5rem;
   margin-top: 0.75rem;
-  justify-items: center;
+  justify-items: start;
 }
 .public-info-row {
   display: inline-flex;
