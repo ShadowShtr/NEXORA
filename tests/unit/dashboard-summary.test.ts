@@ -11,6 +11,7 @@ function appointment(overrides: Partial<AppointmentSummary> = {}): AppointmentSu
   return {
     id: 'apt-1',
     clientName: 'Ana',
+    clientPhoneE164: null,
     startAtMs: 0,
     endAtMs: hour,
     status: 'confirmed',

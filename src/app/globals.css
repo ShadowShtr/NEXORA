@@ -874,159 +874,444 @@ select {
   font-weight: 700;
   font-size: 1.1rem;
 }
-/* Dashboard home (/dashboard) — greeting, "próxima cliente" hero card, day summary
-   row, and quick shortcuts. Visual refinement mid-2026 reference. */
-.dashboard-greeting {
-  margin-bottom: 1.25rem;
+/* Dashboard home (/dashboard) — operational panel: greeting, "próxima cliente" hero
+   card, compact day summary, attention list, today's agenda preview, and quick
+   shortcuts. Visual refinement mid-2026 reference. Top/bottom safe-area insets are
+   deliberately NOT repeated here — .app-shell-content (shared shell chrome) already
+   applies env(safe-area-inset-top/bottom) once for every dashboard page; adding it
+   again here would double-count it on notched devices, same fix as .more-page earlier
+   this round. */
+@keyframes home-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.dashboard-greeting-row {
+.home-page {
+  padding-top: 10px;
+  animation: home-enter 260ms ease-out;
+  background:
+    radial-gradient(circle at 84% 5%, rgba(255, 219, 231, 0.17), transparent 31%),
+    linear-gradient(180deg, #fffdfd 0%, #fffafb 66%, #fff7fa 100%);
+}
+.home-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 12px;
 }
-.dashboard-bell {
+.home-greeting {
+  margin: 0;
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  font-size: 30px;
+  line-height: 37px;
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  color: #191720;
+}
+.home-greeting-emoji {
+  display: inline-block;
+  font-size: 26px;
+  vertical-align: -2px;
+}
+.home-date {
+  margin-top: 7px;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 400;
+  color: #6f6972;
+}
+.home-notification-button {
   position: relative;
   flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
-  background: white;
-  border: 1px solid var(--pink-100);
-  color: var(--pink-600);
+  border-radius: 50%;
+  border: 1px solid rgba(239, 229, 234, 0.92);
+  background: rgba(255, 255, 255, 0.94);
+  color: #443f47;
+  box-shadow: 0 8px 20px rgba(42, 27, 35, 0.06);
 }
-.dashboard-bell-badge {
+.home-notification-badge {
   position: absolute;
-  top: 0.4rem;
-  right: 0.5rem;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 999px;
+  top: 9px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--pink-500);
   border: 1.5px solid white;
 }
-.dashboard-next-client-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.6rem;
+
+.next-client-card {
+  margin: 20px 0 0;
+  min-height: 150px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(237, 63, 121, 0.14);
+  background: linear-gradient(135deg, #fff6f9 0%, #fffdfd 100%);
+  box-shadow: 0 12px 28px rgba(237, 63, 121, 0.085);
 }
-.dashboard-avatar {
-  width: 2.75rem;
-  height: 2.75rem;
-  flex-shrink: 0;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
-  color: white;
-  font-weight: 800;
-  font-size: 0.95rem;
+.next-client-card[data-empty='true'] {
+  min-height: 104px;
 }
-.dashboard-next-client-info {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.dashboard-next-client-name {
-  font-weight: 700;
-}
-.dashboard-next-client-badge {
-  flex-shrink: 0;
-  background: var(--pink-100);
-  color: var(--pink-600);
-  font-weight: 800;
-  font-size: 0.78rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.dashboard-next-client-cta {
-  width: 100%;
-  margin-top: 0.85rem;
-}
-.dashboard-section-title {
-  margin-top: 1.75rem;
-  margin-bottom: 0;
-}
-.dashboard-reminders {
-  margin-top: 0.75rem;
-}
-.dashboard-reminders ul {
-  list-style: none;
+.next-client-label {
   margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.75rem;
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #cb3c70;
 }
-.dashboard-reminder-row {
-  display: flex;
+.next-client-content {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) auto;
+  gap: 13px;
   align-items: center;
-  gap: 0.6rem;
 }
-.dashboard-reminder-icon {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--pink-100);
-  color: var(--pink-600);
+.next-client-time {
+  font-size: 23px;
+  line-height: 28px;
+  font-weight: 700;
+  color: #ed3f79;
 }
-.dashboard-reminder-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-weight: 600;
-}
-.dashboard-reminder-badge {
-  flex-shrink: 0;
-  background: var(--pink-50);
-  color: var(--pink-600);
-  font-weight: 800;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.dashboard-stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-.dashboard-stat-card {
-  display: grid;
-  gap: 0.2rem;
-  text-align: center;
-  padding: 0.9rem 0.5rem;
-}
-.dashboard-shortcuts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-.dashboard-shortcut {
+.next-client-info {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 1rem 0.5rem;
-  border-radius: 1rem;
-  border: 1.5px solid var(--pink-100);
-  background: white;
+  min-width: 0;
+}
+.next-client-name {
+  font-size: 17px;
+  line-height: 23px;
+  font-weight: 650;
+  color: #191720;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-client-services {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 18px;
+  color: #716b74;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.next-client-value {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 650;
+  color: #ed3f79;
+}
+.next-client-state {
+  flex-shrink: 0;
+  background: var(--pink-100);
   color: var(--pink-600);
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-align: center;
+  font-weight: 800;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.next-client-button {
+  width: 100%;
+  margin-top: 14px;
+  height: 38px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 0;
+  background: linear-gradient(135deg, #f55b8d, #d93675);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
   text-decoration: none;
 }
-.dashboard-shortcut:hover {
-  border-color: var(--pink-300);
+.next-client-empty {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.next-client-empty-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: #6f6972;
+}
+.next-client-empty-action {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(237, 63, 121, 0.22);
+  background: #fff;
+  color: #d93675;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.home-section-title {
+  margin: 24px 0 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  color: #2a252c;
+}
+.home-section-header {
+  margin: 24px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.home-section-header h2 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  color: #2a252c;
+}
+.home-section-link {
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 600;
+  color: #df3c77;
+  text-decoration: none;
+}
+
+.daily-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.summary-card {
+  min-height: 100px;
+  padding: 13px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(42, 27, 35, 0.045);
+}
+.summary-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #fff1f5;
+  color: #ed3f79;
+}
+.summary-card[data-type='appointments'] .summary-icon {
+  background: #fff0f5;
+  color: #ed3f79;
+}
+.summary-card[data-type='revenue'] .summary-icon {
+  background: #edf9f2;
+  color: #18ad5c;
+}
+.summary-card[data-type='pending'] .summary-icon {
+  background: #fff6e9;
+  color: #e59220;
+}
+.summary-value {
+  margin-top: 9px;
+  font-size: 18px;
+  line-height: 23px;
+  font-weight: 700;
+  color: #211d23;
+}
+.summary-label {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 15px;
+  color: #7f7982;
+}
+
+.reminders-card,
+.today-agenda-card {
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 9px 22px rgba(42, 27, 35, 0.045);
+}
+.reminder-item {
+  min-height: 78px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid #f2e9ed;
+}
+.reminders-card .reminder-item:last-child {
+  border-bottom: 0;
+}
+.reminder-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #fff1f5;
+  color: #d83a72;
+}
+.reminder-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.reminder-client-name {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: #211d23;
+}
+.reminder-details {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #827b85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reminder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reminder-whatsapp-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #edf9f2;
+  color: #12b759;
+}
+.reminder-chevron {
+  display: grid;
+  place-items: center;
+  color: #99929b;
+}
+
+.today-agenda-item {
+  min-height: 64px;
+  padding: 11px 14px;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid #f2e9ed;
+}
+.today-agenda-card .today-agenda-item:last-child {
+  border-bottom: 0;
+}
+.today-agenda-time {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ed3f79;
+}
+.today-agenda-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+.today-agenda-name {
+  font-size: 14px;
+  line-height: 19px;
+  font-weight: 600;
+  color: #211d23;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today-agenda-services {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #827b85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today-agenda-status {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 600;
+  color: #99929b;
+}
+.today-agenda-actions {
+  display: flex;
+  align-items: center;
+}
+.today-agenda-whatsapp {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf9f2;
+  color: #12b759;
+}
+
+.quick-actions-title {
+  margin: 24px 0 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  color: #2a252c;
+}
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 11px;
+}
+.quick-action-card {
+  min-height: 94px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  color: #d83a72;
+  box-shadow: 0 8px 19px rgba(42, 27, 35, 0.045);
+  text-decoration: none;
+}
+.quick-action-label {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
 }
 
 .skip-link {

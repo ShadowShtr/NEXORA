@@ -1,6 +1,7 @@
 export type AppointmentSummary = {
   id: string;
   clientName: string;
+  clientPhoneE164: string | null;
   startAtMs: number;
   endAtMs: number;
   status: string;

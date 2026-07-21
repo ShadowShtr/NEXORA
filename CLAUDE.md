@@ -184,6 +184,39 @@ existirem de facto — agrupar sob a página de Definições real até serem con
 Não inventar uma secção de Suporte/Ajuda sem um destino real (centro de ajuda,
 formulário de feedback ou contacto) por trás.
 
+## Página Início — regras obrigatórias
+
+A página Início deve funcionar como um painel operacional rápido.
+
+Ao abrir a página, a utilizadora deve perceber imediatamente:
+
+- próxima cliente;
+- marcações de hoje;
+- valor faturado;
+- pagamentos pendentes;
+- lembretes que precisam de atenção.
+
+É obrigatório:
+
+- respeitar safe area;
+- usar espaçamento vertical compacto;
+- manter o cartão da próxima cliente como elemento principal;
+- reduzir o estado vazio;
+- usar cartões compactos para o resumo;
+- mostrar ações reais nos lembretes;
+- incluir preview da agenda do dia;
+- não usar formulários na página;
+- não mostrar botão flutuante quando existirem atalhos rápidos.
+
+A página deve parecer uma central de controlo simples, não um relatório extenso.
+
+Cada item de "Precisa da sua atenção" e da agenda do dia tem de vir de dados reais do
+tenant. Não inventar tipos de alerta sem uma fonte de dados real (ex.: "conflitos na
+agenda" não existe como estado consultável — a duplicação de horários já é impedida ao
+nível da base de dados — e "clientes que faltaram" não tem fluxo de acompanhamento
+próprio ainda). Não criar um terceiro/quarto atalho rápido sem um destino real (ex.:
+"novo cliente" reutiliza o fluxo de nova marcação, não fabricar um destino próprio).
+
 ### Testes obrigatórios por tarefa
 
 Conforme o escopo, implemente:

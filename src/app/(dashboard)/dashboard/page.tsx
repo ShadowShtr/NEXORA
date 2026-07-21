@@ -1,18 +1,36 @@
 import Link from 'next/link';
+import type { Route } from 'next';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
-import { Bell, CalendarPlus, Share2 } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import {
+  Bell,
+  Calendar,
+  CalendarPlus,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  MessageCircle,
+  Share2,
+  Wallet,
+} from 'lucide-react';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { publicEnv } from '@/lib/env';
-import { initials } from '@/lib/initials';
 import { publicBookingUrl } from '@/features/onboarding/domain/publish-step';
+import {
+  APPOINTMENT_STATUS_LABELS,
+  buildAppointmentReminderMessage,
+  buildWhatsappDeepLink,
+} from '@/features/appointments/domain/appointment-card';
+import { AttentionWhatsappButton } from '@/features/dashboard/AttentionWhatsappButton';
 import {
   buildDashboardSummary,
   type AppointmentSummary,
   type DashboardSummary,
 } from '@/features/dashboard/domain/summary';
+
+const AGENDA_PREVIEW_LIMIT = 4;
+const ATTENTION_PREVIEW_LIMIT = 4;
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -35,14 +53,26 @@ function minutesUntilLabel(startAtMs: number, nowMs: number): string {
   return `Em ${Math.round(minutes / 60)} h`;
 }
 
-function dueDateLabel(dueAtMs: number, nowMs: number, timezone: string): string {
-  const dueKey = formatInTimeZone(dueAtMs, timezone, 'yyyy-MM-dd');
+// Used for both the reminder's own appointment date and (previously) the reminder's
+// due_at — now only the former, since the redesigned attention row shows "Amanhã, 08:30
+// · Manicure Gel" (the appointment itself), not an abstract reminder due-date.
+function relativeDayLabel(dateMs: number, nowMs: number, timezone: string): string {
+  const dateKey = formatInTimeZone(dateMs, timezone, 'yyyy-MM-dd');
   const todayKey = formatInTimeZone(nowMs, timezone, 'yyyy-MM-dd');
   const tomorrowKey = formatInTimeZone(nowMs + 24 * 60 * 60_000, timezone, 'yyyy-MM-dd');
-  if (dueKey === todayKey) return 'Hoje';
-  if (dueKey === tomorrowKey) return 'Amanhã';
-  return formatInTimeZone(dueAtMs, timezone, 'dd MMM', { locale: pt });
+  if (dateKey === todayKey) return 'Hoje';
+  if (dateKey === tomorrowKey) return 'Amanhã';
+  return formatInTimeZone(dateMs, timezone, 'dd MMM', { locale: pt });
 }
+
+type AttentionReminder = {
+  id: string;
+  appointmentId: string | null;
+  clientName: string;
+  startAtMs: number | null;
+  itemDescriptions: string[];
+  whatsappHref: string | null;
+};
 
 // Data loading (including the Date.now() read) lives outside the component body: the
 // React Compiler purity rule forbids impure calls directly in render, since a component
@@ -74,14 +104,14 @@ async function loadDashboardData(tenantId: string) {
     { data: appointmentRows },
     { count: pendingRemindersCount },
     { data: paymentRows },
-    { data: upcomingReminderRows },
+    { data: attentionReminderRows },
   ] = await Promise.all([
     supabase.from('profiles').select('display_name').eq('tenant_id', tenantId).maybeSingle(),
     supabase.from('tenants').select('slug').eq('id', tenantId).single(),
     supabase
       .from('appointments')
       .select(
-        'id, start_at, end_at, status, expected_total_cents, final_total_cents, clients(name), appointment_items(description)',
+        'id, start_at, end_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
       )
       .eq('tenant_id', tenantId)
       .gte('start_at', dayStartIso)
@@ -101,11 +131,13 @@ async function loadDashboardData(tenantId: string) {
       .lt('paid_at', dayEndIso),
     supabase
       .from('reminders')
-      .select('id, due_at, appointments(start_at, clients(name))')
+      .select(
+        'id, due_at, appointments(id, start_at, clients(name, phone_e164), appointment_items(description))',
+      )
       .eq('tenant_id', tenantId)
       .eq('status', 'pending')
       .order('due_at')
-      .limit(3),
+      .limit(ATTENTION_PREVIEW_LIMIT),
   ]);
 
   const appointmentsToday: AppointmentSummary[] = (appointmentRows ?? []).map((row) => {
@@ -113,6 +145,7 @@ async function loadDashboardData(tenantId: string) {
     return {
       id: row.id,
       clientName: client?.name ?? 'Cliente',
+      clientPhoneE164: client?.phone_e164 ?? null,
       startAtMs: new Date(row.start_at).getTime(),
       endAtMs: new Date(row.end_at).getTime(),
       status: row.status,
@@ -146,17 +179,30 @@ async function loadDashboardData(tenantId: string) {
     nowMs,
   );
 
-  const upcomingReminders = (upcomingReminderRows ?? []).map((row) => {
+  const attentionReminders: AttentionReminder[] = (attentionReminderRows ?? []).map((row) => {
     const appointment = Array.isArray(row.appointments) ? row.appointments[0] : row.appointments;
     const client = appointment
       ? Array.isArray(appointment.clients)
         ? appointment.clients[0]
         : appointment.clients
       : null;
+    const whatsappHref =
+      client?.phone_e164 && appointment
+        ? buildWhatsappDeepLink(
+            client.phone_e164,
+            buildAppointmentReminderMessage(
+              client.name ?? 'Cliente',
+              formatInTimeZone(appointment.start_at, timezone, 'HH:mm'),
+            ),
+          )
+        : null;
     return {
       id: row.id,
+      appointmentId: appointment?.id ?? null,
       clientName: client?.name ?? 'Cliente',
-      dueAtMs: new Date(row.due_at).getTime(),
+      startAtMs: appointment ? new Date(appointment.start_at).getTime() : null,
+      itemDescriptions: (appointment?.appointment_items ?? []).map((item) => item.description),
+      whatsappHref,
     };
   });
 
@@ -166,7 +212,8 @@ async function loadDashboardData(tenantId: string) {
     nowMs,
     ownerName: profileRow?.display_name ?? '',
     tenantSlug: tenantRow?.slug ?? '',
-    upcomingReminders,
+    appointmentsToday,
+    attentionReminders,
   };
 }
 
@@ -181,40 +228,223 @@ function NextClientCard({
 }) {
   if (!nextAppointment) {
     return (
-      <Card>
-        <p className="text-eyebrow">Próxima cliente</p>
-        <p className="text-support">Sem marcações agendadas.</p>
-      </Card>
+      <div className="next-client-card" data-empty="true">
+        <p className="next-client-label">Próxima cliente</p>
+        <div className="next-client-empty">
+          <p className="next-client-empty-message">Sem marcações agendadas para hoje.</p>
+          <Link href="/dashboard/agenda/nova" className="next-client-empty-action">
+            + Criar marcação
+          </Link>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <p className="text-eyebrow">Próxima cliente</p>
-      <div className="dashboard-next-client-row">
-        <span className="dashboard-avatar" aria-hidden="true">
-          {initials(nextAppointment.clientName)}
+    <div className="next-client-card">
+      <p className="next-client-label">Próxima cliente</p>
+      <div className="next-client-content">
+        <span className="next-client-time">
+          {formatInTimeZone(nextAppointment.startAtMs, timezone, 'HH:mm')}
         </span>
-        <span className="dashboard-next-client-info">
-          <span className="dashboard-next-client-name">{nextAppointment.clientName}</span>
-          <span className="text-support">
-            {formatInTimeZone(nextAppointment.startAtMs, timezone, 'HH:mm')}
-            {nextAppointment.itemDescriptions.length > 0
-              ? ` · ${nextAppointment.itemDescriptions.join(', ')}`
-              : ''}
-          </span>
+        <span className="next-client-info">
+          <span className="next-client-name">{nextAppointment.clientName}</span>
+          {nextAppointment.itemDescriptions.length > 0 ? (
+            <span className="next-client-services">
+              {nextAppointment.itemDescriptions.join(', ')}
+            </span>
+          ) : null}
+          <span className="next-client-value">{formatEuros(nextAppointment.totalCents)}</span>
         </span>
-        <span className="dashboard-next-client-badge">
+        <span className="next-client-state">
           {minutesUntilLabel(nextAppointment.startAtMs, nowMs)}
         </span>
       </div>
-      <Link
-        href={`/dashboard/agenda/${nextAppointment.id}`}
-        className="button button-secondary link-button dashboard-next-client-cta"
-      >
+      <Link href={`/dashboard/agenda/${nextAppointment.id}`} className="next-client-button">
         Ver detalhes
       </Link>
-    </Card>
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  actionHref,
+  actionLabel,
+}: {
+  title: string;
+  actionHref: Route;
+  actionLabel: string;
+}) {
+  return (
+    <div className="home-section-header">
+      <h2>{title}</h2>
+      <Link href={actionHref} className="home-section-link">
+        {actionLabel}
+      </Link>
+    </div>
+  );
+}
+
+function DailySummaryGrid({ summary }: { summary: DashboardSummary }) {
+  return (
+    <div className="daily-summary-grid">
+      <div className="summary-card" data-type="appointments">
+        <span className="summary-icon" aria-hidden="true">
+          <Calendar size={17} />
+        </span>
+        <span className="summary-value">{summary.todayCount}</span>
+        <span className="summary-label">Marcações</span>
+      </div>
+      <div className="summary-card" data-type="revenue">
+        <span className="summary-icon" aria-hidden="true">
+          <Wallet size={17} />
+        </span>
+        <span className="summary-value">{formatEuros(summary.invoicedTodayCents)}</span>
+        <span className="summary-label">Faturado</span>
+      </div>
+      <div className="summary-card" data-type="pending">
+        <span className="summary-icon" aria-hidden="true">
+          <Clock size={17} />
+        </span>
+        <span className="summary-value">{formatEuros(summary.pendingTodayCents)}</span>
+        <span className="summary-label">Pendente</span>
+      </div>
+    </div>
+  );
+}
+
+// "Precisa da sua atenção" (renamed from "Lembretes"): the reference also suggests
+// pagamentos pendentes/clientes que faltaram/conflitos na agenda as future item types,
+// but none of those are queryable, real states in this schema today — pending payments
+// already surface in the summary grid above, "no_show" has no follow-up workflow yet,
+// and double-booking is prevented at the DB level (appointments_no_overlap exclusion
+// constraint), so there is no "conflict" state that could ever exist to show. Only real
+// pending reminders are listed here, same data source as before, just restyled.
+function AttentionSection({
+  reminders,
+  timezone,
+  nowMs,
+}: {
+  reminders: AttentionReminder[];
+  timezone: string;
+  nowMs: number;
+}) {
+  return (
+    <div className="reminders-card">
+      {reminders.length === 0 ? (
+        <div className="reminder-item reminder-item-empty">
+          <span className="reminder-icon" aria-hidden="true">
+            <CheckCircle2 size={17} />
+          </span>
+          <span className="reminder-client-name">Todos os lembretes estão em dia.</span>
+        </div>
+      ) : (
+        reminders.map((reminder) => (
+          <div key={reminder.id} className="reminder-item">
+            <span className="reminder-icon" aria-hidden="true">
+              <Bell size={17} />
+            </span>
+            <span className="reminder-text">
+              <span className="reminder-client-name">{reminder.clientName}</span>
+              <span className="reminder-details">
+                {reminder.startAtMs !== null
+                  ? `${relativeDayLabel(reminder.startAtMs, nowMs, timezone)}, ${formatInTimeZone(reminder.startAtMs, timezone, 'HH:mm')}`
+                  : ''}
+                {reminder.itemDescriptions.length > 0
+                  ? ` · ${reminder.itemDescriptions.join(', ')}`
+                  : ''}
+              </span>
+            </span>
+            <span className="reminder-actions">
+              {reminder.whatsappHref ? (
+                <AttentionWhatsappButton
+                  reminderId={reminder.id}
+                  whatsappHref={reminder.whatsappHref}
+                  clientName={reminder.clientName}
+                />
+              ) : null}
+              {reminder.appointmentId ? (
+                <Link
+                  href={`/dashboard/agenda/${reminder.appointmentId}`}
+                  className="reminder-chevron"
+                  aria-label={`Ver marcação de ${reminder.clientName}`}
+                >
+                  <ChevronRight aria-hidden="true" size={18} />
+                </Link>
+              ) : null}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// Only rendered when there is at least one appointment today (see call site) — an empty
+// day already says so via NextClientCard's own empty state immediately above, so a
+// second, separate "sem marcações" message here would just repeat it.
+function TodayAgendaPreview({
+  appointments,
+  timezone,
+}: {
+  appointments: AppointmentSummary[];
+  timezone: string;
+}) {
+  const isActive = (status: string) => status === 'confirmed' || status === 'presence_confirmed';
+
+  return (
+    <div className="today-agenda-card">
+      {appointments.slice(0, AGENDA_PREVIEW_LIMIT).map((appointment) => {
+        const active = isActive(appointment.status);
+        const whatsappHref =
+          active && appointment.clientPhoneE164
+            ? buildWhatsappDeepLink(
+                appointment.clientPhoneE164,
+                buildAppointmentReminderMessage(
+                  appointment.clientName,
+                  formatInTimeZone(appointment.startAtMs, timezone, 'HH:mm'),
+                ),
+              )
+            : null;
+
+        return (
+          <div key={appointment.id} className="today-agenda-item">
+            <span className="today-agenda-time">
+              {formatInTimeZone(appointment.startAtMs, timezone, 'HH:mm')}
+            </span>
+            <Link href={`/dashboard/agenda/${appointment.id}`} className="today-agenda-info">
+              <span className="today-agenda-name">{appointment.clientName}</span>
+              {appointment.itemDescriptions.length > 0 ? (
+                <span className="today-agenda-services">
+                  {appointment.itemDescriptions.join(', ')}
+                </span>
+              ) : null}
+              {!active ? (
+                <span className="today-agenda-status">
+                  {APPOINTMENT_STATUS_LABELS[
+                    appointment.status as keyof typeof APPOINTMENT_STATUS_LABELS
+                  ] ?? appointment.status}
+                </span>
+              ) : null}
+            </Link>
+            <span className="today-agenda-actions">
+              {whatsappHref ? (
+                <a
+                  className="today-agenda-whatsapp"
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Abrir WhatsApp com ${appointment.clientName}`}
+                >
+                  <MessageCircle aria-hidden="true" size={17} />
+                </a>
+              ) : null}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -225,95 +455,83 @@ function NextClientCard({
 // (cookie-scoped, RLS-enforced) is the same client every other authenticated dashboard
 // page already uses, so there is no new authorization surface here.
 //
-// Visual refinement mid-2026: reference's "Lembretes" section showed stock/birthday/
-// training examples with no real data source in this schema (no inventory table, no
-// client birthday field, no CPD/training tracking) — shown here instead with the one
-// real reminder concept this schema has, appointment reminders (NEX-101). Same
-// reasoning trimmed "Atalhos rápidos" to the two shortcuts that lead somewhere real
-// today (nova marcação, link da página) instead of the reference's four — "novo
-// cliente" and "venda rápida" have no dedicated flow yet.
+// Visual refinement mid-2026: reduced the page to a compact operational panel (safe
+// area → header → next client → compact summary → attention → today's agenda preview →
+// shortcuts), matching the density already shipped for Agenda/Clientes/Serviços/Mais.
+// "Atalhos rápidos" keeps the two shortcuts that lead somewhere real today (nova
+// marcação, link da página) — "novo cliente" and "venda rápida" still have no dedicated
+// flow of their own (Clientes' own rule: reuse nova marcação, don't invent a second
+// creation destination), so there is nothing genuine to add as a third/fourth shortcut,
+// and no bottom sheet is needed for a list of exactly two items. There is no floating
+// add button on this page (never was), so the reference's "hide the FAB" rule is
+// already true by construction.
 export default async function DashboardPage() {
   const { tenantId } = await requireProfile();
-  const { summary, timezone, nowMs, ownerName, tenantSlug, upcomingReminders } =
+  const { summary, timezone, nowMs, ownerName, tenantSlug, appointmentsToday, attentionReminders } =
     await loadDashboardData(tenantId);
   const publicUrl = tenantSlug ? publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantSlug) : null;
 
   return (
-    <div className="shell">
-      <header className="dashboard-greeting">
-        <div className="dashboard-greeting-row">
-          <h1 className="text-title">Olá{ownerName ? `, ${firstName(ownerName)}` : ''}! 👋</h1>
-          <Link
-            href="/dashboard/lembretes"
-            className="dashboard-bell"
-            aria-label={
-              summary.pendingRemindersCount > 0
-                ? `Lembretes (${summary.pendingRemindersCount} pendentes)`
-                : 'Lembretes'
-            }
-          >
-            <Bell aria-hidden="true" size={20} />
-            {summary.pendingRemindersCount > 0 ? (
-              <span className="dashboard-bell-badge" aria-hidden="true" />
-            ) : null}
-          </Link>
+    <div className="shell home-page">
+      <header className="home-header">
+        <div>
+          <h1 className="home-greeting">
+            Olá{ownerName ? `, ${firstName(ownerName)}` : ''}!{' '}
+            <span className="home-greeting-emoji">👋</span>
+          </h1>
+          <p className="home-date">
+            {capitalize(formatInTimeZone(nowMs, timezone, "EEEE, dd 'de' MMMM", { locale: pt }))}
+          </p>
         </div>
-        <p className="text-support">
-          {capitalize(formatInTimeZone(nowMs, timezone, "EEEE, dd 'de' MMMM", { locale: pt }))}
-        </p>
+        <Link
+          href="/dashboard/lembretes"
+          className="home-notification-button"
+          aria-label={
+            summary.pendingRemindersCount > 0
+              ? `Lembretes (${summary.pendingRemindersCount} pendentes)`
+              : 'Lembretes'
+          }
+        >
+          <Bell aria-hidden="true" size={20} />
+          {summary.pendingRemindersCount > 0 ? (
+            <span className="home-notification-badge" aria-hidden="true" />
+          ) : null}
+        </Link>
       </header>
 
       <NextClientCard nextAppointment={summary.nextAppointment} timezone={timezone} nowMs={nowMs} />
 
-      <p className="text-eyebrow dashboard-section-title">Resumo do dia</p>
-      <div className="dashboard-stats-row">
-        <div className="card dashboard-stat-card">
-          <span className="text-numeral">{summary.todayCount}</span>
-          <span className="text-meta">Marcações</span>
-        </div>
-        <div className="card dashboard-stat-card">
-          <span className="text-numeral">{formatEuros(summary.invoicedTodayCents)}</span>
-          <span className="text-meta">Faturado</span>
-        </div>
-        <div className="card dashboard-stat-card">
-          <span className="text-numeral">{formatEuros(summary.pendingTodayCents)}</span>
-          <span className="text-meta">Pendente</span>
-        </div>
-      </div>
+      <p className="home-section-title">Resumo do dia</p>
+      <DailySummaryGrid summary={summary} />
 
-      {upcomingReminders.length > 0 ? (
+      <SectionHeader
+        title="Precisa da sua atenção"
+        actionHref="/dashboard/lembretes"
+        actionLabel="Ver todos"
+      />
+      <AttentionSection reminders={attentionReminders} timezone={timezone} nowMs={nowMs} />
+
+      {appointmentsToday.length > 0 ? (
         <>
-          <p className="text-eyebrow dashboard-section-title">Lembretes</p>
-          <div className="card dashboard-reminders">
-            <ul>
-              {upcomingReminders.map((reminder) => (
-                <li key={reminder.id} className="dashboard-reminder-row">
-                  <span className="dashboard-reminder-icon" aria-hidden="true">
-                    <Bell size={16} />
-                  </span>
-                  <span className="dashboard-reminder-text">
-                    Enviar lembrete a {reminder.clientName}
-                  </span>
-                  <span className="dashboard-reminder-badge">
-                    {dueDateLabel(reminder.dueAtMs, nowMs, timezone)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <SectionHeader
+            title="Agenda de hoje"
+            actionHref="/dashboard/agenda"
+            actionLabel="Ver agenda"
+          />
+          <TodayAgendaPreview appointments={appointmentsToday} timezone={timezone} />
         </>
       ) : null}
 
-      <p className="text-eyebrow dashboard-section-title">Atalhos rápidos</p>
-      <div className="dashboard-shortcuts">
-        <Link href="/dashboard/agenda/nova" className="dashboard-shortcut">
-          <CalendarPlus aria-hidden="true" size={20} />
-          Nova marcação
+      <p className="quick-actions-title">Atalhos rápidos</p>
+      <div className="quick-actions-grid">
+        <Link href="/dashboard/agenda/nova" className="quick-action-card">
+          <CalendarPlus aria-hidden="true" size={23} />
+          <span className="quick-action-label">Nova marcação</span>
         </Link>
         {publicUrl ? (
-          <a href={publicUrl} target="_blank" rel="noreferrer" className="dashboard-shortcut">
-            <Share2 aria-hidden="true" size={20} />
-            Link da página
+          <a href={publicUrl} target="_blank" rel="noreferrer" className="quick-action-card">
+            <Share2 aria-hidden="true" size={23} />
+            <span className="quick-action-label">Link da página</span>
           </a>
         ) : null}
       </div>
