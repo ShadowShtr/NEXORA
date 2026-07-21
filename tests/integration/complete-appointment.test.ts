@@ -79,7 +79,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().in('id', [tenantAId, tenantBId]);
+    await admin.from('tenants').update({ status: 'deleted' }).in('id', [tenantAId, tenantBId]);
     await admin.auth.admin.deleteUser(userAId);
     await admin.auth.admin.deleteUser(userBId);
   });

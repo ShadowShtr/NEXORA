@@ -74,7 +74,7 @@ describe.runIf(canRun)('publish_business (NEX-035)', () => {
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().in('id', [tenantAId, tenantBId]);
+    await admin.from('tenants').update({ status: 'deleted' }).in('id', [tenantAId, tenantBId]);
     if (userAId) await admin.auth.admin.deleteUser(userAId);
     if (userBId) await admin.auth.admin.deleteUser(userBId);
   });

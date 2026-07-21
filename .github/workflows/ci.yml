@@ -61,6 +61,8 @@ jobs:
         # them under `set -a` exports each one correctly for this step's child process
         # (npm/vitest) instead of round-tripping through $GITHUB_ENV, where the literal
         # quote characters would end up baked into the value.
+        env:
+          NEXT_PUBLIC_APP_URL: https://example.invalid
         run: |
           set -a
           eval "$(supabase status -o env \

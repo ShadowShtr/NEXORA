@@ -56,7 +56,7 @@ describe.runIf(canRun)('create_public_booking grant (NEX-064)', () => {
   afterAll(async () => {
     await admin.from('appointments').delete().eq('tenant_id', tenantId);
     await admin.from('clients').delete().eq('tenant_id', tenantId);
-    await admin.from('tenants').delete().eq('id', tenantId);
+    await admin.from('tenants').update({ status: 'deleted' }).eq('id', tenantId);
   });
 
   it('is callable by anon and returns a usable booking token', async () => {
@@ -138,7 +138,7 @@ describe.runIf(canRun)('resolve_booking_lookup_code grant', () => {
   afterAll(async () => {
     await admin.from('appointments').delete().eq('tenant_id', tenantId);
     await admin.from('clients').delete().eq('tenant_id', tenantId);
-    await admin.from('tenants').delete().eq('id', tenantId);
+    await admin.from('tenants').update({ status: 'deleted' }).eq('id', tenantId);
   });
 
   it('is callable by anon and resolves the booking created above', async () => {

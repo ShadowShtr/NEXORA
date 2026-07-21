@@ -82,7 +82,7 @@ describe.runIf(canRun)('cancel_appointment / reschedule_appointment (NEX-084)', 
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().in('id', [tenantAId, tenantBId]);
+    await admin.from('tenants').update({ status: 'deleted' }).in('id', [tenantAId, tenantBId]);
     await admin.auth.admin.deleteUser(userAId);
     await admin.auth.admin.deleteUser(userBId);
   });

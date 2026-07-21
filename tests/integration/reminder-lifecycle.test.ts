@@ -53,7 +53,7 @@ describe.runIf(canRun)('reminder lifecycle on reschedule/cancel/no_show (NEX-100
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().eq('id', tenantId);
+    await admin.from('tenants').update({ status: 'deleted' }).eq('id', tenantId);
     await admin.auth.admin.deleteUser(userId);
   });
 

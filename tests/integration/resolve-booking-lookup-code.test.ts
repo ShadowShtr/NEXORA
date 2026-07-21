@@ -44,7 +44,7 @@ describe.runIf(Boolean(connectionString))('resolve_booking_lookup_code', () => {
   afterAll(async () => {
     await client.query(`delete from public.appointments where tenant_id = $1`, [tenantId]);
     await client.query(`delete from public.clients where tenant_id = $1`, [tenantId]);
-    await client.query(`delete from public.tenants where id = $1`, [tenantId]);
+    await client.query(`update public.tenants set status = 'deleted' where id = $1`, [tenantId]);
     await client.end();
   });
 

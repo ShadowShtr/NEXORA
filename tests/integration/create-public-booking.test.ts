@@ -52,7 +52,7 @@ describe.runIf(Boolean(connectionString))('create_public_booking (NEX-064)', () 
   });
 
   afterAll(async () => {
-    await client.query(`delete from public.tenants where id = $1`, [tenantId]);
+    await client.query(`update public.tenants set status = 'deleted' where id = $1`, [tenantId]);
     await client.end();
   });
 

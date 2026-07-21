@@ -67,7 +67,7 @@ describe.runIf(canRun)('create_manual_booking (NEX-085)', () => {
   afterAll(async () => {
     await admin.from('appointments').delete().eq('tenant_id', tenantId);
     await admin.from('clients').delete().eq('tenant_id', tenantId);
-    await admin.from('tenants').delete().eq('id', tenantId);
+    await admin.from('tenants').update({ status: 'deleted' }).eq('id', tenantId);
     await admin.auth.admin.deleteUser(ownerId);
   });
 
@@ -208,6 +208,6 @@ describe.runIf(canRun)('create_manual_booking (NEX-085)', () => {
     expect(error?.code).toBe('22023');
 
     await admin.from('clients').delete().eq('tenant_id', otherTenantId);
-    await admin.from('tenants').delete().eq('id', otherTenantId);
+    await admin.from('tenants').update({ status: 'deleted' }).eq('id', otherTenantId);
   });
 });
