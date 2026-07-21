@@ -69,6 +69,10 @@ describe.runIf(canRun)('getPublicAvailability (NEX-062)', () => {
       {
         tenant_id: unpublishedTenantId,
         timezone: 'Europe/Lisbon',
+        slot_interval_minutes: 30,
+        buffer_minutes: 15,
+        min_notice_hours: 1,
+        booking_window_days: 30,
         published_at: null,
       },
     ]);
