@@ -1658,6 +1658,7 @@ body[data-sheet-open='true'] .agenda-fab,
 }
 .agenda-view-tabs {
   display: flex;
+  align-items: center;
   height: 3.375rem;
   padding: 0.3125rem;
   border-radius: 1.125rem;
@@ -1667,6 +1668,10 @@ body[data-sheet-open='true'] .agenda-fab,
 }
 .agenda-view-tabs .nx-tab {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
   min-height: 0;
   border: 0;
   border-radius: 0.875rem;
