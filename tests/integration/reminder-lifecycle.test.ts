@@ -60,7 +60,7 @@ describe.runIf(canRun)('reminder lifecycle on reschedule/cancel/no_show (NEX-100
   async function seedAppointmentWithReminder(startAt: Date) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const id = randomUUID();
-    await admin.from('appointments').insert({
+    const { error: apptError } = await admin.from('appointments').insert({
       id,
       tenant_id: tenantId,
       client_id: clientId,
@@ -72,11 +72,13 @@ describe.runIf(canRun)('reminder lifecycle on reschedule/cancel/no_show (NEX-100
       expected_total_cents: 2500,
       booking_token_hash: bookingTokenHash(id),
     });
-    await admin.from('reminders').insert({
+    if (apptError) throw apptError;
+    const { error: reminderError } = await admin.from('reminders').insert({
       tenant_id: tenantId,
       appointment_id: id,
       due_at: new Date(startAt.getTime() - 24 * 60 * 60_000).toISOString(),
     });
+    if (reminderError) throw reminderError;
     return id;
   }
 

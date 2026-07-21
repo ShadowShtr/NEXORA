@@ -87,7 +87,7 @@ describe.runIf(canRun)('mark_reminder_opened / mark_reminder_sent (NEX-103)', ()
   async function seedReminder(startAt: Date) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const appointmentId = randomUUID();
-    await admin.from('appointments').insert({
+    const { error: apptError } = await admin.from('appointments').insert({
       id: appointmentId,
       tenant_id: tenantAId,
       client_id: clientAId,
@@ -99,7 +99,8 @@ describe.runIf(canRun)('mark_reminder_opened / mark_reminder_sent (NEX-103)', ()
       expected_total_cents: 2500,
       booking_token_hash: bookingTokenHash(appointmentId),
     });
-    const { data: reminder } = await admin
+    if (apptError) throw apptError;
+    const { data: reminder, error: reminderError } = await admin
       .from('reminders')
       .insert({
         tenant_id: tenantAId,
@@ -108,26 +109,27 @@ describe.runIf(canRun)('mark_reminder_opened / mark_reminder_sent (NEX-103)', ()
       })
       .select('id')
       .single();
+    if (reminderError) throw reminderError;
     return reminder!.id as string;
   }
 
   it('mark_reminder_opened is not callable by anon', async () => {
     const anon = createClient(url!, publishableKey!);
-    const reminderId = await seedReminder(new Date(Date.now() + 48 * 60 * 60_000));
+    const reminderId = await seedReminder(new Date(Date.now() + 100 * 60 * 60_000));
     const { error } = await anon.rpc('mark_reminder_opened', { p_reminder_id: reminderId });
     expect(error).not.toBeNull();
     expect(error?.code).toBe('42501');
   });
 
   it("rejects opening another tenant's reminder", async () => {
-    const reminderId = await seedReminder(new Date(Date.now() + 49 * 60 * 60_000));
+    const reminderId = await seedReminder(new Date(Date.now() + 103 * 60 * 60_000));
     const { error } = await userB.rpc('mark_reminder_opened', { p_reminder_id: reminderId });
     expect(error).not.toBeNull();
     expect(error?.code).toBe('22023');
   });
 
   it('moves pending -> opened, sets opened_at, and writes one audit log entry even if clicked twice', async () => {
-    const reminderId = await seedReminder(new Date(Date.now() + 50 * 60 * 60_000));
+    const reminderId = await seedReminder(new Date(Date.now() + 106 * 60 * 60_000));
 
     const first = await userA.rpc('mark_reminder_opened', { p_reminder_id: reminderId });
     expect(first.error).toBeNull();
@@ -161,7 +163,7 @@ describe.runIf(canRun)('mark_reminder_opened / mark_reminder_sent (NEX-103)', ()
   });
 
   it('marking sent never regresses an already-opened reminder back to pending', async () => {
-    const reminderId = await seedReminder(new Date(Date.now() + 52 * 60 * 60_000));
+    const reminderId = await seedReminder(new Date(Date.now() + 109 * 60 * 60_000));
     await userA.rpc('mark_reminder_opened', { p_reminder_id: reminderId });
 
     const { error } = await userA.rpc('mark_reminder_sent', { p_reminder_id: reminderId });
@@ -177,7 +179,7 @@ describe.runIf(canRun)('mark_reminder_opened / mark_reminder_sent (NEX-103)', ()
   });
 
   it('marking sent twice is idempotent and writes only one audit log entry', async () => {
-    const reminderId = await seedReminder(new Date(Date.now() + 54 * 60 * 60_000));
+    const reminderId = await seedReminder(new Date(Date.now() + 112 * 60 * 60_000));
 
     const first = await userA.rpc('mark_reminder_sent', { p_reminder_id: reminderId });
     expect(first.error).toBeNull();
@@ -193,7 +195,7 @@ describe.runIf(canRun)('mark_reminder_opened / mark_reminder_sent (NEX-103)', ()
   });
 
   it('rejects marking a skipped reminder as sent', async () => {
-    const reminderId = await seedReminder(new Date(Date.now() + 56 * 60 * 60_000));
+    const reminderId = await seedReminder(new Date(Date.now() + 115 * 60 * 60_000));
     await admin.from('reminders').update({ status: 'skipped' }).eq('id', reminderId);
 
     const { error } = await userA.rpc('mark_reminder_sent', { p_reminder_id: reminderId });

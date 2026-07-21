@@ -90,7 +90,7 @@ describe.runIf(canRun)('cancel_appointment / reschedule_appointment (NEX-084)', 
   async function seedAppointment(startAt: Date) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const id = randomUUID();
-    await admin.from('appointments').insert({
+    const { error } = await admin.from('appointments').insert({
       id,
       tenant_id: tenantAId,
       client_id: clientAId,
@@ -102,19 +102,20 @@ describe.runIf(canRun)('cancel_appointment / reschedule_appointment (NEX-084)', 
       expected_total_cents: 2500,
       booking_token_hash: bookingTokenHash(id),
     });
+    if (error) throw error;
     return id;
   }
 
   it('is not callable by anon', async () => {
     const anon = createClient(url!, publishableKey!);
-    const appointmentId = await seedAppointment(new Date(Date.now() + 24 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() + 2 * 60 * 60_000));
     const { error } = await anon.rpc('cancel_appointment', { p_appointment_id: appointmentId });
     expect(error).not.toBeNull();
     expect(error?.code).toBe('42501');
   });
 
   it("rejects cancelling another tenant's appointment", async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() + 25 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() + 4 * 60 * 60_000));
     const { error } = await userB.rpc('cancel_appointment', { p_appointment_id: appointmentId });
     expect(error).not.toBeNull();
     expect(error?.code).toBe('22023');
@@ -128,7 +129,7 @@ describe.runIf(canRun)('cancel_appointment / reschedule_appointment (NEX-084)', 
   });
 
   it("cancels the caller's own appointment and writes an audit log entry", async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() + 26 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() + 6 * 60 * 60_000));
     const { error } = await userA.rpc('cancel_appointment', { p_appointment_id: appointmentId });
     expect(error).toBeNull();
 
@@ -154,7 +155,7 @@ describe.runIf(canRun)('cancel_appointment / reschedule_appointment (NEX-084)', 
   });
 
   it('rejects cancelling an already-cancelled appointment', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() + 27 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() + 8 * 60 * 60_000));
     const first = await userA.rpc('cancel_appointment', { p_appointment_id: appointmentId });
     expect(first.error).toBeNull();
 

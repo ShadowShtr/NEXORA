@@ -96,7 +96,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
   async function seedAppointment(startAt: Date) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const id = randomUUID();
-    await admin.from('appointments').insert({
+    const { error } = await admin.from('appointments').insert({
       id,
       tenant_id: tenantId,
       client_id: clientId,
@@ -108,6 +108,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
       expected_total_cents: 2500,
       booking_token_hash: bookingTokenHash(id),
     });
+    if (error) throw error;
     return id;
   }
 
@@ -115,7 +116,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
     // Tamper the client-provided price to prove the RPC never trusts it: the actual
     // catalog price (1500) is what must land in appointment_items, not whatever the
     // final total implies.
-    const appointmentId = await seedAppointment(new Date(Date.now() - 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 2 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 4000,
@@ -141,7 +142,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
   });
 
   it('ignores an inactive service id rather than adding a stale extra', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 61 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 4 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -160,7 +161,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
   });
 
   it('adds a manual extra with an owner-typed description and price', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 62 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 6 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 3000,
@@ -186,7 +187,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
   });
 
   it('rejects a manual extra with a negative price, rolling back the whole completion', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 63 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 8 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 3000,
@@ -209,7 +210,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
   });
 
   it('rejects a manual extra with an empty description', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 64 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 10 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 3000,
@@ -223,7 +224,7 @@ describe.runIf(canRun)('complete_appointment extras (NEX-111)', () => {
   });
 
   it('combines a service extra and a manual extra with the completion payment in one transaction', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 65 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 12 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 4500,
