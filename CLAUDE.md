@@ -154,6 +154,36 @@ Cada serviço deve mostrar:
 
 A gestão completa deve abrir em modal, bottom sheet ou página secundária.
 
+## Página Mais — regras obrigatórias
+
+A opção Mais deve abrir uma página própria e nunca um painel sobre a página
+anterior.
+
+Ao abrir Mais:
+
+- a página anterior deve desaparecer;
+- o item Mais deve ficar ativo na navegação inferior;
+- o botão flutuante deve ser ocultado;
+- a página deve possuir título, perfil, secções e itens navegáveis.
+
+A página deve conter:
+
+- cartão da profissional;
+- secção Gestão;
+- secção Definições;
+- secção Suporte;
+- botão discreto de terminar sessão;
+- versão da aplicação.
+
+Não usar menu solto, drawer sem cabeçalho ou painel branco sem estrutura.
+
+Cada item de menu (Lembretes, Financeiro, Relatórios, Definições, etc.) tem de
+apontar para uma página real e existente. Não inventar sub-páginas de Definições
+(ex.: "Aparência", "Segurança" como destinos separados) enquanto essas telas não
+existirem de facto — agrupar sob a página de Definições real até serem construídas.
+Não inventar uma secção de Suporte/Ajuda sem um destino real (centro de ajuda,
+formulário de feedback ou contacto) por trás.
+
 ### Testes obrigatórios por tarefa
 
 Conforme o escopo, implemente:
