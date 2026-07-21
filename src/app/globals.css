@@ -1660,6 +1660,7 @@ body[data-sheet-open='true'] .agenda-fab,
   display: flex;
   align-items: center;
   height: 3.375rem;
+  margin-top: 0.875rem;
   padding: 0.3125rem;
   border-radius: 1.125rem;
   background: rgba(255, 255, 255, 0.88);
