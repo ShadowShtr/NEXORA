@@ -10,9 +10,23 @@
   --danger: #b9344a;
   --shadow-dark: rgba(153, 86, 114, 0.16);
   --shadow-light: rgba(255, 255, 255, 0.95);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, ui-sans-serif, sans-serif;
+  font-family:
+    var(--font-body),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    system-ui,
+    ui-sans-serif,
+    sans-serif;
   color: var(--text);
   background: var(--pink-50);
+}
+
+h1,
+h2,
+h3,
+.button {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
 }
 
 * {
@@ -1139,11 +1153,12 @@ select {
 
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 .app-shell-content {
   flex: 1;
   min-width: 0;
+  padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
@@ -1353,73 +1368,85 @@ select {
    + linha ligando a um atendimento ao seguinte, cartão compacto com uma única ação. */
 .appointment-timeline-row {
   display: grid;
-  grid-template-columns: 3rem 1fr;
-  gap: 0.75rem;
-}
-.appointment-timeline-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  padding-top: 0.9rem;
+  grid-template-columns: 3.4rem 1.1rem minmax(0, 1fr);
+  column-gap: 0.4rem;
 }
 .appointment-timeline-time {
-  font-weight: 700;
-  font-size: 0.8rem;
+  padding-top: 1.6rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
   white-space: nowrap;
 }
-.appointment-timeline-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  background: var(--pink-500);
-  flex-shrink: 0;
+.appointment-timeline-axis {
+  position: relative;
+  display: flex;
+  justify-content: center;
 }
-.appointment-timeline-line {
-  flex: 1;
+.appointment-timeline-axis::before {
+  content: '';
+  position: absolute;
+  top: 1.85rem;
+  bottom: -0.65rem;
   width: 1px;
-  min-height: 1rem;
-  background: var(--pink-100);
+  background: rgba(238, 227, 232, 0.9);
 }
-.appointment-timeline-row:last-child .appointment-timeline-line {
+.appointment-timeline-row:last-child .appointment-timeline-axis::before {
   display: none;
+}
+.appointment-timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 1.85rem;
+  border-radius: 999px;
+  background: #9c979f;
+  box-shadow: 0 0 0 4px var(--page-background, #fffafb);
+}
+.appointment-timeline-row:has(.appointment-timeline-card-due) .appointment-timeline-dot {
+  background: var(--pink-500);
 }
 .appointment-timeline-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.9rem 1rem;
-  margin-bottom: 0.75rem;
-  border-radius: 1.25rem;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(253, 235, 243, 0.9));
-  box-shadow:
-    8px 8px 20px var(--shadow-dark),
-    -6px -6px 16px var(--shadow-light);
+  min-height: 6.9rem;
+  padding: 1.1rem 1rem;
+  margin-bottom: 0.65rem;
+  border-radius: 1.1rem;
+  background: #fff;
+  border: 1px solid rgba(239, 230, 234, 0.85);
+  box-shadow: 0 8px 20px rgba(42, 27, 35, 0.05);
 }
 .appointment-timeline-card-due {
-  background: var(--pink-100);
-  box-shadow: none;
+  background: linear-gradient(135deg, rgba(255, 239, 245, 0.95), rgba(255, 246, 249, 0.95));
+  border-color: rgba(237, 63, 121, 0.22);
+  box-shadow: 0 10px 22px rgba(237, 63, 121, 0.1);
 }
 .appointment-timeline-link {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.15rem;
   min-width: 0;
   text-decoration: none;
   color: inherit;
 }
+.appointment-timeline-link .appointment-card-items {
+  font-size: 0.85rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .appointment-timeline-status {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 .appointment-timeline-action {
   flex-shrink: 0;
-}
-.appointment-timeline-action:has(.completion-panel) {
-  flex: 1 1 100%;
 }
 .appointment-timeline-whatsapp,
 .appointment-timeline-complete-trigger {
@@ -1436,11 +1463,118 @@ select {
   color: #1f9d55;
 }
 .appointment-timeline-complete-trigger {
-  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
+  background: linear-gradient(135deg, #f45b8c, var(--pink-600));
   color: white;
+  box-shadow: 0 7px 16px rgba(237, 63, 121, 0.24);
 }
 .completion-panel {
   width: 100%;
+}
+/* Completion bottom sheet (CompletionSheet.tsx) — the agenda card's compact "Concluir"
+   trigger opens this instead of expanding the card. Overlay + sheet are siblings, both
+   position:fixed, so the timeline behind never resizes or reflows. */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(24, 19, 22, 0.3);
+  backdrop-filter: blur(5px);
+}
+.completion-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 0.65rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 1.75rem 1.75rem 0 0;
+  background: white;
+  box-shadow: 0 -16px 45px rgba(35, 25, 30, 0.15);
+}
+.sheet-handle {
+  width: 2.75rem;
+  height: 0.3rem;
+  margin: 0 auto 1.1rem;
+  border-radius: 999px;
+  background: #d9d2d6;
+}
+.sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.sheet-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.sheet-client-name {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+.sheet-close {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--pink-100);
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+}
+body[data-sheet-open='true'] .agenda-fab {
+  opacity: 0;
+  pointer-events: none;
+}
+.skeleton {
+  border-radius: 1rem;
+  background: linear-gradient(90deg, #f6eff2 25%, #fff9fb 50%, #f6eff2 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.25s infinite;
+}
+@keyframes skeleton-loading {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.agenda-skeleton-title {
+  width: 8rem;
+  height: 2.1rem;
+  margin-top: 0.5rem;
+}
+.agenda-skeleton-line {
+  width: 11rem;
+  height: 1.1rem;
+  margin-top: 0.85rem;
+}
+.agenda-skeleton-tabs {
+  height: 3.4rem;
+  margin-top: 1rem;
+}
+.agenda-skeleton-banner {
+  height: 3.2rem;
+  margin-top: 0.85rem;
+}
+.agenda-skeleton-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.agenda-skeleton-card {
+  height: 6.9rem;
 }
 .completion-panel-choices {
   display: flex;
@@ -1496,6 +1630,25 @@ select {
 }
 /* Agenda (/dashboard/agenda) — date row (native date input driving the picker) +
    pill view tabs + timeline list. Visual refinement mid-2026 reference. */
+.agenda-view-tabs {
+  padding: 0.3rem;
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(241, 231, 235, 0.9);
+  box-shadow: 0 8px 20px rgba(55, 36, 45, 0.05);
+}
+.agenda-view-tabs .nx-tab {
+  flex: 1;
+  border: 0;
+  text-align: center;
+  color: #413d44;
+}
+.agenda-view-tabs .nx-tab[aria-current='page'] {
+  background: linear-gradient(135deg, #fff2f6, #ffe9f0);
+  border-color: transparent;
+  color: var(--pink-600);
+  font-weight: 700;
+}
 .agenda-date-row {
   display: flex;
   align-items: center;
@@ -1509,8 +1662,8 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-weight: 700;
-  color: var(--text);
+  font-weight: 600;
+  color: var(--text-secondary, var(--muted));
   cursor: pointer;
 }
 .agenda-date-picker svg {
@@ -1544,6 +1697,7 @@ select {
   color: white;
   box-shadow: 0 10px 24px rgba(154, 43, 91, 0.32);
   z-index: 15;
+  transition: opacity 0.15s ease;
 }
 .agenda-day-groups {
   display: grid;
@@ -1554,8 +1708,14 @@ select {
   font-weight: 800;
   margin: 0 0 0.5rem;
 }
+.agenda-free-slots {
+  padding: 0.85rem 1.1rem;
+  background: linear-gradient(135deg, var(--pink-50), #fff);
+  border-color: rgba(244, 211, 223, 0.7);
+}
 .agenda-free-slots-summary {
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
   color: var(--pink-600);
 }

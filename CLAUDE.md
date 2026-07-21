@@ -52,6 +52,36 @@ O documento `docs/reference/PROMPT_MESTRE_ARQUITETO_SAAS_CYBERSEGURANCA_PRIVACID
 - Responsivo mobile-first; desktop deve ampliar, não duplicar a experiência.
 - Não sacrificar contraste, foco visível ou legibilidade em nome do estilo.
 
+## Agenda móvel — fidelidade obrigatória
+
+A página de agenda não pode expandir uma marcação para exibir o formulário de
+conclusão. O cartão deve permanecer compacto.
+
+Ao tocar na ação de conclusão, abrir um bottom sheet separado contendo valor,
+forma de pagamento, opções adicionais e botão de confirmação.
+
+A linha temporal deve continuar visível por trás do overlay.
+
+O cartão normal deve ter aproximadamente 112 px de altura. O estado selecionado
+pode mudar fundo, borda e ação, mas nunca deve aumentar significativamente de
+altura.
+
+A implementação deve seguir a referência oficial da agenda para:
+
+- posição do título;
+- espaçamento;
+- seletor Dia/Semana/Lista;
+- aviso de horários livres;
+- linha vertical;
+- horários;
+- cartões;
+- botões WhatsApp e conclusão;
+- botão flutuante;
+- navegação inferior;
+- cores, sombras e border-radius.
+
+Não criar uma interpretação alternativa.
+
 ### Testes obrigatórios por tarefa
 
 Conforme o escopo, implemente:
