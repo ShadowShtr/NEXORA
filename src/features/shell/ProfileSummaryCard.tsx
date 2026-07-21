@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ExternalLink } from 'lucide-react';
 import { initials } from '@/lib/initials';
 
 // Visual refinement mid-2026 — Mais reference: no owner/profile photo concept exists
@@ -25,6 +25,7 @@ export function ProfileSummaryCard({
         {publicUrl ? (
           <a href={publicUrl} target="_blank" rel="noreferrer" className="profile-public-link">
             Ver perfil público
+            <ExternalLink aria-hidden="true" size={13} strokeWidth={1.8} />
           </a>
         ) : null}
       </span>

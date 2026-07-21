@@ -19,7 +19,7 @@ export function MoreMenuItem({
   return (
     <Link href={href} className="more-menu-item">
       <span className="more-menu-icon" aria-hidden="true">
-        <Icon size={19} />
+        <Icon size={18} />
       </span>
       <span className="more-menu-text">
         <span className="more-menu-label">{label}</span>
