@@ -82,6 +82,40 @@ A implementação deve seguir a referência oficial da agenda para:
 
 Não criar uma interpretação alternativa.
 
+## Aba Clientes — fidelidade obrigatória
+
+A aba Clientes deve seguir a referência visual premium e não pode ser reduzida a
+uma lista simples de nome e telefone.
+
+Cada item de cliente deve apresentar, no mínimo:
+
+- avatar;
+- nome;
+- telefone;
+- informação temporal;
+- total gasto;
+- seta para abrir detalhes.
+
+A página deve conter:
+
+- cabeçalho com logo e notificações;
+- título principal;
+- barra de pesquisa compacta;
+- chips de filtro;
+- cartões premium;
+- botão flutuante;
+- navegação inferior.
+
+É proibido utilizar um bloco de pesquisa grande e pobre visualmente. A pesquisa
+deve ser compacta e elegante.
+
+Não simplificar os cartões.
+
+Todo dado apresentado num cartão de cliente (avatar, histórico, total gasto,
+contadores dos chips) tem de vir de dados reais do tenant. Nunca inventar avatar
+com foto (usar iniciais), nem criar um destino de "nova cliente" que não existe —
+reutilizar o fluxo real de criação (nova marcação) em vez de fabricar um novo.
+
 ### Testes obrigatórios por tarefa
 
 Conforme o escopo, implemente:
