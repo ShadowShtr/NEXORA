@@ -1,7 +1,6 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
-import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
@@ -9,6 +8,7 @@ import { computeAvailableSlotsMs } from '@/lib/availability-lookup';
 import { AppointmentCard, type AppointmentCardData } from '@/features/appointments/AppointmentCard';
 import { AgendaCompletionProvider } from '@/features/appointments/AgendaCompletionContext';
 import { AgendaDatePicker } from '@/features/appointments/AgendaDatePicker';
+import { AgendaFab } from '@/features/appointments/AgendaFab';
 import type { AppointmentCardStatus } from '@/features/appointments/domain/appointment-card';
 import {
   formatRangeLabel,
@@ -243,12 +243,11 @@ export default async function AgendaPage({
       <Card className="agenda-free-slots">
         <details>
           <summary className="agenda-free-slots-summary">
-            {totalFreeSlots} {totalFreeSlots === 1 ? 'horário livre' : 'horários livres'} neste
-            período
+            {totalFreeSlots === 0
+              ? 'Agenda completa neste período'
+              : `${totalFreeSlots} ${totalFreeSlots === 1 ? 'horário livre' : 'horários livres'} neste período`}
           </summary>
-          {totalFreeSlots === 0 ? (
-            <p className="appointment-card-items">Sem horários livres neste período.</p>
-          ) : (
+          {totalFreeSlots === 0 ? null : (
             <ul className="agenda-free-slots-list">
               {freeSlotsByDay.map((day) => (
                 <li key={day.dateKey}>
@@ -312,13 +311,12 @@ export default async function AgendaPage({
                 </section>
               );
             })}
+            <div id="agenda-list-end" aria-hidden="true" />
           </div>
         </AgendaCompletionProvider>
       )}
 
-      <Link href="/dashboard/agenda/nova" className="agenda-fab" aria-label="Nova marcação">
-        <Plus size={24} aria-hidden="true" />
-      </Link>
+      <AgendaFab />
     </div>
   );
 }

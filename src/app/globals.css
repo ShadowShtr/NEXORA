@@ -1179,7 +1179,7 @@ select {
   background: white;
   border-top: 1px solid var(--pink-100);
   box-shadow: 0 -8px 20px rgba(153, 86, 114, 0.16);
-  padding: 0 0.75rem env(safe-area-inset-bottom, 0px);
+  padding: 7px 0.75rem env(safe-area-inset-bottom, 0px);
   z-index: 10;
 }
 .mobile-nav-item {
@@ -1203,9 +1203,9 @@ select {
   flex-shrink: 0;
 }
 .mobile-nav-item[aria-current='page'] {
-  color: var(--text);
+  color: #ed3f79;
   font-weight: 800;
-  background: var(--pink-50);
+  background: #fff7fa;
 }
 
 .mobile-nav-more {
@@ -1372,7 +1372,7 @@ select {
 .appointment-timeline-row {
   display: grid;
   grid-template-columns: 3.875rem 1rem minmax(0, 1fr);
-  column-gap: 0.25rem;
+  column-gap: 3px;
 }
 .appointment-timeline-time {
   padding-top: 1.6rem;
@@ -1392,7 +1392,7 @@ select {
   top: 1.85rem;
   bottom: -0.65rem;
   width: 1px;
-  background: rgba(238, 227, 232, 0.9);
+  background: #eee3e8;
 }
 .appointment-timeline-row:last-child .appointment-timeline-axis::before {
   display: none;
@@ -1416,7 +1416,7 @@ select {
   justify-content: space-between;
   gap: 0.75rem;
   min-height: 6.5rem;
-  padding: 1.125rem 1rem;
+  padding: 17px 16px;
   margin-bottom: 0.65rem;
   border-radius: 1.125rem;
   background: #fff;
@@ -1424,8 +1424,8 @@ select {
   box-shadow: 0 8px 20px rgba(42, 27, 35, 0.05);
 }
 .appointment-timeline-card-due {
-  background: linear-gradient(135deg, #fff7fa 0%, #fff1f6 100%);
-  border-color: rgba(237, 63, 121, 0.2);
+  background: linear-gradient(135deg, #fff8fa 0%, #fff3f7 100%);
+  border-color: rgba(237, 63, 121, 0.18);
   box-shadow: 0 10px 22px rgba(237, 63, 121, 0.1);
 }
 .appointment-timeline-link {
@@ -1436,7 +1436,14 @@ select {
   text-decoration: none;
   color: inherit;
 }
+.appointment-timeline-link .appointment-card-client {
+  font-size: 17px;
+  line-height: 23px;
+  font-weight: 650;
+  margin: 0;
+}
 .appointment-timeline-link .appointment-card-items {
+  margin: 4px 0 0;
   font-size: 0.875rem;
   line-height: 1.1875rem;
   max-width: 220px;
@@ -1535,7 +1542,8 @@ select {
   color: var(--muted);
   cursor: pointer;
 }
-body[data-sheet-open='true'] .agenda-fab {
+body[data-sheet-open='true'] .agenda-fab,
+.agenda-fab[data-near-list-end] {
   opacity: 0;
   pointer-events: none;
 }
@@ -1636,16 +1644,16 @@ body[data-sheet-open='true'] .agenda-fab {
 /* Agenda (/dashboard/agenda) — date row (native date input driving the picker) +
    pill view tabs + timeline list. Visual refinement mid-2026 reference. */
 .agenda-page {
-  padding-top: 0.5rem;
+  padding-top: 10px;
   background:
-    radial-gradient(circle at 80% 8%, rgba(255, 220, 231, 0.18), transparent 32%),
-    linear-gradient(180deg, #fffdfd 0%, #fffafb 65%, #fff7fa 100%);
+    radial-gradient(circle at 85% 7%, rgba(255, 217, 229, 0.16), transparent 32%),
+    linear-gradient(180deg, #fffdfd 0%, #fffafb 68%, #fff8fa 100%);
 }
 .agenda-title {
-  font-size: 2.125rem;
-  line-height: 2.5rem;
+  font-size: 34px;
+  line-height: 40px;
   font-weight: 700;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.8px;
   margin: 0;
 }
 .agenda-view-tabs {
@@ -1665,6 +1673,7 @@ body[data-sheet-open='true'] .agenda-fab {
   padding: 0;
   text-align: center;
   font-size: 0.875rem;
+  line-height: 1.25rem;
   font-weight: 500;
   color: #413d44;
 }
@@ -1711,18 +1720,18 @@ body[data-sheet-open='true'] .agenda-fab {
   text-decoration: none;
   font-size: 0.85rem;
 }
-.agenda-nav-icon-button {
+.nx-icon-button.agenda-nav-icon-button {
   width: 42px;
   height: 42px;
 }
-.agenda-nav-icon-button svg {
-  width: 20px;
-  height: 20px;
+.nx-icon-button.agenda-nav-icon-button svg {
+  width: 19px;
+  height: 19px;
 }
 .agenda-fab {
   position: fixed;
   right: 1.25rem;
-  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   width: 3.5rem;
   height: 3.5rem;
   display: grid;
@@ -1735,16 +1744,25 @@ body[data-sheet-open='true'] .agenda-fab {
   transition: opacity 0.15s ease;
 }
 .agenda-day-groups {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
+  padding-bottom: 100px;
+}
+#agenda-list-end {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100px;
+  height: 1px;
 }
 .agenda-day-group-label {
   font-weight: 800;
   margin: 0 0 0.5rem;
 }
 .agenda-free-slots {
-  min-height: 52px;
+  min-height: 54px;
   margin-top: 0.75rem;
   margin-bottom: 0.875rem;
   padding: 0 1rem;
@@ -1755,7 +1773,7 @@ body[data-sheet-open='true'] .agenda-fab {
 .agenda-free-slots-summary {
   display: flex;
   align-items: center;
-  min-height: 52px;
+  min-height: 54px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
