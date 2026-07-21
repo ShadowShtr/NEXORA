@@ -79,7 +79,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().in('id', [tenantAId, tenantBId]);
+    await admin.from('tenants').update({ status: 'deleted' }).in('id', [tenantAId, tenantBId]);
     await admin.auth.admin.deleteUser(userAId);
     await admin.auth.admin.deleteUser(userBId);
   });
@@ -87,7 +87,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   async function seedAppointment(startAt: Date, expectedTotalCents = 2500) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const id = randomUUID();
-    await admin.from('appointments').insert({
+    const { error } = await admin.from('appointments').insert({
       id,
       tenant_id: tenantAId,
       client_id: clientAId,
@@ -99,12 +99,13 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
       expected_total_cents: expectedTotalCents,
       booking_token_hash: bookingTokenHash(id),
     });
+    if (error) throw error;
     return id;
   }
 
   it('is not callable by anon', async () => {
     const anon = createClient(url!, publishableKey!);
-    const appointmentId = await seedAppointment(new Date(Date.now() - 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 2 * 60 * 60_000));
     const { error } = await anon.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -116,7 +117,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it("rejects completing another tenant's appointment", async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 61 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 4 * 60 * 60_000));
     const { error } = await userB.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -128,7 +129,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it('completes with cash payment, updating appointment/payment/audit atomically', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 62 * 60_000), 3000);
+    const appointmentId = await seedAppointment(new Date(Date.now() - 6 * 60 * 60_000), 3000);
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 3500,
@@ -173,7 +174,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it('completes as pending with no method and no paid_at', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 63 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 8 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -191,7 +192,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it('rejects a negative final total, leaving the appointment untouched (rollback)', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 64 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 10 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: -100,
@@ -212,7 +213,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it('rejects a paid status with a null method (rollback, nothing partially written)', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 65 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 12 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -231,7 +232,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it('rejects completing an already-completed appointment (no duplicate payment on retry)', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 66 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 14 * 60 * 60_000));
     const first = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -254,7 +255,7 @@ describe.runIf(canRun)('complete_appointment (NEX-110/NEX-113)', () => {
   });
 
   it('rejects starting a completion as refunded', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 67 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 16 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,

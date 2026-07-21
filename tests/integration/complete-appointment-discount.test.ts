@@ -51,14 +51,14 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().eq('id', tenantId);
+    await admin.from('tenants').update({ status: 'deleted' }).eq('id', tenantId);
     await admin.auth.admin.deleteUser(userId);
   });
 
   async function seedAppointment(startAt: Date) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const id = randomUUID();
-    await admin.from('appointments').insert({
+    const { error } = await admin.from('appointments').insert({
       id,
       tenant_id: tenantId,
       client_id: clientId,
@@ -70,11 +70,12 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
       expected_total_cents: 2500,
       booking_token_hash: bookingTokenHash(id),
     });
+    if (error) throw error;
     return id;
   }
 
   it('applies a fixed discount as a negative appointment_item with the reason appended', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 2 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,
@@ -103,7 +104,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('applies a percent discount computed against the final total, with no reason appended when omitted', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 61 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 4 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2000,
@@ -128,7 +129,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('clamps a fixed discount larger than the final total to exactly the final total (never negative)', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 62 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 6 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 1000,
@@ -151,7 +152,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('rejects a percent discount above 100, rolling back the whole completion', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 63 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 8 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 1000,
@@ -175,7 +176,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('rejects a zero or negative discount value', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 64 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 10 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 1000,
@@ -192,7 +193,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('rejects an invalid discount type', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 65 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 12 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 1000,
@@ -209,7 +210,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('rejects a discount reason longer than 200 characters', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 66 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 14 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 1000,
@@ -226,7 +227,7 @@ describe.runIf(canRun)('complete_appointment discount (NEX-112)', () => {
   });
 
   it('completes with no discount (backward compatible with omitted discount params)', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 67 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 16 * 60 * 60_000));
     const { error } = await userA.rpc('complete_appointment', {
       p_appointment_id: appointmentId,
       p_final_total_cents: 2500,

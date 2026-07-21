@@ -75,7 +75,7 @@ describe.runIf(canRun)('update_client_private_notes (NEX-093)', () => {
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().in('id', [tenantId, otherTenantId]);
+    await admin.from('tenants').update({ status: 'deleted' }).in('id', [tenantId, otherTenantId]);
     await admin.auth.admin.deleteUser(ownerId);
     await admin.auth.admin.deleteUser(otherOwnerId);
   });

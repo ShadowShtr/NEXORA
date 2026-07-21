@@ -81,7 +81,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
   });
 
   afterAll(async () => {
-    await admin.from('tenants').delete().in('id', [tenantAId, tenantBId]);
+    await admin.from('tenants').update({ status: 'deleted' }).in('id', [tenantAId, tenantBId]);
     await admin.auth.admin.deleteUser(userAId);
     await admin.auth.admin.deleteUser(userBId);
   });
@@ -89,7 +89,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
   async function seedAppointment(startAt: Date) {
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     const id = randomUUID();
-    await admin.from('appointments').insert({
+    const { error } = await admin.from('appointments').insert({
       id,
       tenant_id: tenantAId,
       client_id: clientAId,
@@ -101,6 +101,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
       expected_total_cents: 2500,
       booking_token_hash: bookingTokenHash(id),
     });
+    if (error) throw error;
     return id;
   }
 
@@ -115,7 +116,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
   });
 
   it("rejects marking another tenant's appointment", async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 25 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 30 * 60 * 60_000));
     const { error } = await userB.rpc('mark_appointment_no_show', {
       p_appointment_id: appointmentId,
     });
@@ -131,7 +132,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
   });
 
   it("marks the caller's own appointment as no_show and writes an audit log entry", async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 26 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 36 * 60 * 60_000));
     const { error } = await userA.rpc('mark_appointment_no_show', {
       p_appointment_id: appointmentId,
     });
@@ -158,7 +159,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
   });
 
   it('rejects marking an already-cancelled appointment', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 27 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 42 * 60 * 60_000));
     const cancel = await userA.rpc('cancel_appointment', { p_appointment_id: appointmentId });
     expect(cancel.error).toBeNull();
 
@@ -170,7 +171,7 @@ describe.runIf(canRun)('mark_appointment_no_show (NEX-095)', () => {
   });
 
   it('rejects marking an appointment already marked no_show', async () => {
-    const appointmentId = await seedAppointment(new Date(Date.now() - 28 * 60 * 60_000));
+    const appointmentId = await seedAppointment(new Date(Date.now() - 48 * 60 * 60_000));
     const first = await userA.rpc('mark_appointment_no_show', {
       p_appointment_id: appointmentId,
     });

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { getPublicAvailability as GetPublicAvailability } from '@/app/b/[slug]/availability-actions';
 
 // Exercises getPublicAvailability (NEX-062) — a server action, not a DB RPC, but it
@@ -14,6 +14,17 @@ import type { getPublicAvailability as GetPublicAvailability } from '@/app/b/[sl
 // top) because it transitively imports src/lib/env.ts, which parses process.env eagerly
 // at import time — a static import would throw and abort the whole file before
 // describe.runIf ever gets a chance to skip cleanly when env vars are absent.
+//
+// getRequestIp (src/lib/request-ip.ts, used for the action's rate limit) calls next/headers'
+// headers(), which throws "called outside a request scope" unless the App Router's own
+// request-handling machinery is what's calling it — never the case here, since this test
+// invokes the action directly. Mocking next/headers to a Headers-less stub is the
+// standard way to exercise a Server Action outside of next dev/start; getRequestIp's own
+// fallback (no x-forwarded-for/x-real-ip -> 'unknown') already handles an empty header
+// set correctly, so this doesn't change what's under test.
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
+}));
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -69,6 +80,10 @@ describe.runIf(canRun)('getPublicAvailability (NEX-062)', () => {
       {
         tenant_id: unpublishedTenantId,
         timezone: 'Europe/Lisbon',
+        slot_interval_minutes: 30,
+        buffer_minutes: 15,
+        min_notice_hours: 1,
+        booking_window_days: 30,
         published_at: null,
       },
     ]);
