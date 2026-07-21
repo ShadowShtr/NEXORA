@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
@@ -21,8 +21,10 @@ import { LogoutButton } from '@/features/auth/LogoutButton';
 type NavItem = { href: Route; label: string; icon: LucideIcon };
 
 // 01_PRODUCT_REQUIREMENTS.md #14 — mobile bottom bar: Início, Agenda, Clientes,
-// Serviços, Mais (Mais contém Financeiro, Relatórios, Definições, Terminar sessão).
-// Desktop amplia em vez de duplicar (CLAUDE.md): mostra tudo diretamente, sem "Mais".
+// Serviços, Mais (Mais é uma página própria, não um menu sobreposto — visual
+// refinement mid-2026: abre /dashboard/mais, que por sua vez dá acesso a Lembretes,
+// Financeiro, Relatórios e Definições). Desktop amplia em vez de duplicar a
+// experiência (CLAUDE.md): continua a mostrar tudo diretamente, sem "Mais".
 const PRIMARY_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Início', icon: Home },
   { href: '/dashboard/agenda', label: 'Agenda', icon: Calendar },
@@ -37,35 +39,10 @@ const MORE_ITEMS: NavItem[] = [
   { href: '/dashboard/definicoes', label: 'Definições', icon: Settings },
 ];
 
+const MORE_NAV_ITEM: NavItem = { href: '/dashboard/mais', label: 'Mais', icon: Grid2x2 };
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreButtonRef = useRef<HTMLButtonElement>(null);
-  const morePanelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!moreOpen) return;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setMoreOpen(false);
-        moreButtonRef.current?.focus();
-      }
-    }
-    function onPointerDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (!morePanelRef.current?.contains(target) && !moreButtonRef.current?.contains(target)) {
-        setMoreOpen(false);
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('mousedown', onPointerDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('mousedown', onPointerDown);
-    };
-  }, [moreOpen]);
 
   function isActive(href: string) {
     return href === '/dashboard' ? pathname === href : pathname.startsWith(href);
@@ -97,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <nav className="mobile-nav" aria-label="Navegação principal">
-        {PRIMARY_ITEMS.map((item) => (
+        {[...PRIMARY_ITEMS, MORE_NAV_ITEM].map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -108,40 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span>{item.label}</span>
           </Link>
         ))}
-        <button
-          ref={moreButtonRef}
-          type="button"
-          className="mobile-nav-item"
-          aria-expanded={moreOpen}
-          aria-controls="mobile-nav-more"
-          onClick={() => setMoreOpen((open) => !open)}
-        >
-          <Grid2x2 aria-hidden="true" size={22} />
-          <span>Mais</span>
-        </button>
       </nav>
-
-      {moreOpen ? (
-        <div id="mobile-nav-more" ref={morePanelRef} className="mobile-nav-more">
-          <nav aria-label="Mais opções">
-            <ul>
-              {MORE_ITEMS.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={isActive(item.href) ? 'page' : undefined}
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    <item.icon aria-hidden="true" size={18} />
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <LogoutButton />
-        </div>
-      ) : null}
     </div>
   );
 }
