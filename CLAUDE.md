@@ -116,6 +116,44 @@ contadores dos chips) tem de vir de dados reais do tenant. Nunca inventar avatar
 com foto (usar iniciais), nem criar um destino de "nova cliente" que não existe —
 reutilizar o fluxo real de criação (nova marcação) em vez de fabricar um novo.
 
+## Aba Serviços — regras obrigatórias
+
+A página principal de Serviços deve ser uma lista visual e compacta.
+
+É proibido mostrar os formulários completos de:
+
+- categorias;
+- serviços;
+- fotografias;
+- pacotes;
+
+diretamente dentro da lista principal.
+
+A página principal deve conter:
+
+- título;
+- botão Novo serviço;
+- pesquisa;
+- filtro;
+- chips de categoria;
+- lista de cartões;
+- toggle de atividade;
+- acesso a edição;
+- botão flutuante;
+- navegação inferior.
+
+Cada serviço deve mostrar:
+
+- imagem ou ilustração;
+- nome;
+- duração;
+- categoria;
+- preço;
+- estado ativo;
+- seta de detalhes.
+
+A gestão completa deve abrir em modal, bottom sheet ou página secundária.
+
 ### Testes obrigatórios por tarefa
 
 Conforme o escopo, implemente:

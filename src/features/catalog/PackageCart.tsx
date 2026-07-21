@@ -26,9 +26,11 @@ function toCartItem(service: ServiceListItem): CartItem {
 export function PackageCart({
   services,
   initialServiceIds,
+  onChange,
 }: {
   services: ServiceListItem[];
   initialServiceIds: string[];
+  onChange?: (serviceIds: string[]) => void;
 }) {
   const [cart, setCart] = useState<CartItem[]>(() =>
     initialServiceIds
@@ -44,6 +46,11 @@ export function PackageCart({
   );
   const totals = cartTotals(cart);
 
+  function updateCart(nextCart: CartItem[]) {
+    setCart(nextCart);
+    onChange?.(nextCart.map((item) => item.serviceId));
+  }
+
   function handleAdd() {
     const service = services.find((candidate) => candidate.id === selectedServiceId);
     if (!service) return;
@@ -54,12 +61,12 @@ export function PackageCart({
       return;
     }
     setBlockedMessage(null);
-    setCart(result.cart);
+    updateCart(result.cart);
     setSelectedServiceId('');
   }
 
   function handleRemove(serviceId: string) {
-    setCart(removeFromCart(cart, serviceId));
+    updateCart(removeFromCart(cart, serviceId));
     setBlockedMessage(null);
   }
 
