@@ -89,7 +89,7 @@ export function AppointmentCard({
               }
               aria-label={`Concluir atendimento de ${appointment.clientName}`}
             >
-              <Check size={16} aria-hidden="true" />
+              <Check size={20} aria-hidden="true" />
             </button>
           ) : whatsappHref ? (
             <a
@@ -99,7 +99,7 @@ export function AppointmentCard({
               rel="noreferrer"
               aria-label="Abrir WhatsApp"
             >
-              <MessageCircle size={18} aria-hidden="true" />
+              <MessageCircle size={23} aria-hidden="true" />
             </a>
           ) : null}
         </span>

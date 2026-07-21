@@ -182,15 +182,14 @@ export default async function AgendaPage({
 
   return (
     <div className="shell agenda-page">
-      <p className="text-eyebrow">Agenda</p>
-      <h1 className="text-title">Agenda</h1>
+      <h1 className="text-title agenda-title">Agenda</h1>
 
       <div className="agenda-date-row">
         <AgendaDatePicker view={view} dateKey={dateKey} label={capitalize(rangeLabel)} />
         <nav className="agenda-date-nav" aria-label="Navegar datas">
           <a
             href={navHref(view, previousDateKey)}
-            className="nx-icon-button"
+            className="nx-icon-button agenda-nav-icon-button"
             aria-label="Data anterior"
           >
             <ChevronLeft aria-hidden="true" />
@@ -202,7 +201,7 @@ export default async function AgendaPage({
           ) : null}
           <a
             href={navHref(view, nextDateKey)}
-            className="nx-icon-button"
+            className="nx-icon-button agenda-nav-icon-button"
             aria-label="Data seguinte"
           >
             <ChevronRight aria-hidden="true" />
