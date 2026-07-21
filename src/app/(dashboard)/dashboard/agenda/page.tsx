@@ -7,6 +7,7 @@ import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { computeAvailableSlotsMs } from '@/lib/availability-lookup';
 import { AppointmentCard, type AppointmentCardData } from '@/features/appointments/AppointmentCard';
+import { AgendaCompletionProvider } from '@/features/appointments/AgendaCompletionContext';
 import { AgendaDatePicker } from '@/features/appointments/AgendaDatePicker';
 import type { AppointmentCardStatus } from '@/features/appointments/domain/appointment-card';
 import {
@@ -209,7 +210,11 @@ export default async function AgendaPage({
         </nav>
       </div>
 
-      <div role="tablist" aria-label="Vista da agenda" className="nx-tabs nx-tabs-pill">
+      <div
+        role="tablist"
+        aria-label="Vista da agenda"
+        className="nx-tabs nx-tabs-pill agenda-view-tabs"
+      >
         <a
           href={navHref('day', dateKey)}
           role="tab"
@@ -273,42 +278,43 @@ export default async function AgendaPage({
           <p className="text-support">Sem marcações neste período.</p>
         </Card>
       ) : (
-        <div className="agenda-day-groups">
-          {range.dateKeys.map((key) => {
-            const appointments = byDateKey.get(key) ?? [];
-            if (appointments.length === 0 && view !== 'day') return null;
-            return (
-              <section key={key} aria-label={key}>
-                {view !== 'day' ? (
-                  <p className="agenda-day-group-label">
-                    {capitalize(
-                      formatInTimeZone(
-                        fromZonedTime(`${key}T12:00:00`, timezone),
-                        timezone,
-                        "EEEE, dd 'de' MMMM",
-                        { locale: pt },
-                      ),
-                    )}
-                  </p>
-                ) : null}
-                {appointments.length === 0 ? (
-                  <p className="appointment-card-items">Sem marcações.</p>
-                ) : (
-                  <ul className="appointment-card-list">
-                    {appointments.map((appointment) => (
-                      <AppointmentCard
-                        key={appointment.id}
-                        appointment={appointment}
-                        availableServices={availableServices}
-                        nowMs={nowMs}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
-        </div>
+        <AgendaCompletionProvider availableServices={availableServices}>
+          <div className="agenda-day-groups">
+            {range.dateKeys.map((key) => {
+              const appointments = byDateKey.get(key) ?? [];
+              if (appointments.length === 0 && view !== 'day') return null;
+              return (
+                <section key={key} aria-label={key}>
+                  {view !== 'day' ? (
+                    <p className="agenda-day-group-label">
+                      {capitalize(
+                        formatInTimeZone(
+                          fromZonedTime(`${key}T12:00:00`, timezone),
+                          timezone,
+                          "EEEE, dd 'de' MMMM",
+                          { locale: pt },
+                        ),
+                      )}
+                    </p>
+                  ) : null}
+                  {appointments.length === 0 ? (
+                    <p className="appointment-card-items">Sem marcações.</p>
+                  ) : (
+                    <ul className="appointment-card-list">
+                      {appointments.map((appointment) => (
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          nowMs={nowMs}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </AgendaCompletionProvider>
       )}
 
       <Link href="/dashboard/agenda/nova" className="agenda-fab" aria-label="Nova marcação">

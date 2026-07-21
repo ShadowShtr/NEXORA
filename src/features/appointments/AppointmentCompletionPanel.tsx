@@ -1,7 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { Check } from 'lucide-react';
+import { useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { completeAppointment } from './completion-actions';
 import { parseEurosToCents, type QuickPaymentChoice } from './domain/completion';
@@ -29,31 +28,29 @@ function formatEuros(cents: number): string {
 
 // NEX-110/NEX-111: "janela rápida mostra valor e forma de pagamento... em poucos
 // toques" + "Ver mais permite extras... serviço existente ou ajuste manual"
-// (docs/01_PRODUCT_REQUIREMENTS.md §9) — an inline reveal-in-place panel, the same
-// pattern already used for cancel/reschedule/mark-no-show (AppointmentDetailActions.tsx)
-// rather than a new overlay/dialog component. Adding an extra recomputes the value
-// field's suggestion (expected total + extras) but only while the owner hasn't typed
-// into that field herself — "valor final é ajustável" means her own edit always wins
-// over the auto-suggestion, matching how NEX-112's discount will layer on top of this
-// same field later.
+// (docs/01_PRODUCT_REQUIREMENTS.md §9). Visual refinement mid-2026: this used to be an
+// inline reveal-in-place panel on the agenda card itself — the reference flagged that as
+// the single biggest visual problem (a card growing to 500-600px destroys the timeline),
+// so the open/closed toggle moved out to a bottom sheet (CompletionSheet.tsx) that owns
+// visibility; this component is now just the form, always rendered when mounted, with
+// onCompleted/onCancel telling the sheet when to close.
 export function AppointmentCompletionPanel({
   appointmentId,
   expectedTotalCents,
   availableServices,
-  compact = false,
+  onCompleted,
+  onCancel,
 }: {
   appointmentId: string;
   expectedTotalCents: number;
   availableServices: AvailableService[];
-  /** Agenda timeline row trigger: a bare checkmark icon instead of a "Concluir" button —
-   * only the closed-state trigger changes, the expanded form is identical either way. */
-  compact?: boolean;
+  onCompleted?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, formAction, pending] = useActionState<Result<null> | null, FormData>(
     completeAppointment,
     null,
   );
-  const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [amountInput, setAmountInput] = useState(formatEurosInputValue(expectedTotalCents));
   const [amountEditedByHand, setAmountEditedByHand] = useState(false);
@@ -65,28 +62,12 @@ export function AppointmentCompletionPanel({
   const [discountValueInput, setDiscountValueInput] = useState('');
   const [discountReason, setDiscountReason] = useState('');
 
-  if (state?.ok) {
-    return compact ? null : <p role="status">Atendimento concluído.</p>;
-  }
+  useEffect(() => {
+    if (state?.ok) onCompleted?.();
+  }, [state, onCompleted]);
 
-  if (!open) {
-    if (compact) {
-      return (
-        <button
-          type="button"
-          className="appointment-timeline-complete-trigger"
-          onClick={() => setOpen(true)}
-          aria-label="Concluir atendimento"
-        >
-          <Check size={16} aria-hidden="true" />
-        </button>
-      );
-    }
-    return (
-      <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-        Concluir
-      </Button>
-    );
+  if (state?.ok) {
+    return null;
   }
 
   // NEX-112: the discount layers on top of the extras subtotal (expected + extras),
@@ -353,7 +334,7 @@ export function AppointmentCompletionPanel({
         >
           {pending ? 'A concluir…' : 'Confirmar conclusão'}
         </Button>
-        <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Voltar
         </Button>
       </div>
