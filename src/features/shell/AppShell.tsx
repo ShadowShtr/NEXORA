@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-current={isActive(item.href) ? 'page' : undefined}
             className="mobile-nav-item"
           >
-            <item.icon aria-hidden="true" size={20} />
+            <item.icon aria-hidden="true" size={22} />
             <span>{item.label}</span>
           </Link>
         ))}
@@ -116,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-controls="mobile-nav-more"
           onClick={() => setMoreOpen((open) => !open)}
         >
-          <Grid2x2 aria-hidden="true" size={20} />
+          <Grid2x2 aria-hidden="true" size={22} />
           <span>Mais</span>
         </button>
       </nav>

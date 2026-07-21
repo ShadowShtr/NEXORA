@@ -1173,11 +1173,13 @@ select {
   right: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
   gap: 0.25rem;
+  height: calc(72px + env(safe-area-inset-bottom, 0px));
   background: white;
   border-top: 1px solid var(--pink-100);
   box-shadow: 0 -8px 20px rgba(153, 86, 114, 0.16);
-  padding: 0.4rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  padding: 0 0.75rem env(safe-area-inset-bottom, 0px);
   z-index: 10;
 }
 .mobile-nav-item {
@@ -1186,12 +1188,13 @@ select {
   align-items: center;
   justify-content: center;
   gap: 0.2rem;
-  min-height: 52px;
+  min-height: 48px;
   border-radius: 0.85rem;
   text-decoration: none;
   color: var(--muted);
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.625rem;
+  line-height: 0.75rem;
   background: none;
   border: 0;
   cursor: pointer;
@@ -1207,7 +1210,7 @@ select {
 
 .mobile-nav-more {
   position: fixed;
-  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   background: white;
@@ -1368,8 +1371,8 @@ select {
    + linha ligando a um atendimento ao seguinte, cartão compacto com uma única ação. */
 .appointment-timeline-row {
   display: grid;
-  grid-template-columns: 3.4rem 1.1rem minmax(0, 1fr);
-  column-gap: 0.4rem;
+  grid-template-columns: 3.875rem 1rem minmax(0, 1fr);
+  column-gap: 0.25rem;
 }
 .appointment-timeline-time {
   padding-top: 1.6rem;
@@ -1412,17 +1415,17 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: 6.9rem;
-  padding: 1.1rem 1rem;
+  min-height: 6.5rem;
+  padding: 1.125rem 1rem;
   margin-bottom: 0.65rem;
-  border-radius: 1.1rem;
+  border-radius: 1.125rem;
   background: #fff;
   border: 1px solid rgba(239, 230, 234, 0.85);
   box-shadow: 0 8px 20px rgba(42, 27, 35, 0.05);
 }
 .appointment-timeline-card-due {
-  background: linear-gradient(135deg, rgba(255, 239, 245, 0.95), rgba(255, 246, 249, 0.95));
-  border-color: rgba(237, 63, 121, 0.22);
+  background: linear-gradient(135deg, #fff7fa 0%, #fff1f6 100%);
+  border-color: rgba(237, 63, 121, 0.2);
   box-shadow: 0 10px 22px rgba(237, 63, 121, 0.1);
 }
 .appointment-timeline-link {
@@ -1434,7 +1437,9 @@ select {
   color: inherit;
 }
 .appointment-timeline-link .appointment-card-items {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
+  line-height: 1.1875rem;
+  max-width: 220px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1450,8 +1455,8 @@ select {
 }
 .appointment-timeline-whatsapp,
 .appointment-timeline-complete-trigger {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.625rem;
+  height: 2.625rem;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -1459,8 +1464,8 @@ select {
   cursor: pointer;
 }
 .appointment-timeline-whatsapp {
-  background: #e7f9ee;
-  color: #1f9d55;
+  background: #edf9f2;
+  color: #16b95f;
 }
 .appointment-timeline-complete-trigger {
   background: linear-gradient(135deg, #f45b8c, var(--pink-600));
@@ -1630,23 +1635,43 @@ body[data-sheet-open='true'] .agenda-fab {
 }
 /* Agenda (/dashboard/agenda) — date row (native date input driving the picker) +
    pill view tabs + timeline list. Visual refinement mid-2026 reference. */
+.agenda-page {
+  padding-top: 0.5rem;
+  background:
+    radial-gradient(circle at 80% 8%, rgba(255, 220, 231, 0.18), transparent 32%),
+    linear-gradient(180deg, #fffdfd 0%, #fffafb 65%, #fff7fa 100%);
+}
+.agenda-title {
+  font-size: 2.125rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  margin: 0;
+}
 .agenda-view-tabs {
-  padding: 0.3rem;
-  border-radius: 1.1rem;
+  display: flex;
+  height: 3.375rem;
+  padding: 0.3125rem;
+  border-radius: 1.125rem;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(241, 231, 235, 0.9);
   box-shadow: 0 8px 20px rgba(55, 36, 45, 0.05);
 }
 .agenda-view-tabs .nx-tab {
   flex: 1;
+  min-height: 0;
   border: 0;
+  border-radius: 0.875rem;
+  padding: 0;
   text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: #413d44;
 }
 .agenda-view-tabs .nx-tab[aria-current='page'] {
-  background: linear-gradient(135deg, #fff2f6, #ffe9f0);
+  background: linear-gradient(135deg, #fff1f6, #ffe7ef);
   border-color: transparent;
-  color: var(--pink-600);
+  color: #ed3f79;
   font-weight: 700;
 }
 .agenda-date-row {
@@ -1655,15 +1680,17 @@ body[data-sheet-open='true'] .agenda-fab {
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
-  margin-top: 0.5rem;
+  margin-top: 0.625rem;
 }
 .agenda-date-picker {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-weight: 600;
-  color: var(--text-secondary, var(--muted));
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
+  font-weight: 500;
+  color: #625e66;
   cursor: pointer;
 }
 .agenda-date-picker svg {
@@ -1684,12 +1711,20 @@ body[data-sheet-open='true'] .agenda-fab {
   text-decoration: none;
   font-size: 0.85rem;
 }
+.agenda-nav-icon-button {
+  width: 42px;
+  height: 42px;
+}
+.agenda-nav-icon-button svg {
+  width: 20px;
+  height: 20px;
+}
 .agenda-fab {
   position: fixed;
   right: 1.25rem;
-  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
-  width: 3.25rem;
-  height: 3.25rem;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  width: 3.5rem;
+  height: 3.5rem;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -1709,19 +1744,26 @@ body[data-sheet-open='true'] .agenda-fab {
   margin: 0 0 0.5rem;
 }
 .agenda-free-slots {
-  padding: 0.85rem 1.1rem;
+  min-height: 52px;
+  margin-top: 0.75rem;
+  margin-bottom: 0.875rem;
+  padding: 0 1rem;
+  border-radius: 1rem;
   background: linear-gradient(135deg, var(--pink-50), #fff);
   border-color: rgba(244, 211, 223, 0.7);
 }
 .agenda-free-slots-summary {
-  font-weight: 700;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
   color: var(--pink-600);
 }
 .agenda-free-slots-list {
   list-style: none;
-  margin: 0.75rem 0 0;
+  margin: 0.25rem 0 0.85rem;
   padding: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1863,6 +1905,7 @@ body[data-sheet-open='true'] .agenda-fab {
   font-weight: 700;
   background: white;
   color: var(--muted);
+  text-decoration: none;
   cursor: pointer;
   min-height: 44px;
 }
