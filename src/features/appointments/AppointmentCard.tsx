@@ -99,7 +99,7 @@ export function AppointmentCard({
               rel="noreferrer"
               aria-label="Abrir WhatsApp"
             >
-              <MessageCircle size={23} aria-hidden="true" />
+              <MessageCircle size={22} aria-hidden="true" />
             </a>
           ) : null}
         </span>
