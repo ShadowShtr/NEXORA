@@ -42,14 +42,19 @@ test.describe('login / logout (NEX-020)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     // Logout lives in the app shell (NEX-023): directly in the sidebar on desktop,
-    // behind the "Mais" panel on mobile.
+    // on the "Mais" page on mobile. Both render the same discreet, confirm-first
+    // LogoutSection (features/shell/LogoutSection.tsx) — a "Terminar sessão" trigger
+    // that opens a bottom sheet, not an immediate-submit button.
     const isMobile = (page.viewportSize()?.width ?? 1280) < 761;
     if (isMobile) {
-      await page.locator('.mobile-nav').getByRole('button', { name: 'Mais' }).click();
-      await page.locator('.mobile-nav-more').getByRole('button', { name: 'Sair' }).click();
-    } else {
-      await page.locator('.desktop-nav').getByRole('button', { name: 'Sair' }).click();
+      await page.locator('.mobile-nav').getByRole('link', { name: 'Mais' }).click();
     }
+    const navScope = isMobile ? page : page.locator('.desktop-nav');
+    await navScope.getByRole('button', { name: 'Terminar sessão' }).click();
+    await page
+      .getByRole('dialog', { name: 'Terminar sessão?' })
+      .getByRole('button', { name: 'Terminar sessão' })
+      .click();
     await expect(page).toHaveURL(/\/login/);
   });
 });
