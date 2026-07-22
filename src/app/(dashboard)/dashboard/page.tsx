@@ -8,7 +8,7 @@ import {
   CalendarPlus,
   CheckCircle2,
   ChevronRight,
-  Clock,
+  ClipboardList,
   MessageCircle,
   Share2,
   Wallet,
@@ -177,6 +177,7 @@ async function loadDashboardData(tenantId: string) {
     receivedTodayCents,
     pendingTodayCents,
     nowMs,
+    (pendingPaymentRows ?? []).length,
   );
 
   const attentionReminders: AttentionReminder[] = (attentionReminderRows ?? []).map((row) => {
@@ -291,24 +292,55 @@ function DailySummaryGrid({ summary }: { summary: DashboardSummary }) {
     <div className="daily-summary-grid">
       <div className="summary-card" data-type="appointments">
         <span className="summary-icon" aria-hidden="true">
-          <Calendar size={17} />
+          <Calendar size={20} />
         </span>
-        <span className="summary-value">{summary.todayCount}</span>
-        <span className="summary-label">Marcações</span>
+        <span className="summary-text">
+          <span className="summary-value">{summary.todayCount}</span>
+          <span className="summary-label">
+            Marcações
+            <br />
+            Hoje
+          </span>
+        </span>
       </div>
       <div className="summary-card" data-type="revenue">
         <span className="summary-icon" aria-hidden="true">
-          <Wallet size={17} />
+          <Wallet size={20} />
         </span>
-        <span className="summary-value">{formatEuros(summary.invoicedTodayCents)}</span>
-        <span className="summary-label">Faturado</span>
+        <span className="summary-text">
+          <span className="summary-value">{formatEuros(summary.invoicedTodayCents)}</span>
+          <span className="summary-label">
+            Faturação
+            <br />
+            Hoje
+          </span>
+        </span>
+      </div>
+      <div className="summary-card" data-type="reminders">
+        <span className="summary-icon" aria-hidden="true">
+          <Bell size={20} />
+        </span>
+        <span className="summary-text">
+          <span className="summary-value">{summary.pendingRemindersCount}</span>
+          <span className="summary-label">
+            Lembretes
+            <br />
+            Hoje
+          </span>
+        </span>
       </div>
       <div className="summary-card" data-type="pending">
         <span className="summary-icon" aria-hidden="true">
-          <Clock size={17} />
+          <ClipboardList size={20} />
         </span>
-        <span className="summary-value">{formatEuros(summary.pendingTodayCents)}</span>
-        <span className="summary-label">Pendente</span>
+        <span className="summary-text">
+          <span className="summary-value">{summary.pendingPaymentsTodayCount}</span>
+          <span className="summary-label">
+            Pendentes
+            <br />
+            Hoje
+          </span>
+        </span>
       </div>
     </div>
   );

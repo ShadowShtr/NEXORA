@@ -1099,53 +1099,65 @@ select {
 
 .daily-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 .summary-card {
-  min-height: 100px;
-  padding: 13px 10px;
+  min-height: 84px;
+  padding: 14px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
   border-radius: 18px;
   border: 1px solid rgba(240, 230, 234, 0.92);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 8px 20px rgba(42, 27, 35, 0.045);
 }
 .summary-icon {
-  width: 34px;
-  height: 34px;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 50%;
   background: #fff1f5;
   color: #ed3f79;
 }
 .summary-card[data-type='appointments'] .summary-icon {
-  background: #fff0f5;
+  background: #fde3ea;
   color: #ed3f79;
 }
 .summary-card[data-type='revenue'] .summary-icon {
-  background: #edf9f2;
+  background: #ddf3e6;
   color: #18ad5c;
 }
+.summary-card[data-type='reminders'] .summary-icon {
+  background: #fde3ea;
+  color: #ed3f79;
+}
 .summary-card[data-type='pending'] .summary-icon {
-  background: #fff6e9;
+  background: #fdead0;
   color: #e59220;
 }
+.summary-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 .summary-value {
-  margin-top: 9px;
-  font-size: 18px;
-  line-height: 23px;
+  font-size: 20px;
+  line-height: 25px;
   font-weight: 700;
   color: #211d23;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .summary-label {
   margin-top: 2px;
-  font-size: 11px;
-  line-height: 15px;
+  font-size: 12px;
+  line-height: 16px;
   color: #7f7982;
 }
 
