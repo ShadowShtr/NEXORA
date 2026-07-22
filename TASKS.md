@@ -111,7 +111,7 @@
 - [x] **NEX-111** — Tela Ver mais e extras _(depende: NEX-110)_
 - [x] **NEX-112** — Descontos fixos/percentuais _(depende: NEX-111)_
 - [x] **NEX-113** — Transação de conclusão _(depende: NEX-110)_
-- [ ] **NEX-114** — Área de pagamentos pendentes _(depende: NEX-113)_
+- [x] **NEX-114** — Área de pagamentos pendentes _(depende: NEX-113)_
 - [ ] **NEX-115** — Reabrir/corrigir com auditoria _(depende: NEX-113)_
 
 ### EPIC-12 — Recorrência e disponibilidade avançada
@@ -125,8 +125,8 @@
 
 ### EPIC-13 — Financeiro e relatórios
 
-- [ ] **NEX-130** — Dashboard financeiro _(depende: NEX-113)_
-- [ ] **NEX-131** — Filtros por período _(depende: NEX-130)_
+- [x] **NEX-130** — Dashboard financeiro _(depende: NEX-113)_
+- [x] **NEX-131** — Filtros por período _(depende: NEX-130)_
 - [ ] **NEX-132** — Exportar CSV _(depende: NEX-131)_
 - [ ] **NEX-133** — Exportar Excel _(depende: NEX-131)_
 - [ ] **NEX-134** — Exportar PDF _(depende: NEX-131)_

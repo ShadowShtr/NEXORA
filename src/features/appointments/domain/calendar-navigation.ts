@@ -12,7 +12,7 @@ export type CalendarRange = {
   dateKeys: string[];
 };
 
-function addDays(dateKey: string, days: number): string {
+export function addDays(dateKey: string, days: number): string {
   const [year, month, day] = dateKey.split('-').map(Number);
   const anchor = new Date(Date.UTC(year!, month! - 1, day! + days, 12));
   return anchor.toISOString().slice(0, 10);
