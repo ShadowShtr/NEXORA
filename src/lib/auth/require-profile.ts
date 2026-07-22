@@ -15,7 +15,7 @@ export async function requireProfile() {
   const userId = claimsData.claims.sub;
   const { data: profile } = await supabase
     .from('profiles')
-    .select('user_id, tenant_id')
+    .select('user_id, tenant_id, display_name')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -24,5 +24,5 @@ export async function requireProfile() {
     redirect('/login?error=no_profile');
   }
 
-  return { userId, tenantId: profile.tenant_id };
+  return { userId, tenantId: profile.tenant_id, displayName: profile.display_name ?? '' };
 }

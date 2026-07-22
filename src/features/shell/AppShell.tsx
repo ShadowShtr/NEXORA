@@ -16,7 +16,8 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
-import { LogoutButton } from '@/features/auth/LogoutButton';
+import { LogoutSection } from '@/features/shell/LogoutSection';
+import { initials } from '@/lib/initials';
 
 type NavItem = { href: Route; label: string; icon: LucideIcon };
 
@@ -41,7 +42,7 @@ const MORE_ITEMS: NavItem[] = [
 
 const MORE_NAV_ITEM: NavItem = { href: '/dashboard/mais', label: 'Mais', icon: Grid2x2 };
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, displayName }: { children: ReactNode; displayName: string }) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -55,18 +56,48 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
 
       <nav className="desktop-nav" aria-label="Navegação principal">
-        <p className="app-shell-brand">NEXORA</p>
-        <ul>
-          {[...PRIMARY_ITEMS, ...MORE_ITEMS].map((item) => (
+        <div className="desktop-nav-brand">
+          <span className="desktop-nav-logo" aria-hidden="true">
+            N
+          </span>
+          <p className="app-shell-brand">NEXORA</p>
+        </div>
+
+        <ul className="desktop-nav-list">
+          {PRIMARY_ITEMS.map((item) => (
             <li key={item.href}>
               <Link href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
-                <item.icon aria-hidden="true" size={18} />
+                <item.icon aria-hidden="true" size={19} />
                 {item.label}
               </Link>
             </li>
           ))}
         </ul>
-        <LogoutButton />
+
+        <p className="desktop-nav-section-label">Gestão</p>
+        <ul className="desktop-nav-list">
+          {MORE_ITEMS.map((item) => (
+            <li key={item.href}>
+              <Link href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                <item.icon aria-hidden="true" size={19} />
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="desktop-nav-footer">
+          <div className="desktop-nav-profile">
+            <span className="desktop-nav-avatar" aria-hidden="true">
+              {initials(displayName || '?')}
+            </span>
+            <span className="desktop-nav-profile-text">
+              <span className="desktop-nav-profile-name">{displayName || 'Profissional'}</span>
+              <span className="desktop-nav-profile-role">Proprietária</span>
+            </span>
+          </div>
+          <LogoutSection />
+        </div>
       </nav>
 
       <main id="main-content" className="app-shell-content" tabIndex={-1}>
