@@ -1154,6 +1154,14 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Revenue is the only value with variable, often-long text (currency amounts
+   like "1080,00 €"), so it gets a smaller size to actually fit the card
+   instead of relying on the ellipsis fallback above — the other three cards
+   hold short counts and keep the larger size. */
+.summary-card[data-type='revenue'] .summary-value {
+  font-size: 15px;
+  line-height: 19px;
+}
 .summary-label {
   margin-top: 2px;
   font-size: 12px;
