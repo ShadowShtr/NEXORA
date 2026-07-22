@@ -3541,3 +3541,505 @@ body[data-sheet-open='true'] .services-fab {
   line-height: 16px;
   color: #aaa3ac;
 }
+
+/* Financeiro (NEX-130/NEX-131) — reuses .more-top-header/.more-logo/.more-title and
+   the shared .notification-button/.notification-badge (same header chrome already
+   used by Clientes/Mais) rather than inventing page-specific header classes, per
+   CLAUDE.md's "manter consistência visual com Início, Agenda, Clientes, Serviços e
+   Mais." Everything below is genuinely new to this page. */
+@keyframes finance-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.finance-page {
+  padding-top: 10px;
+  animation: finance-enter 260ms ease-out;
+  background:
+    radial-gradient(circle at 84% 5%, rgba(255, 219, 231, 0.17), transparent 30%),
+    linear-gradient(180deg, #fffdfd 0%, #fffafb 66%, #fff7fa 100%);
+}
+.finance-title-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.finance-title-row .more-title {
+  margin: 0;
+}
+.finance-back-button {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #29242b;
+  box-shadow: 0 6px 16px rgba(42, 27, 35, 0.05);
+}
+
+.finance-period-row {
+  margin: 14px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.finance-period-button {
+  min-height: 44px;
+  padding: 0 12px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: #625d66;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.finance-period-button svg {
+  width: 19px;
+  height: 19px;
+  color: #77717b;
+  flex-shrink: 0;
+}
+.finance-period-chevron {
+  width: 15px !important;
+  height: 15px !important;
+}
+.finance-calendar-button {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #ed3f79;
+  cursor: pointer;
+}
+
+.period-sheet-options {
+  display: flex;
+  flex-direction: column;
+}
+.period-option {
+  min-height: 52px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1e7eb;
+  font-size: 15px;
+  color: #252027;
+  text-decoration: none;
+}
+.period-option[data-active='true'] {
+  color: #ed3f79;
+  font-weight: 600;
+}
+.period-custom-form {
+  padding-top: 4px;
+}
+.period-custom-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.period-custom-submit {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.revenue-hero-card {
+  margin: 16px 0 0;
+  min-height: 168px;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(237, 63, 121, 0.16);
+  background: linear-gradient(135deg, #fff3f7 0%, #fff8fa 55%, #fffdfd 100%);
+  box-shadow: 0 12px 28px rgba(237, 63, 121, 0.09);
+}
+.revenue-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.revenue-card-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: #4b454d;
+}
+.revenue-info-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+.revenue-info-button {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #8b858e;
+  cursor: pointer;
+}
+.revenue-info-popover {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 5;
+  width: 240px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #29242b;
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 500;
+  box-shadow: 0 12px 28px rgba(20, 14, 18, 0.28);
+}
+.revenue-total {
+  margin: 18px 0 0;
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  font-size: 36px;
+  line-height: 42px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: #18151d;
+}
+.revenue-comparison {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 18px;
+  color: #6f6972;
+}
+.revenue-comparison-value[data-trend='positive'] {
+  color: #19a958;
+  font-weight: 650;
+}
+.revenue-comparison-value[data-trend='negative'] {
+  color: #d94c4b;
+  font-weight: 650;
+}
+.revenue-comparison-value[data-trend='neutral'] {
+  color: #7b7580;
+  font-weight: 650;
+}
+
+.payment-breakdown {
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.payment-method-card {
+  min-height: 72px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(42, 27, 35, 0.045);
+  text-decoration: none;
+}
+.payment-method-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+}
+.payment-method-card[data-method='cash'] .payment-method-icon {
+  background: #fff0f5;
+  color: #ed3f79;
+}
+.payment-method-card[data-method='mbway'] .payment-method-icon {
+  background: #fff4f5;
+  color: #cc273e;
+}
+.payment-method-card[data-method='pending'] .payment-method-icon {
+  background: #fff5e9;
+  color: #e58c19;
+}
+.payment-method-name {
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  color: #201c22;
+}
+.payment-method-value {
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 650;
+  color: #1f1b22;
+  white-space: nowrap;
+}
+.payment-method-percentage {
+  min-width: 44px;
+  text-align: right;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+.payment-method-card[data-method='cash'] .payment-method-percentage,
+.payment-method-card[data-method='mbway'] .payment-method-percentage {
+  color: #18a957;
+}
+.payment-method-card[data-method='pending'] .payment-method-percentage {
+  color: #e58c19;
+}
+.payment-progress {
+  grid-column: 2 / -1;
+  height: 4px;
+  margin-top: 3px;
+  border-radius: 999px;
+  background: #f2ecef;
+  overflow: hidden;
+}
+.payment-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.payment-method-card[data-method='cash'] .payment-progress-fill {
+  background: #ed3f79;
+}
+.payment-method-card[data-method='mbway'] .payment-progress-fill {
+  background: #cc273e;
+}
+.payment-method-card[data-method='pending'] .payment-progress-fill {
+  background: #e58c19;
+}
+
+.finance-summary-card {
+  margin: 16px 0 0;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 9px 22px rgba(42, 27, 35, 0.045);
+}
+.finance-summary-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 650;
+  color: #211d23;
+}
+.finance-summary-row {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #f2e9ed;
+}
+.finance-summary-row:last-child {
+  border-bottom: 0;
+}
+.finance-summary-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.finance-summary-row[data-type='billed'] .finance-summary-dot {
+  background: #ed3f79;
+}
+.finance-summary-row[data-type='received'] .finance-summary-dot {
+  background: #1bae5b;
+}
+.finance-summary-row[data-type='pending'] .finance-summary-dot {
+  background: #ee941c;
+}
+.finance-summary-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: #77717b;
+}
+.finance-summary-value {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  color: #211d23;
+}
+
+.finance-kpis-grid {
+  margin: 16px 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.finance-kpi-card {
+  min-height: 86px;
+  padding: 13px;
+  border-radius: 17px;
+  border: 1px solid #f0e6ea;
+  background: #ffffff;
+  box-shadow: 0 7px 18px rgba(42, 27, 35, 0.04);
+}
+.finance-kpi-value {
+  margin: 0;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 700;
+  color: #211d23;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.finance-kpi-label {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 15px;
+  color: #827c85;
+}
+
+.full-report-button {
+  width: 100%;
+  height: 52px;
+  margin: 18px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #f65b8d 0%, #df3978 100%);
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: 0 11px 24px rgba(223, 57, 120, 0.24);
+}
+
+.pending-empty-state {
+  margin-top: 16px;
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  color: #169c53;
+  font-size: 15px;
+  font-weight: 650;
+}
+.pending-payment-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pending-payment-item {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(42, 27, 35, 0.045);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 10px;
+}
+.pending-payment-whatsapp {
+  width: 34px;
+  height: 34px;
+}
+.pending-payment-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+.pending-payment-client {
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 650;
+  color: #201c22;
+}
+.pending-payment-meta {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 17px;
+  color: #77717b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pending-payment-value {
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 700;
+  color: #e58c19;
+  white-space: nowrap;
+}
+.pending-payment-actions {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.pending-payment-actions form {
+  flex: 1;
+}
+.pending-payment-mark-button {
+  width: 100%;
+  height: 38px;
+  border: 1px solid rgba(237, 63, 121, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  color: #d93675;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.pending-payment-mark-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pending-payment-error {
+  grid-column: 1 / -1;
+}
+
+.finance-skeleton-header {
+  height: 44px;
+}
+.finance-skeleton-block {
+  border-radius: 14px;
+  background: linear-gradient(100deg, #f4ecf0 30%, #faf3f6 50%, #f4ecf0 70%);
+  background-size: 200% 100%;
+  animation: finance-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes finance-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}

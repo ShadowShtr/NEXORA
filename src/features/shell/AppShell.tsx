@@ -49,6 +49,19 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
     return href === '/dashboard' ? pathname === href : pathname.startsWith(href);
   }
 
+  // On mobile, Financeiro/Lembretes/Relatórios/Definições are only reachable through
+  // the "Mais" page (no dedicated bottom-nav tab of their own), so "Mais" should read as
+  // the active tab while visiting any of them or their own sub-pages (e.g.
+  // /dashboard/financeiro/pendentes) — not just literally on /dashboard/mais itself.
+  // Desktop is unaffected: there, each of MORE_ITEMS is its own direct sidebar link,
+  // already highlighted individually via isActive(item.href).
+  function isMoreActive() {
+    return (
+      pathname.startsWith('/dashboard/mais') ||
+      MORE_ITEMS.some((item) => pathname.startsWith(item.href))
+    );
+  }
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -105,7 +118,7 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
       </main>
 
       <nav className="mobile-nav" aria-label="Navegação principal">
-        {[...PRIMARY_ITEMS, MORE_NAV_ITEM].map((item) => (
+        {PRIMARY_ITEMS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -116,6 +129,14 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
             <span>{item.label}</span>
           </Link>
         ))}
+        <Link
+          href={MORE_NAV_ITEM.href}
+          aria-current={isMoreActive() ? 'page' : undefined}
+          className="mobile-nav-item"
+        >
+          <MORE_NAV_ITEM.icon aria-hidden="true" size={22} />
+          <span>{MORE_NAV_ITEM.label}</span>
+        </Link>
       </nav>
     </div>
   );
