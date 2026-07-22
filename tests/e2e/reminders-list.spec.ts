@@ -64,7 +64,7 @@ test.describe('reminders list (NEX-101)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     await page.goto('/dashboard/lembretes');
-    await expect(page.getByText('Sem lembretes pendentes.')).toBeVisible();
+    await expect(page.getByText('Todos os lembretes estão em dia.')).toBeVisible();
   });
 
   test('shows pending, overdue and marked_sent reminders with the right badges, excluding skipped', async ({
@@ -122,11 +122,14 @@ test.describe('reminders list (NEX-101)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     await page.goto('/dashboard/lembretes');
-    await expect(page.getByText('Pendente')).toBeVisible();
-    await expect(page.getByText('Atrasado')).toBeVisible();
-    await expect(page.getByText('Enviado')).toBeVisible();
+    // exact: true — "Pendente"/"Atrasado"/"Enviado" (badge labels) are otherwise
+    // substrings of "Pendentes"/"Atrasados"/"Enviados" (summary card and filter chip
+    // labels) also on the page.
+    await expect(page.getByText('Pendente', { exact: true })).toBeVisible();
+    await expect(page.getByText('Atrasado', { exact: true })).toBeVisible();
+    await expect(page.getByText('Enviado', { exact: true })).toBeVisible();
     // 3 visible cards (pending + overdue + marked_sent), skipped excluded.
-    await expect(page.locator('.appointment-card')).toHaveCount(3);
+    await expect(page.locator('.reminder-card')).toHaveCount(3);
   });
 
   // NEX-102: "E.164 e texto URL-encoded" — wa.me only accepts digits (no leading "+"),
@@ -202,7 +205,11 @@ test.describe('reminders list (NEX-101)', () => {
 
     await page.goto('/dashboard/lembretes');
     await page.getByRole('button', { name: 'Marcar como enviado' }).click();
-    await expect(page.getByText('Enviado')).toBeVisible();
+    await page
+      .getByRole('dialog', { name: 'Confirmar lembrete como enviado?' })
+      .getByRole('button', { name: 'Confirmar envio' })
+      .click();
+    await expect(page.getByText('Enviado', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Marcar como enviado' })).toHaveCount(0);
 
     const { data: reminder } = await user.admin

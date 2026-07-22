@@ -4043,3 +4043,370 @@ body[data-sheet-open='true'] .services-fab {
     background-position: -200% 0;
   }
 }
+
+/* Lembretes (NEX-101/102/103) — "não deve ser apenas uma lista, deve ser uma fila
+   inteligente de ações organizadas por prioridade." Own .reminder-* classes throughout;
+   the shared .appointment-card (Agenda/Clientes/appointment-detail) is untouched. */
+.reminders-page {
+  padding-top: 10px;
+  animation: finance-enter 260ms ease-out;
+  background:
+    radial-gradient(circle at 84% 5%, rgba(255, 219, 231, 0.16), transparent 30%),
+    linear-gradient(180deg, #fffdfd 0%, #fffafb 66%, #fff7fa 100%);
+}
+.reminders-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.reminders-back-button {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #f0e6ea;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  color: #272229;
+  box-shadow: 0 6px 16px rgba(42, 27, 35, 0.05);
+}
+.reminders-title {
+  margin: 0;
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  color: #191720;
+}
+
+.reminders-summary {
+  margin: 18px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.reminder-summary-card {
+  min-height: 88px;
+  padding: 12px;
+  border-radius: 17px;
+  border: 1px solid #f0e6ea;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(42, 27, 35, 0.04);
+}
+.reminder-summary-value {
+  margin: 0;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+  color: #211d23;
+}
+.reminder-summary-label {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 15px;
+  color: #817b84;
+}
+.reminder-summary-card[data-type='late'] {
+  background: #fff7f7;
+}
+.reminder-summary-card[data-type='late'] .reminder-summary-value {
+  color: #d94b49;
+}
+.reminder-summary-card[data-type='pending'] .reminder-summary-value {
+  color: #d83a72;
+}
+.reminder-summary-card[data-type='opened'] .reminder-summary-value {
+  color: #15a957;
+}
+
+.reminders-empty-state {
+  margin: 18px 0 0;
+  padding: 20px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  text-align: center;
+}
+.reminders-empty-state svg {
+  color: #169c53;
+}
+.reminders-empty-title {
+  margin: 10px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #211d23;
+}
+.reminders-empty-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #7a747d;
+}
+.reminders-empty-filtered {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: #7a747d;
+}
+
+.reminder-filter-list {
+  margin: 16px 0 0;
+  padding-bottom: 2px;
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.reminder-filter-list::-webkit-scrollbar {
+  display: none;
+}
+.reminder-filter-chip {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid #f0e6ea;
+  background: rgba(255, 255, 255, 0.96);
+  color: #5e5861;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.reminder-filter-chip[data-active='true'] {
+  border-color: transparent;
+  background: linear-gradient(135deg, #f45c8d, #df3978);
+  color: #fff;
+  box-shadow: 0 8px 17px rgba(223, 57, 120, 0.2);
+}
+
+.reminder-group-title {
+  margin: 22px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 650;
+  color: #29242b;
+}
+.reminder-group-count {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fff0f5;
+  color: #d93675;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reminder-card-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reminder-card {
+  position: relative;
+  min-height: 126px;
+  padding: 15px 15px 15px 19px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(240, 230, 234, 0.92);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 9px 22px rgba(42, 27, 35, 0.05);
+}
+.reminder-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 999px;
+  background: #d83a72;
+}
+.reminder-card[data-status='overdue'] {
+  border-color: rgba(217, 75, 73, 0.18);
+  background: linear-gradient(135deg, #fff9f9, #fffefe);
+}
+.reminder-card[data-status='overdue']::before {
+  background: #d94b49;
+}
+.reminder-card[data-status='opened']::before {
+  background: #4cc98a;
+}
+.reminder-card[data-status='marked_sent']::before {
+  background: #169c53;
+}
+.reminder-card[data-status='marked_sent'] {
+  opacity: 0.78;
+}
+
+.reminder-status-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #fff1f5;
+  color: #d83a72;
+}
+.reminder-card[data-status='overdue'] .reminder-status-icon {
+  background: #fff0f0;
+  color: #d94b49;
+}
+.reminder-card[data-status='opened'] .reminder-status-icon {
+  background: #edf9f2;
+  color: #15a957;
+}
+.reminder-card[data-status='marked_sent'] .reminder-status-icon {
+  background: #edf9f2;
+  color: #169c53;
+}
+
+.reminder-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.reminder-date-time {
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 600;
+  color: #7a747d;
+}
+.reminder-client-name {
+  margin-top: 3px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 650;
+  color: #211d23;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reminder-service {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 17px;
+  color: #817b84;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reminder-sent-time {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 15px;
+  color: #7d7780;
+}
+
+.reminder-status-badge {
+  height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #fff1f5;
+  color: #d83a72;
+  font-size: 10px;
+  line-height: 28px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.reminder-status-badge[data-status='overdue'] {
+  background: #fff0f0;
+  color: #d94b49;
+}
+.reminder-status-badge[data-status='opened'] {
+  background: #edf9f2;
+  color: #169c53;
+}
+.reminder-status-badge[data-status='marked_sent'] {
+  background: #edf9f2;
+  color: #169c53;
+}
+
+.reminder-card-error {
+  grid-column: 2 / -1;
+}
+
+.reminder-card-actions {
+  grid-column: 2 / -1;
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
+  gap: 9px;
+}
+.open-whatsapp-button {
+  height: 44px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 14px;
+  background: #edf9f2;
+  color: #11994c;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.open-whatsapp-button[data-disabled='true'] {
+  background: #f5f2f4;
+  color: #a49da7;
+}
+.view-booking-button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid #f0e6ea;
+  background: #fff;
+  color: #5f5962;
+}
+.mark-sent-button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(237, 63, 121, 0.2);
+  background: #fff4f7;
+  color: #d93675;
+  cursor: pointer;
+}
+
+.reminder-skeleton {
+  min-height: 126px;
+  margin: 0 0 12px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #f6eff2 25%, #fff9fb 50%, #f6eff2 75%);
+  background-size: 200% 100%;
+  animation: reminder-skeleton-loading 1.2s infinite;
+}
+@keyframes reminder-skeleton-loading {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
