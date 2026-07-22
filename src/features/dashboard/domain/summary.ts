@@ -16,6 +16,7 @@ export type DashboardSummary = {
   receivedTodayCents: number;
   invoicedTodayCents: number;
   pendingTodayCents: number;
+  pendingPaymentsTodayCount: number;
 };
 
 const ACTIVE_STATUSES = new Set(['confirmed', 'presence_confirmed']);
@@ -31,6 +32,7 @@ export function buildDashboardSummary(
   receivedTodayCents: number,
   pendingTodayCents: number,
   nowMs: number,
+  pendingPaymentsTodayCount = 0,
 ): DashboardSummary {
   const upcoming = appointmentsToday
     .filter((appointment) => ACTIVE_STATUSES.has(appointment.status) && appointment.endAtMs > nowMs)
@@ -45,5 +47,6 @@ export function buildDashboardSummary(
     receivedTodayCents,
     invoicedTodayCents: active.reduce((sum, appointment) => sum + appointment.totalCents, 0),
     pendingTodayCents,
+    pendingPaymentsTodayCount,
   };
 }

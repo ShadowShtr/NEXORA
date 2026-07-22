@@ -97,4 +97,9 @@ describe('buildDashboardSummary', () => {
     expect(summary.receivedTodayCents).toBe(4500);
     expect(summary.pendingTodayCents).toBe(1200);
   });
+
+  it('defaults pendingPaymentsTodayCount to 0 when omitted, and passes it through otherwise', () => {
+    expect(buildDashboardSummary([], 0, 0, 0, 0).pendingPaymentsTodayCount).toBe(0);
+    expect(buildDashboardSummary([], 0, 0, 0, 0, 2).pendingPaymentsTodayCount).toBe(2);
+  });
 });
