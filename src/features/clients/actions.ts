@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { clientPreferencesSchema } from './domain/preferences';
+import { hasAffectedRows } from '@/lib/write-confirmation';
 import type { Result } from '@/lib/result';
 
 const updatePreferencesSchema = z.object({
@@ -49,7 +50,7 @@ export async function updateClientPreferences(
     .eq('id', parsed.data.clientId)
     .select('id');
 
-  if (error || !data || data.length === 0) {
+  if (error || !hasAffectedRows(data)) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { reencodePhotoAsJpeg } from '@/lib/image-processing';
 import { isAllowedServicePhotoMimeType, isAllowedServicePhotoSize } from './domain/photos';
+import { hasAffectedRows } from '@/lib/write-confirmation';
 import type { Result } from '@/lib/result';
 
 const uploadSchema = z.object({
@@ -86,12 +87,16 @@ export async function uploadServicePhoto(
     };
   }
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('services')
     .update({ photo_path: storagePath })
     .eq('id', serviceId)
-    .eq('tenant_id', tenantId);
-  if (updateError) {
+    .eq('tenant_id', tenantId)
+    .select('id');
+  if (updateError || !hasAffectedRows(updated)) {
+    // The row never pointed at storagePath (either the update errored, or it matched
+    // zero rows — a concurrent delete between the check above and here) — remove the
+    // just-uploaded object rather than leave it orphaned in Storage.
     await supabase.storage.from('service-photos').remove([storagePath]);
     return {
       ok: false,
@@ -134,12 +139,13 @@ export async function removeServicePhoto(
     return { ok: false, error: { code: 'NOT_FOUND', message: 'Sem fotografia para remover.' } };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('services')
     .update({ photo_path: null })
     .eq('id', parsed.data.serviceId)
-    .eq('tenant_id', tenantId);
-  if (error) {
+    .eq('tenant_id', tenantId)
+    .select('id');
+  if (error || !hasAffectedRows(data)) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível remover. Tente novamente.' },

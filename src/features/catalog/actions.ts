@@ -21,6 +21,7 @@ import {
   packageIdSchema,
   updatePackageSchema,
 } from '@/features/catalog/domain/package';
+import { hasAffectedRows } from '@/lib/write-confirmation';
 import type { Result } from '@/lib/result';
 
 const DUPLICATE_CATEGORY_NAME_MESSAGE = 'Já existe uma categoria com esse nome.';
@@ -99,11 +100,12 @@ export async function renameCategory(
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('service_categories')
     .update({ name: parsed.data.name })
     .eq('id', parsed.data.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (error) {
     if (error.code === '23505') {
@@ -116,6 +118,9 @@ export async function renameCategory(
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
+  }
+  if (!hasAffectedRows(data)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Categoria não encontrada.' } };
   }
 
   revalidatePath('/dashboard/servicos');
@@ -144,17 +149,21 @@ export async function toggleCategoryVisibility(
     return { ok: false, error: { code: 'NOT_FOUND', message: 'Categoria não encontrada.' } };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('service_categories')
     .update({ is_visible: !category.is_visible })
     .eq('id', parsed.data.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (error) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
+  }
+  if (!hasAffectedRows(data)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Categoria não encontrada.' } };
   }
 
   revalidatePath('/dashboard/servicos');
@@ -193,22 +202,27 @@ export async function moveCategory(
     return { ok: true, value: null };
   }
 
-  const { error: firstError } = await supabase
+  const { data: firstData, error: firstError } = await supabase
     .from('service_categories')
     .update({ sort_order: swap.neighbour.sortOrder })
     .eq('id', swap.current.id)
-    .eq('tenant_id', tenantId);
-  const { error: secondError } = await supabase
+    .eq('tenant_id', tenantId)
+    .select('id');
+  const { data: secondData, error: secondError } = await supabase
     .from('service_categories')
     .update({ sort_order: swap.current.sortOrder })
     .eq('id', swap.neighbour.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (firstError || secondError) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível reordenar. Tente novamente.' },
     };
+  }
+  if (!hasAffectedRows(firstData) || !hasAffectedRows(secondData)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Categoria não encontrada.' } };
   }
 
   revalidatePath('/dashboard/servicos');
@@ -287,7 +301,7 @@ export async function updateService(
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('services')
     .update({
       name: parsed.data.name,
@@ -296,7 +310,8 @@ export async function updateService(
       category_id: parsed.data.categoryId,
     })
     .eq('id', parsed.data.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (error) {
     if (error.code === '23505') {
@@ -309,6 +324,9 @@ export async function updateService(
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
+  }
+  if (!hasAffectedRows(data)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Serviço não encontrado.' } };
   }
 
   revalidatePath('/dashboard/servicos');
@@ -337,17 +355,21 @@ export async function toggleServiceActive(
     return { ok: false, error: { code: 'NOT_FOUND', message: 'Serviço não encontrado.' } };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('services')
     .update({ is_active: !service.is_active })
     .eq('id', parsed.data.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (error) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
+  }
+  if (!hasAffectedRows(data)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Serviço não encontrado.' } };
   }
 
   revalidatePath('/dashboard/servicos');
@@ -441,7 +463,7 @@ export async function updatePackage(
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
 
-  const { error: packageError } = await supabase
+  const { data: packageData, error: packageError } = await supabase
     .from('packages')
     .update({
       name: parsed.data.name,
@@ -449,7 +471,8 @@ export async function updatePackage(
       compare_at_price_cents: parsed.data.compareAtPriceEuros,
     })
     .eq('id', parsed.data.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (packageError) {
     if (packageError.code === '23505') {
@@ -460,7 +483,14 @@ export async function updatePackage(
     }
     return { ok: false, error: { code: 'INTERNAL_ERROR', message: PACKAGE_SAVE_ERROR_MESSAGE } };
   }
+  if (!hasAffectedRows(packageData)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Pacote não encontrado.' } };
+  }
 
+  // Zero rows deleted here is not itself an error — a package can legitimately have
+  // no existing package_services rows to clear (e.g. this being its first edit after
+  // creation-time insert failed partway) — hasAffectedRows is intentionally not
+  // checked on this delete, unlike the writes above that must land on a known row.
   const { error: deleteError } = await supabase
     .from('package_services')
     .delete()
@@ -507,17 +537,21 @@ export async function togglePackageActive(
     return { ok: false, error: { code: 'NOT_FOUND', message: 'Pacote não encontrado.' } };
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('packages')
     .update({ is_active: !pkg.is_active })
     .eq('id', parsed.data.id)
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('id');
 
   if (error) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
     };
+  }
+  if (!hasAffectedRows(data)) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Pacote não encontrado.' } };
   }
 
   revalidatePath('/dashboard/servicos');

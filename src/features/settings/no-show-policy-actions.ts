@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
+import { hasAffectedRows } from '@/lib/write-confirmation';
 import type { Result } from '@/lib/result';
 
 const updateNoShowPolicySchema = z.object({
@@ -34,15 +35,16 @@ export async function updateNoShowPolicy(
 
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('business_settings')
     .update({
       no_show_limit: parsed.data.noShowLimit === '' ? null : parsed.data.noShowLimit,
       no_show_window_days: parsed.data.noShowWindowDays,
     })
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('tenant_id');
 
-  if (error) {
+  if (error || !hasAffectedRows(data)) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },

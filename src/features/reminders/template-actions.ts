@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { findDisallowedPlaceholders, REMINDER_TEMPLATE_MAX_LENGTH } from './domain/template';
+import { hasAffectedRows } from '@/lib/write-confirmation';
 import type { Result } from '@/lib/result';
 
 const updateTemplateSchema = z.object({
@@ -47,12 +48,13 @@ export async function updateReminderTemplate(
 
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('business_settings')
     .update({ reminder_message_template: template === '' ? null : template })
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('tenant_id');
 
-  if (error) {
+  if (error || !hasAffectedRows(data)) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
