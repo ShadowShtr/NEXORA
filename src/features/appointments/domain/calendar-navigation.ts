@@ -18,13 +18,30 @@ export function addDays(dateKey: string, days: number): string {
   return anchor.toISOString().slice(0, 10);
 }
 
+// A calendar date's weekday is timezone-independent (2026-05-20 is a Wednesday
+// everywhere) — this deliberately never converts through a real timezone (no
+// fromZonedTime/getUTCDay round-trip), just Date.UTC as a pure calendar-arithmetic
+// anchor, same technique as addDays/daysInMonth below.
+//
+// Bug fixed mid-2026: startOfWeekKey used to compute this via
+// fromZonedTime(`${dateKey}T00:00:00`, timezone).getUTCDay() — a *real* timezone
+// conversion. For any timezone ahead of UTC (Europe/Lisbon's WEST, UTC+1, roughly late
+// March-late October), local midnight converts to 23:00 UTC the *previous* day, so
+// .getUTCDay() silently returned the wrong weekday (e.g. Wednesday read as Tuesday) —
+// every week view resolved to the wrong 7 days for most of the year. Exported so any
+// other domain module needing "what weekday is this date-key" (e.g. a business-hours
+// lookup) reuses this fixed, tested implementation instead of re-deriving its own.
+export function dateKeyDayOfWeek(dateKey: string): number {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day!, 12)).getUTCDay();
+}
+
 // Monday-first week, matching the onboarding hours step's own week-start assumption
 // (src/features/onboarding/domain/hours-step.ts uses JS Date.getDay(), 0=Sunday, but a
 // business week for a PT nail salon starts Monday) — day 0 (Sunday) maps to an offset
 // of 6 back from itself, everything else is dayOfWeek - 1.
-function startOfWeekKey(dateKey: string, timezone: string): string {
-  const dayOfWeek = fromZonedTime(`${dateKey}T00:00:00`, timezone).getUTCDay();
-  const offsetFromMonday = (dayOfWeek + 6) % 7;
+function startOfWeekKey(dateKey: string): string {
+  const offsetFromMonday = (dateKeyDayOfWeek(dateKey) + 6) % 7;
   return addDays(dateKey, -offsetFromMonday);
 }
 
@@ -55,7 +72,7 @@ export function resolveCalendarRange(
   }
 
   if (view === 'week') {
-    const weekStart = startOfWeekKey(dateKey, timezone);
+    const weekStart = startOfWeekKey(dateKey);
     const dateKeys = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const startIso = fromZonedTime(`${weekStart}T00:00:00`, timezone).toISOString();
     const endIso = fromZonedTime(`${addDays(weekStart, 7)}T00:00:00`, timezone).toISOString();
