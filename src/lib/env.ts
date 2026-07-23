@@ -21,7 +21,6 @@ const publicSchema = z.object({
 const serverSchema = publicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.preprocess(emptyToUndefined, z.string().min(20).optional()),
   APP_TIMEZONE: z.string().default('Europe/Lisbon'),
-  BOOKING_TOKEN_PEPPER: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
   // 32 bytes hex (64 chars) — AES-256-GCM key for booking_drafts.encrypted_payload
   // (NEX-052). Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   BOOKING_DRAFT_ENCRYPTION_KEY: z.preprocess(emptyToUndefined, z.string().length(64).optional()),
@@ -45,7 +44,6 @@ export const serverEnv = () =>
     ...publicEnv,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     APP_TIMEZONE: process.env.APP_TIMEZONE,
-    BOOKING_TOKEN_PEPPER: process.env.BOOKING_TOKEN_PEPPER,
     BOOKING_DRAFT_ENCRYPTION_KEY: process.env.BOOKING_DRAFT_ENCRYPTION_KEY,
     RATE_LIMIT_REDIS_URL: process.env.RATE_LIMIT_REDIS_URL,
     RATE_LIMIT_REDIS_TOKEN: process.env.RATE_LIMIT_REDIS_TOKEN,

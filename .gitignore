@@ -14,3 +14,5 @@ test-results/
 supabase/.temp/
 
 *.tsbuildinfo
+
+.vercel
