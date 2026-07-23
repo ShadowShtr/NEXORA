@@ -30,20 +30,29 @@ type PublicBusinessHourRow = {
 async function loadPublicProfile(slug: string) {
   const supabase = await createClient();
 
-  const { data: tenant } = await supabase
+  const { data: tenant, error: tenantError } = await supabase
     .from('tenants')
     .select('id, name')
     .eq('slug', slug)
     .maybeSingle();
+  // A genuine query error (bad connection, missing column/table) must never be treated
+  // the same as "no matching tenant" — that would silently show visitors a false
+  // "página não disponível" for what is actually an outage or a migration that wasn't
+  // applied in this environment, exactly the kind of failure that must stay loud.
+  if (tenantError)
+    throw new Error(`loadPublicProfile: tenants query failed: ${tenantError.message}`);
   if (!tenant) return null;
 
-  const { data: settings } = await supabase
+  const { data: settings, error: settingsError } = await supabase
     .from('business_settings')
     .select(
       'professional_name, phone_e164, address_line, postal_code, locality, maps_url, timezone, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled',
     )
     .eq('tenant_id', tenant.id)
     .maybeSingle();
+  if (settingsError) {
+    throw new Error(`loadPublicProfile: business_settings query failed: ${settingsError.message}`);
+  }
   // No `published_at` (business_settings) means the public policies (status='active',
   // published_at is not null) never matched in the first place — settings will be null.
   if (!settings) return null;
