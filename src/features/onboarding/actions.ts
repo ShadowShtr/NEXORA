@@ -10,6 +10,7 @@ import { hoursStepSchema, parseHoursFormData } from '@/features/onboarding/domai
 import { serviceItemSchema } from '@/features/onboarding/domain/services-step';
 import { rulesStepSchema } from '@/features/onboarding/domain/rules-step';
 import { normalizeSlug, publishStepSchema } from '@/features/onboarding/domain/publish-step';
+import { hasAffectedRows } from '@/lib/write-confirmation';
 import type { Result } from '@/lib/result';
 
 async function moveStep(direction: 'next' | 'previous') {
@@ -28,6 +29,12 @@ async function moveStep(direction: 'next' | 'previous') {
       ? nextStep(settings.onboarding_step)
       : previousStep(settings.onboarding_step);
 
+  // No affected-rows check here: goToNextStep/goToPreviousStep are void actions with no
+  // Result contract back to the caller to report a failure through, and tenant_id is
+  // guaranteed to match exactly one business_settings row for any signed-in owner
+  // (provision_tenant_owner creates it at signup, and nothing in this product's
+  // lifecycle hard-deletes it independent of the tenant itself) — unlike an update keyed
+  // by a client-supplied id, there is no "wrong tenant" row for this to silently miss.
   await supabase
     .from('business_settings')
     .update({ onboarding_step: updated })
@@ -83,7 +90,7 @@ export async function submitBusinessStep(
     };
   }
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('business_settings')
     .update({
       professional_name: parsed.data.professionalName,
@@ -95,9 +102,10 @@ export async function submitBusinessStep(
       maps_url: parsed.data.mapsUrl || null,
       onboarding_step: nextStep(settings.onboarding_step),
     })
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('tenant_id');
 
-  if (updateError) {
+  if (updateError || !hasAffectedRows(updated)) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
@@ -317,10 +325,20 @@ export async function submitHoursStep(
     .eq('tenant_id', tenantId)
     .single();
   if (settings) {
-    await supabase
+    const { data: updated, error: stepError } = await supabase
       .from('business_settings')
       .update({ onboarding_step: nextStep(settings.onboarding_step) })
-      .eq('tenant_id', tenantId);
+      .eq('tenant_id', tenantId)
+      .select('tenant_id');
+    if (stepError || !hasAffectedRows(updated)) {
+      // The hours themselves are already saved above — this only fails to advance the
+      // wizard, so surface it as a retryable error rather than silently leaving the
+      // dona stuck re-submitting hours that are already correct.
+      return {
+        ok: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },
+      };
+    }
   }
 
   revalidatePath('/onboarding');
@@ -364,7 +382,7 @@ export async function submitRulesStep(
     };
   }
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('business_settings')
     .update({
       slot_interval_minutes: parsed.data.slotIntervalMinutes,
@@ -374,9 +392,10 @@ export async function submitRulesStep(
       cancellation_notice_hours: parsed.data.cancellationNoticeHours,
       onboarding_step: nextStep(settings.onboarding_step),
     })
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .select('tenant_id');
 
-  if (updateError) {
+  if (updateError || !hasAffectedRows(updated)) {
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível guardar. Tente novamente.' },

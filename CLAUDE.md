@@ -32,6 +32,7 @@ O documento `docs/reference/PROMPT_MESTRE_ARQUITETO_SAAS_CYBERSEGURANCA_PRIVACID
 - Derive `tenant_id` da sessão autenticada, nunca de input livre do cliente.
 - Use transações e constraints para invariantes de agenda e financeiro.
 - Toda função `security definer` não destinada à API pública deve revogar `EXECUTE` explicitamente de `public`, `anon` **e** `authenticated` — este projeto concede `EXECUTE` a `anon`/`authenticated` por omissão em novas funções do schema `public`, e `revoke ... from public` sozinho não remove essas concessões diretas (`ADR-008`). Cobrir com teste de integração que confirme `42501` para esses roles.
+- Toda mutação direta no cliente Supabase (`.update()`/`.delete()` fora de uma RPC `security definer`) que altere um recurso identificado por `id` deve encadear `.select()` e verificar linhas afetadas com `hasAffectedRows` (`src/lib/write-confirmation.ts`) antes de devolver sucesso — sob RLS, um `id` inválido ou de outro tenant devolve `error: null, data: []`, não um erro (`ADR-010`). Mutações que já passam por uma RPC (`select ... for update` + `raise exception`) já têm esta garantia ao nível da transação e não precisam do helper.
 - Nunca exponha `SUPABASE_SERVICE_ROLE_KEY` ao browser.
 - Nunca registe passwords, tokens, links secretos completos ou dados pessoais desnecessários.
 - Não implemente rate limit em memória para produção serverless.
