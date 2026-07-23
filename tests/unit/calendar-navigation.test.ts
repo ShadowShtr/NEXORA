@@ -47,6 +47,27 @@ describe('resolveCalendarRange — month', () => {
   });
 });
 
+describe('resolveCalendarRange — week during WEST (summer time, UTC+1)', () => {
+  it('still starts on the correct Monday, not shifted a day earlier by the UTC+1 offset', () => {
+    // Regression: startOfWeekKey used to compute the weekday via a real timezone
+    // conversion (fromZonedTime(...).getUTCDay()) — during WEST, local midnight
+    // converts to 23:00 UTC the previous day, so the weekday silently came back one
+    // day early (Wednesday read as Tuesday), shifting the whole week's Monday.
+    // 2026-05-20 is a Wednesday.
+    const range = resolveCalendarRange('week', '2026-05-20', TZ);
+    expect(range.dateKeys[0]).toBe('2026-05-18'); // Monday
+    expect(range.dateKeys[6]).toBe('2026-05-24'); // Sunday
+    expect(range.dateKeys).toContain('2026-05-20');
+  });
+
+  it('anchoring on a Sunday during WEST still resolves to that same Mon-Sun week', () => {
+    // 2026-05-24 is a Sunday.
+    const range = resolveCalendarRange('week', '2026-05-24', TZ);
+    expect(range.dateKeys[0]).toBe('2026-05-18');
+    expect(range.dateKeys[6]).toBe('2026-05-24');
+  });
+});
+
 describe('resolveCalendarRange — DST boundaries', () => {
   it('day view on the spring-forward transition date resolves correct UTC boundaries', () => {
     // 2026-03-29: WET (UTC+0) before, WEST (UTC+1) from 01:00 UTC onward.
@@ -56,8 +77,13 @@ describe('resolveCalendarRange — DST boundaries', () => {
     expect(range.endIso).toBe('2026-03-29T23:00:00.000Z');
   });
 
-  it('week view spanning the spring-forward transition has a 6h50-off elapsed span consistent with one lost hour', () => {
-    const range = resolveCalendarRange('week', '2026-03-30', TZ); // week of 2026-03-30
+  it('week view spanning the spring-forward transition has a 1h-off elapsed span consistent with one lost hour', () => {
+    // 2026-03-29 (the transition Sunday) falls in the Mon 2026-03-23 – Sun 2026-03-29
+    // week — anchoring anywhere in that week (e.g. Wednesday the 25th) must resolve to
+    // that same Monday, not the following one.
+    const range = resolveCalendarRange('week', '2026-03-25', TZ);
+    expect(range.dateKeys[0]).toBe('2026-03-23');
+    expect(range.dateKeys[6]).toBe('2026-03-29');
     const elapsedMs = new Date(range.endIso).getTime() - new Date(range.startIso).getTime();
     // A normal 7-day span is 7*24h; the DST week loses exactly 1 hour.
     expect(elapsedMs).toBe(7 * 24 * 60 * 60_000 - 60 * 60_000);
