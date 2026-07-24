@@ -199,14 +199,14 @@ Implementar ajuda contextual curta sem expandir o escopo para funcionalidades n�
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só texto estático explicativo, sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — `HelpTip` é um componente puramente de apresentação, sem ligação a `tenant_id` ou dados do servidor.
+- Registar risco residual ou decisão temporária. Âmbito reduzido por não expandir escopo: só cobre os 5 campos técnicos de `BookingRulesForm` (os únicos rótulos jargão-pesados sem nenhuma explicação já visível na app — os outros formulários de definições já têm texto de apoio sempre visível, ex. `NoShowPolicyForm`, `ReminderTemplateForm`). Ver `docs/evidence/NEX-144_AJUDA_CONTEXTUAL.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

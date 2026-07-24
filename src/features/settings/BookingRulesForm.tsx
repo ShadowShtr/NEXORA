@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { HelpTip } from '@/components/ui/HelpTip';
 import { updateBookingRules } from './booking-rules-actions';
 import {
   BOOKING_WINDOW_DAYS_OPTIONS,
@@ -78,7 +79,13 @@ export function BookingRulesForm({ initialValues }: { initialValues: Rules }) {
       </div>
 
       <label>
-        Intervalo da agenda
+        <span className="field-label-row">
+          Intervalo da agenda
+          <HelpTip
+            label="O que é o intervalo da agenda?"
+            text="Espaçamento entre os horários que aparecem disponíveis para marcar. Com 15 minutos, os horários aparecem de 15 em 15 minutos; com 60, só às horas certas."
+          />
+        </span>
         <select name="slotIntervalMinutes" {...field('slotIntervalMinutes')}>
           {SLOT_INTERVAL_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -88,7 +95,13 @@ export function BookingRulesForm({ initialValues }: { initialValues: Rules }) {
         </select>
       </label>
       <label>
-        Intervalo entre clientes
+        <span className="field-label-row">
+          Intervalo entre clientes
+          <HelpTip
+            label="O que é o intervalo entre clientes?"
+            text="Tempo livre reservado automaticamente depois de cada marcação, antes de a cliente seguinte poder marcar — para arrumar ou preparar o espaço."
+          />
+        </span>
         <select name="bufferMinutes" {...field('bufferMinutes')}>
           {BUFFER_MINUTES_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -98,7 +111,13 @@ export function BookingRulesForm({ initialValues }: { initialValues: Rules }) {
         </select>
       </label>
       <label>
-        Antecedência mínima para marcar
+        <span className="field-label-row">
+          Antecedência mínima para marcar
+          <HelpTip
+            label="O que é a antecedência mínima para marcar?"
+            text="Quanto tempo antes do horário uma cliente ainda consegue marcar. Com 3 horas, por exemplo, deixa de ser possível marcar para daqui a 1 hora."
+          />
+        </span>
         <select name="minNoticeHours" {...field('minNoticeHours')}>
           {MIN_NOTICE_HOURS_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -108,7 +127,13 @@ export function BookingRulesForm({ initialValues }: { initialValues: Rules }) {
         </select>
       </label>
       <label>
-        Janela de marcação no futuro
+        <span className="field-label-row">
+          Janela de marcação no futuro
+          <HelpTip
+            label="O que é a janela de marcação no futuro?"
+            text="Até quantos dias à frente uma cliente pode marcar. Depois desse limite, os horários mais distantes deixam de aparecer disponíveis na página pública."
+          />
+        </span>
         <select name="bookingWindowDays" {...field('bookingWindowDays')}>
           {BOOKING_WINDOW_DAYS_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -118,7 +143,13 @@ export function BookingRulesForm({ initialValues }: { initialValues: Rules }) {
         </select>
       </label>
       <label>
-        Aviso mínimo para cancelar
+        <span className="field-label-row">
+          Aviso mínimo para cancelar
+          <HelpTip
+            label="O que é o aviso mínimo para cancelar?"
+            text="Tempo mínimo de antecedência recomendado para uma cliente avisar que vai cancelar ou remarcar, antes do horário combinado."
+          />
+        </span>
         <select name="cancellationNoticeHours" {...field('cancellationNoticeHours')}>
           {CANCELLATION_NOTICE_HOURS_OPTIONS.map((option) => (
             <option key={option} value={option}>

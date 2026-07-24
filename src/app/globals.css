@@ -3641,6 +3641,40 @@ body[data-sheet-open='true'] .services-fab {
   font-weight: 500;
   box-shadow: 0 12px 28px rgba(20, 14, 18, 0.28);
 }
+.field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.help-tip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+.help-tip-button {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #8b858e;
+  cursor: pointer;
+}
+.help-tip-popover {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 5;
+  width: 240px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #29242b;
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 18px;
+  font-weight: 500;
+  box-shadow: 0 12px 28px rgba(20, 14, 18, 0.28);
+}
 .revenue-total {
   margin: 18px 0 0;
   font-family: var(--font-heading), var(--font-body), sans-serif;
