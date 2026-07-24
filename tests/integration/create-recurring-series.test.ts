@@ -206,7 +206,9 @@ describe.runIf(canRun)('create_recurring_series (NEX-122)', () => {
       .eq('recurring_series_id', seriesId as string)
       .order('start_at');
     expect(appointments.data).toHaveLength(4);
-    expect(appointments.data!.map((a) => a.start_at)).toEqual(
+    // PostgREST serializes timestamptz with a "+00:00" offset rather than "Z" — same
+    // instant, different string — so both sides are normalized through Date first.
+    expect(appointments.data!.map((a) => new Date(a.start_at).toISOString())).toEqual(
       occurrences.map((iso) => new Date(iso).toISOString()),
     );
     for (const appointment of appointments.data!) {
