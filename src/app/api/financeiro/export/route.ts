@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isFinanceView, resolvePeriod } from '@/features/finance/domain/period';
 import { buildFinanceTransactionsCsv } from '@/features/finance/domain/csv-export';
 import { loadFinanceTransactions } from '@/features/finance/transactions-lookup';
+import { logFinanceExport } from '@/features/finance/log-export';
 
 // NEX-132: "Exportar CSV" for the financeiro dashboard's currently-viewed period
 // (NEX-130/131) — a GET route rather than a Server Action so a plain <a> download link
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
 
   const rows = await loadFinanceTransactions(supabase, tenantId, period);
   const csv = buildFinanceTransactionsCsv(rows, timezone);
+  await logFinanceExport(supabase, 'csv', period.view, period.range.dateKeys.length);
 
   return new NextResponse(csv, {
     headers: {

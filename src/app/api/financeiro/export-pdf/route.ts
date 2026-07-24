@@ -9,6 +9,7 @@ import {
 } from '@/features/finance/domain/period';
 import { buildFinancePdf } from '@/features/finance/domain/pdf-export';
 import { loadFinanceTransactions } from '@/features/finance/transactions-lookup';
+import { logFinanceExport } from '@/features/finance/log-export';
 
 // NEX-134: "Exportar PDF" — same period-resolution/auth boundary as the CSV/Excel
 // exports (NEX-132/133); only the output format differs.
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
     'Financeiro',
     formatFinanceRangeLabel(period, timezone),
   );
+  await logFinanceExport(supabase, 'pdf', period.view, period.range.dateKeys.length);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
