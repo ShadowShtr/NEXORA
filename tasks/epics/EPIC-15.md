@@ -35,17 +35,17 @@ Implementar design system claymorphism sem expandir o escopo para funcionalidade
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só tokens CSS, documentação e testes; sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — tokens e componentes são puramente de apresentação, sem ligação a `tenant_id`.
+- Registar risco residual ou decisão temporária. `--pink-500` foi escurecido de `#d95f93` para `#b24e79` para cumprir contraste AA (4.5:1) com texto branco no gradiente dos botões — decisão da dona, entre 3 opções apresentadas. Efeito colateral aceite: o gradiente do botão fica visualmente mais subtil. Não foi criada uma escala de `border-radius`/espaçamento tokenizada (decisão de âmbito, ver `docs/DESIGN_SYSTEM.md`). Ver `docs/evidence/NEX-150_DESIGN_SYSTEM_CLAYMORPHISM.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-151 — Navegação mobile e desktop
 
