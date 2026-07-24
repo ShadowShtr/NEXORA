@@ -15,10 +15,22 @@ export const metadata: Metadata = {
   title: { default: 'NEXORA', template: '%s · NEXORA' },
   description: 'Marcações simples para profissionais e clientes.',
   applicationName: 'NEXORA',
+  icons: {
+    icon: '/icons/icon-512.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
+  // NEX-152: manifest.ts's `display: 'standalone'` is not honoured by iOS Safari at
+  // all — "Adicionar ao Ecrã Principal" only behaves like a standalone app there when
+  // these apple-specific tags are present.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'NEXORA',
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#d95f93',
+  themeColor: '#b24e79',
   width: 'device-width',
   initialScale: 1,
 };

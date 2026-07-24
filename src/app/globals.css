@@ -3439,6 +3439,27 @@ body[data-sheet-open='true'] .services-fab {
 .more-menu-chevron {
   color: #99929b;
 }
+.more-install-card {
+  margin-top: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.more-install-text {
+  min-width: 0;
+  flex: 1;
+}
+.more-install-title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 700;
+  color: #2a252c;
+}
+.more-install-card .button {
+  align-self: center;
+}
 .logout-button {
   width: 100%;
   height: 50px;

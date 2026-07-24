@@ -6,6 +6,7 @@ import { publicBookingUrl } from '@/features/onboarding/domain/publish-step';
 import { ProfileSummaryCard } from '@/features/shell/ProfileSummaryCard';
 import { MoreMenuItem, MoreSection } from '@/features/shell/MoreMenuItem';
 import { LogoutSection } from '@/features/shell/LogoutSection';
+import { InstallAppCard } from '@/features/shell/InstallAppCard';
 
 const APP_VERSION = '0.1.0';
 
@@ -110,6 +111,8 @@ export default async function MaisPage() {
           description="Regras de marcação, lembretes e o seu negócio"
         />
       </MoreSection>
+
+      <InstallAppCard />
 
       <LogoutSection />
 
