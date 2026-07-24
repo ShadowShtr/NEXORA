@@ -24,6 +24,7 @@
   "dependencies": {
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.7",
+    "@types/pdfkit": "^0.17.6",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "clsx": "2.1.1",
@@ -32,6 +33,7 @@
     "exceljs": "^4.4.0",
     "lucide-react": "1.24.0",
     "next": "16.2.10",
+    "pdfkit": "^0.19.1",
     "qrcode": "^1.5.4",
     "react": "19.2.7",
     "react-dom": "19.2.7",
