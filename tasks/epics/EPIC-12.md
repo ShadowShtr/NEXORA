@@ -76,17 +76,17 @@ Implementar detetar conflitos e alternativas sem expandir o escopo para funciona
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova tabela/coluna. `checkRecurrenceConflicts` é uma nova server action, mas só lê dados já expostos ao próprio dono (mesmas tabelas de `getManualBookingAvailability`, NEX-085).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenantId` vem só de `requireProfile()` (sessão), nunca do input — mesmo padrão de `manual-availability-actions.ts`. RLS nas tabelas subjacentes (`business_settings`, `business_hours`, `business_hours_exceptions`, `availability_blocks`, `appointments`) já testado nas respetivas tarefas.
+- Registar risco residual ou decisão temporária. Ver `docs/evidence/NEX-121_DETETAR_CONFLITOS.md`: os alertas de conflito comparam o instante exato da ocorrência contra o conjunto de slots livres (`computeAvailableSlotsMs`) — uma ocorrência gerada fora da grelha de slots (ex.: hora fora do intervalo configurado) seria sempre marcada como conflito; não é um problema real hoje porque a primeira ocorrência de uma série vem sempre de uma marcação já criada pela grelha normal.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-122 — Criar série atomicamente
 
