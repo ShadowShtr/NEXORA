@@ -4732,3 +4732,38 @@ body[data-sheet-open='true'] .services-fab {
   color: var(--pink-600);
   cursor: pointer;
 }
+
+/* Public booking flow desktop containment (audit follow-up): this route renders
+   straight into <body> with no .shell wrapper (see .public-booking-content's own
+   comment), so on wide viewports the mobile layout was simply stretching full-width
+   instead of being contained/centered like every other page — the fixed cart bar
+   spanned the whole window, the cover image and content were full-bleed. Reuses the
+   dashboard's own breakpoint (761px, see .desktop-nav above) and the same max-width
+   already used by /marcacao's .shell (min(1120px, 100%)) for visual consistency,
+   without touching any mobile styling above. */
+@media (min-width: 761px) {
+  .public-booking-content {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .public-cart-bar {
+    /* position: fixed ignores margin: auto centering — left:50% + translateX is the
+       fixed-position equivalent. */
+    width: calc(100% - 2rem);
+    max-width: 640px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+  .public-profile-content {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .public-cover {
+    max-width: 1120px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
