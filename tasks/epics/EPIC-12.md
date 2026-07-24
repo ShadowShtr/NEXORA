@@ -35,17 +35,17 @@ Implementar gerador de recorrências sem expandir o escopo para funcionalidades 
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Função pura de domínio, sem I/O — nenhuma entrada/dado/integração/privilégio novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — não acede a nenhum recurso tenant-scoped, apenas calcula datas a partir dos parâmetros recebidos.
+- Registar risco residual ou decisão temporária. Ver `docs/evidence/NEX-120_GERADOR_RECORRENCIAS.md`: a unidade de `customIntervalDays` (dias) para `frequency='custom'` é uma decisão própria, não confirmada com produto/UI — a confirmar quando `NEX-122` desenhar a criação da série.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-121 — Detetar conflitos e alternativas
 
