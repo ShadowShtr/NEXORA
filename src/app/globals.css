@@ -4806,3 +4806,8 @@ body[data-sheet-open='true'] .services-fab {
     margin-right: auto;
   }
 }
+
+.recurrence-occurrence-removed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}

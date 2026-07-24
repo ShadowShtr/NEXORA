@@ -117,17 +117,17 @@ Implementar criar série atomicamente sem expandir o escopo para funcionalidades
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova RPC `create_recurring_series`, mas escreve só nas tabelas já existentes (`recurring_series`, desde `0001_initial.sql`, e as mesmas `appointments`/`appointment_items`/`reminders` de `create_manual_booking`). `security definer` com `revoke`/`grant` explícito, mesmo padrão de todas as RPCs anteriores (`ADR-008`).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenant_id` só de `current_tenant_id()` dentro da função (nunca de input); `client_id` validado contra o tenant do chamador antes de qualquer escrita. Testado em `tests/integration/create-recurring-series.test.ts` (anon bloqueado 42501; cliente doutro tenant rejeitado 22023).
+- Registar risco residual ou decisão temporária. Ver `docs/evidence/NEX-122_CRIAR_SERIE_ATOMICAMENTE.md`: `frequency`/`interval_value` são guardados como metadados descritivos, não recalculados a partir das datas — a série guarda exatamente as datas que a dona confirmou (após resolver conflitos), não uma progressão estritamente aritmética.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-123 — Editar escopo da série
 
