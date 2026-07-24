@@ -36,7 +36,7 @@ export default async function AppointmentDetailPage({
     supabase
       .from('appointments')
       .select(
-        'id, start_at, end_at, status, expected_total_cents, final_total_cents, client_observation, client_id, clients(name, phone_e164), appointment_items(description, unit_price_cents, quantity)',
+        'id, start_at, end_at, status, expected_total_cents, final_total_cents, client_observation, client_id, recurring_series_id, clients(name, phone_e164), appointment_items(description, unit_price_cents, quantity)',
       )
       .eq('id', id)
       .eq('tenant_id', tenantId)
@@ -90,6 +90,7 @@ export default async function AppointmentDetailPage({
       <AppointmentDetailActions
         appointmentId={appointment.id}
         clientId={appointment.client_id}
+        recurringSeriesId={appointment.recurring_series_id}
         canCancel={isActive}
         canReschedule={isActive}
         canReopen={status === 'completed'}
