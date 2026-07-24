@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { formatInTimeZone } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
-import { Calendar, Check, Coins, MapPin } from 'lucide-react';
+import { Calendar, Check, Coins, Copy, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 function whatsappLink(phoneE164: string, businessName: string) {
@@ -66,6 +67,21 @@ export function BookingConfirmation({
   timezone: string;
   totalCents: number;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  // Clipboard write requires a secure context (https, or localhost in dev) — silently
+  // no-ops the confirmation on failure rather than throwing, since the code is still
+  // visible and selectable as plain text either way.
+  async function copyLookupCode() {
+    try {
+      await navigator.clipboard.writeText(lookupCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable/denied — the code remains visible to copy manually.
+    }
+  }
+
   return (
     <Card className="public-confirmation">
       <div className="public-confirmation-icon" aria-hidden="true">
@@ -160,7 +176,18 @@ export function BookingConfirmation({
 
       <div className="public-lookup-code">
         <p className="text-meta">Guarde este código para consultar a marcação mais tarde:</p>
-        <p className="public-lookup-code-value">{lookupCode}</p>
+        <div className="public-lookup-code-row">
+          <p className="public-lookup-code-value">{lookupCode}</p>
+          <button
+            type="button"
+            className="public-lookup-code-copy"
+            onClick={() => void copyLookupCode()}
+            aria-label="Copiar código"
+          >
+            <Copy size={16} aria-hidden="true" />
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+        </div>
         <p className="text-support">
           Em <Link href="/marcacao">nexora.app/marcacao</Link>, sem precisar deste link.
         </p>
