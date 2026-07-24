@@ -29,16 +29,23 @@ describe.runIf(canRun)('business_hours_exceptions impact on public availability 
     ({ getPublicAvailability } = await import('@/app/b/[slug]/availability-actions'));
     admin = createClient(url!, serviceRoleKey!);
 
-    await admin.from('tenants').insert({ id: tenantId, slug, name: 'Tenant', status: 'active' });
-    await admin.from('business_settings').insert({
+    const { error: tenantError } = await admin
+      .from('tenants')
+      .insert({ id: tenantId, slug, name: 'Tenant', status: 'active' });
+    if (tenantError) throw tenantError;
+
+    // buffer_minutes/min_notice_hours are check-constrained to a fixed enum
+    // (0001_initial.sql) — 15 and 1 are the smallest valid values for each.
+    const { error: settingsError } = await admin.from('business_settings').insert({
       tenant_id: tenantId,
       timezone: 'Europe/Lisbon',
       slot_interval_minutes: 30,
-      buffer_minutes: 0,
-      min_notice_hours: 0,
+      buffer_minutes: 15,
+      min_notice_hours: 1,
       booking_window_days: 30,
       published_at: new Date().toISOString(),
     });
+    if (settingsError) throw settingsError;
 
     // Closed every day except Wednesday (dayOfWeek 3), 09:00-18:00 — an unambiguous
     // "normally closed" day to open via exception, regardless of which weekday "today" is.
@@ -49,7 +56,8 @@ describe.runIf(canRun)('business_hours_exceptions impact on public availability 
       opens_at: dayOfWeek === 3 ? '09:00' : null,
       closes_at: dayOfWeek === 3 ? '18:00' : null,
     }));
-    await admin.from('business_hours').insert(weeklyHours);
+    const { error: hoursError } = await admin.from('business_hours').insert(weeklyHours);
+    if (hoursError) throw hoursError;
   });
 
   afterAll(async () => {
