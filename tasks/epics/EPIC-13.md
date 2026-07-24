@@ -117,17 +117,17 @@ Implementar exportar csv sem expandir o escopo para funcionalidades não aprovad
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova rota `GET /api/financeiro/export`, mas só lê dados já expostos ao próprio dono no dashboard financeiro (NEX-130); nenhuma escrita, nenhum privilégio novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenantId` só de `requireProfile()` (sessão), nunca da query string — a rota redireciona para `/login` se não autenticado, mesmo padrão de qualquer página do dashboard. RLS nas tabelas subjacentes já testado noutras tarefas.
+- Registar risco residual ou decisão temporária. Nenhum.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-133 — Exportar Excel
 
