@@ -1411,7 +1411,7 @@ select {
   flex-shrink: 0;
 }
 .mobile-nav-item[aria-current='page'] {
-  color: #ed3f79;
+  color: var(--pink-600);
   font-weight: 800;
   background: transparent;
 }
@@ -1421,7 +1421,7 @@ select {
   height: 4px;
   margin-top: 2px;
   border-radius: 50%;
-  background: #ed3f79;
+  background: var(--pink-600);
 }
 
 @media (min-width: 761px) {
