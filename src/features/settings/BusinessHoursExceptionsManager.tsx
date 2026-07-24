@@ -41,6 +41,7 @@ export function BusinessHoursExceptionsManager({
     FormData
   >(deleteBusinessHoursException, null);
   const [isOpen, setIsOpen] = useState(true);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   return (
     <div className="stack">
@@ -121,12 +122,26 @@ export function BusinessHoursExceptionsManager({
                   ? `${exception.opensAt?.slice(0, 5)}–${exception.closesAt?.slice(0, 5)}`
                   : 'Fechado'}
               </span>
-              <form action={deleteFormAction}>
-                <input type="hidden" name="id" value={exception.id} />
-                <Button type="submit" variant="secondary" disabled={deletePending}>
+              {confirmingId === exception.id ? (
+                <form action={deleteFormAction} className="wizard-actions">
+                  <input type="hidden" name="id" value={exception.id} />
+                  <p>Remover este horário especial?</p>
+                  <Button type="submit" disabled={deletePending}>
+                    {deletePending ? 'A remover…' : 'Sim, remover'}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setConfirmingId(null)}>
+                    Cancelar
+                  </Button>
+                </form>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConfirmingId(exception.id)}
+                >
                   Remover
                 </Button>
-              </form>
+              )}
             </li>
           ))}
         </ul>

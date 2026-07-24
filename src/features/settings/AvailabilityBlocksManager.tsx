@@ -60,6 +60,7 @@ export function AvailabilityBlocksManager({
     FormData
   >(deleteAvailabilityBlock, null);
   const [kind, setKind] = useState<BlockKind>('pontual');
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   return (
     <div className="stack">
@@ -177,12 +178,22 @@ export function AvailabilityBlocksManager({
                 <span>{formatBlockLabel(block, timezone)}</span>
                 {block.reason ? <span className="text-support"> · {block.reason}</span> : null}
               </div>
-              <form action={deleteFormAction}>
-                <input type="hidden" name="id" value={block.id} />
-                <Button type="submit" variant="secondary" disabled={deletePending}>
+              {confirmingId === block.id ? (
+                <form action={deleteFormAction} className="wizard-actions">
+                  <input type="hidden" name="id" value={block.id} />
+                  <p>Remover este bloqueio?</p>
+                  <Button type="submit" disabled={deletePending}>
+                    {deletePending ? 'A remover…' : 'Sim, remover'}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setConfirmingId(null)}>
+                    Cancelar
+                  </Button>
+                </form>
+              ) : (
+                <Button type="button" variant="secondary" onClick={() => setConfirmingId(block.id)}>
                   Remover
                 </Button>
-              </form>
+              )}
             </li>
           ))}
         </ul>
