@@ -1,4 +1,6 @@
 import { formatInTimeZone } from 'date-fns-tz';
+import type { FinanceTransactionRow } from '../transactions-lookup';
+import { guardFormulaInjection } from './formula-injection-guard';
 
 // NEX-132: "Exportar CSV — UTF-8, colunas documentadas, proteção CSV injection."
 //
@@ -6,16 +8,6 @@ import { formatInTimeZone } from 'date-fns-tz';
 // · Serviços (descrições dos itens service/package, separadas por "; ") · Método
 // (Dinheiro/MB WAY/Pendente/Estornado) · Valor (EUR, o valor do pagamento) · Extras (EUR,
 // soma dos itens manual_extra) · Desconto (EUR, soma dos itens discount, sempre positivo).
-export type FinanceTransactionRow = Readonly<{
-  completedAtIso: string;
-  clientName: string;
-  serviceDescriptions: readonly string[];
-  paymentMethod: 'cash' | 'mbway' | null;
-  paymentStatus: 'pending' | 'paid' | 'refunded';
-  amountCents: number;
-  extrasCents: number;
-  discountCents: number;
-}>;
 
 const HEADER = [
   'Data',
@@ -39,14 +31,10 @@ function formatEurosPlain(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-// OWASP CSV injection: a field starting with =, +, -, @, tab or CR is interpreted as a
-// formula by Excel/Sheets/LibreOffice when the file is opened (e.g. a client name of
-// "=cmd|'/c calc'!A1" or a description starting with "-"). A leading apostrophe forces
-// text interpretation without changing the visible value — Excel and LibreOffice both
-// hide a leading "'" in a cell's display, so this is invisible in normal use. Applied
-// before RFC4180 quoting/escaping, since the guard character itself never needs quoting.
+// RFC4180 quoting/escaping, applied after the shared formula-injection guard — the
+// guard character itself never needs quoting.
 function sanitizeCsvField(value: string): string {
-  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  const guarded = guardFormulaInjection(value);
   if (/["\n\r,]/.test(guarded)) {
     return `"${guarded.replace(/"/g, '""')}"`;
   }

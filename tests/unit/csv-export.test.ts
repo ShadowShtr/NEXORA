@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildFinanceTransactionsCsv,
-  type FinanceTransactionRow,
-} from '@/features/finance/domain/csv-export';
+import { buildFinanceTransactionsCsv } from '@/features/finance/domain/csv-export';
+import type { FinanceTransactionRow } from '@/features/finance/transactions-lookup';
 
 const TZ = 'Europe/Lisbon';
 

@@ -3,16 +3,11 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { isFinanceView, resolvePeriod } from '@/features/finance/domain/period';
-import { buildFinanceTransactionsCsv } from '@/features/finance/domain/csv-export';
+import { buildFinanceWorkbook } from '@/features/finance/domain/xlsx-export';
 import { loadFinanceTransactions } from '@/features/finance/transactions-lookup';
 
-// NEX-132: "Exportar CSV" for the financeiro dashboard's currently-viewed period
-// (NEX-130/131) — a GET route rather than a Server Action so a plain <a> download link
-// works without client JS, same shape as the public booking flow's calendar.ics export
-// (api/bookings/[token]/calendar.ics). requireProfile() redirects to /login for an
-// unauthenticated request, same as every dashboard page; tenantId comes only from the
-// caller's own session, never from the query string, so this can only ever export the
-// owner's own tenant's data.
+// NEX-133: "Exportar Excel" — same period-resolution/auth boundary as the CSV export
+// (NEX-132, api/financeiro/export/route.ts); only the output format differs.
 export async function GET(request: Request) {
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
@@ -33,12 +28,13 @@ export async function GET(request: Request) {
   const period = resolvePeriod(view, fromKey, toKey, todayKey, timezone);
 
   const rows = await loadFinanceTransactions(supabase, tenantId, period);
-  const csv = buildFinanceTransactionsCsv(rows, timezone);
+  const workbook = buildFinanceWorkbook(rows, timezone);
+  const buffer = await workbook.xlsx.writeBuffer();
 
-  return new NextResponse(csv, {
+  return new NextResponse(buffer, {
     headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="financeiro-${period.dateKey}.csv"`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="financeiro-${period.dateKey}.xlsx"`,
       'Cache-Control': 'no-store',
     },
   });
