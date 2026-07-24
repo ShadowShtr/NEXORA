@@ -161,7 +161,11 @@ export function AppointmentDetailActions({
                 <Button type="submit" disabled={cancelPending}>
                   {cancelPending ? 'A cancelar…' : 'Sim, cancelar'}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setConfirmingCancel(false)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConfirmingCancel(false)}
+                >
                   Voltar
                 </Button>
               </form>
@@ -180,7 +184,11 @@ export function AppointmentDetailActions({
                 <Button type="submit" disabled={noShowPending}>
                   {noShowPending ? 'A registar…' : 'Sim, marcar falta'}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setConfirmingNoShow(false)}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConfirmingNoShow(false)}
+                >
                   Voltar
                 </Button>
               </form>
