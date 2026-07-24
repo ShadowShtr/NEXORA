@@ -199,17 +199,17 @@ Implementar bloqueios completos sem expandir o escopo para funcionalidades não 
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma tabela nova — `availability_blocks` já existe desde `0001_initial.sql` com RLS CRUD tenant-scoped completo, nunca usada até agora por nenhuma UI/action.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenantId` só de `requireProfile()`; toda escrita (`insert`/`delete`) filtra explicitamente por `tenant_id` além da RLS (defesa em profundidade, mesmo padrão de `src/features/catalog/actions.ts`). `delete` confirma linhas afetadas via `hasAffectedRows` (`ADR-010`).
+- Registar risco residual ou decisão temporária. "Férias" é tratada como um alias de "Intervalo" com motivo fixo, não um mecanismo distinto — documentado em `docs/evidence/NEX-124_BLOQUEIOS_COMPLETOS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-125 — Horários especiais
 

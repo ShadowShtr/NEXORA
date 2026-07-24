@@ -14,6 +14,7 @@ import {
   uploadBusinessCover,
   uploadBusinessLogo,
 } from '@/features/settings/business-photo-actions';
+import { AvailabilityBlocksManager } from '@/features/settings/AvailabilityBlocksManager';
 
 // NEX-095/NEX-104: the rest of this page (EPIC-14, "Central de definições em cartões")
 // is not built yet — this only adds the cards asked for by those two tasks (plus the
@@ -22,15 +23,21 @@ import {
 export default async function DefinicoesPage() {
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
-  const [{ data: settings }, { data: tenant }] = await Promise.all([
+  const [{ data: settings }, { data: tenant }, { data: blockRows }] = await Promise.all([
     supabase
       .from('business_settings')
       .select(
-        'no_show_limit, no_show_window_days, reminder_message_template, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled',
+        'no_show_limit, no_show_window_days, reminder_message_template, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled, timezone',
       )
       .eq('tenant_id', tenantId)
       .maybeSingle(),
     supabase.from('tenants').select('slug').eq('id', tenantId).single(),
+    supabase
+      .from('availability_blocks')
+      .select('id, starts_at, ends_at, reason, is_all_day')
+      .eq('tenant_id', tenantId)
+      .gt('ends_at', new Date().toISOString())
+      .order('starts_at'),
   ]);
 
   const logoUrl = settings?.logo_path
@@ -92,6 +99,19 @@ export default async function DefinicoesPage() {
       <Card>
         <p className="text-eyebrow">Mensagem do lembrete</p>
         <ReminderTemplateForm template={settings?.reminder_message_template ?? null} />
+      </Card>
+      <Card>
+        <p className="text-eyebrow">Bloqueios de agenda</p>
+        <AvailabilityBlocksManager
+          blocks={(blockRows ?? []).map((block) => ({
+            id: block.id,
+            startsAt: block.starts_at,
+            endsAt: block.ends_at,
+            reason: block.reason,
+            isAllDay: block.is_all_day,
+          }))}
+          timezone={settings?.timezone ?? 'Europe/Lisbon'}
+        />
       </Card>
     </div>
   );
