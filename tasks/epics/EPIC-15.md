@@ -76,17 +76,17 @@ Implementar navegação mobile e desktop sem expandir o escopo para funcionalida
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só cor de CSS e testes; sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — navegação é puramente de apresentação, sem ligação a `tenant_id`.
+- Registar risco residual ou decisão temporária. `#ed3f79` (cor ad-hoc fora da escala de tokens, falhava AA a 3,76:1) foi substituída por `var(--pink-600)` só no estado ativo da bottom nav, para ficar coerente com a sidebar e cumprir AA. A mesma cor `#ed3f79` aparece em ~15 outros locais do CSS (fora do âmbito de "navegação") — registado como risco residual para uma futura auditoria (`NEX-154`), não corrigido aqui. Ver `docs/evidence/NEX-151_NAVEGACAO_MOBILE_DESKTOP.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-152 — Manifest e instalação PWA
 

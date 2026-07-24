@@ -51,20 +51,31 @@ test.describe('dashboard shell (NEX-023)', () => {
     }
   });
 
-  test('mobile "Mais" panel opens, is keyboard-closable, and returns focus', async ({ page }) => {
+  // NEX-151: this used to test a "Mais" button that expanded an overlay panel — that
+  // was replaced by a real /dashboard/mais page in #70 (CLAUDE.md: "Ao abrir Mais... a
+  // página anterior deve desaparecer", never a panel over it), but this test kept
+  // asserting the old, no-longer-existing `.mobile-nav-more`/aria-expanded behaviour.
+  // Never caught because E2E specs don't run in CI — corrected to match what's real.
+  test('mobile "Mais" nav item links to its own page, not a panel', async ({ page }) => {
     test.skip((page.viewportSize()?.width ?? 1280) >= 761, 'mobile-only');
 
-    const moreButton = page.locator('.mobile-nav').getByRole('button', { name: 'Mais' });
-    const morePanel = page.locator('.mobile-nav-more');
+    const moreLink = page.locator('.mobile-nav').getByRole('link', { name: 'Mais' });
+    await expect(moreLink).toHaveAttribute('href', '/dashboard/mais');
 
-    await moreButton.click();
-    await expect(moreButton).toHaveAttribute('aria-expanded', 'true');
-    await expect(morePanel.getByRole('link', { name: 'Financeiro' })).toBeVisible();
+    await moreLink.click();
+    await expect(page).toHaveURL(/\/dashboard\/mais$/);
+    await expect(page.getByRole('heading', { name: 'Mais' })).toBeVisible();
+    await expect(page.locator('.mobile-nav-more')).toHaveCount(0);
+  });
 
-    await page.keyboard.press('Escape');
-    await expect(morePanel).toBeHidden();
-    await expect(moreButton).toHaveAttribute('aria-expanded', 'false');
-    await expect(moreButton).toBeFocused();
+  test('mobile "Mais" tab reads as active while visiting any of its sub-pages', async ({
+    page,
+  }) => {
+    test.skip((page.viewportSize()?.width ?? 1280) >= 761, 'mobile-only');
+
+    await page.goto('/dashboard/financeiro');
+    const moreItem = page.locator('.mobile-nav').getByRole('link', { name: 'Mais' });
+    await expect(moreItem).toHaveAttribute('aria-current', 'page');
   });
 
   test('skip link is keyboard-reachable and moves focus to main content', async ({ page }) => {

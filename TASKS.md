@@ -143,7 +143,7 @@
 ### EPIC-15 — PWA, design e acessibilidade
 
 - [x] **NEX-150** — Design system claymorphism _(depende: NEX-023)_
-- [ ] **NEX-151** — Navegação mobile e desktop _(depende: NEX-150)_
+- [x] **NEX-151** — Navegação mobile e desktop _(depende: NEX-150)_
 - [ ] **NEX-152** — Manifest e instalação PWA _(depende: NEX-150)_
 - [ ] **NEX-153** — Estratégia de cache segura _(depende: NEX-152)_
 - [ ] **NEX-154** — Auditoria WCAG 2.2 AA _(depende: NEX-151)_
