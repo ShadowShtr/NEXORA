@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isFinanceView, resolvePeriod } from '@/features/finance/domain/period';
 import { buildFinanceWorkbook } from '@/features/finance/domain/xlsx-export';
 import { loadFinanceTransactions } from '@/features/finance/transactions-lookup';
+import { logFinanceExport } from '@/features/finance/log-export';
 
 // NEX-133: "Exportar Excel" — same period-resolution/auth boundary as the CSV export
 // (NEX-132, api/financeiro/export/route.ts); only the output format differs.
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
   const rows = await loadFinanceTransactions(supabase, tenantId, period);
   const workbook = buildFinanceWorkbook(rows, timezone);
   const buffer = await workbook.xlsx.writeBuffer();
+  await logFinanceExport(supabase, 'xlsx', period.view, period.range.dateKeys.length);
 
   return new NextResponse(buffer, {
     headers: {

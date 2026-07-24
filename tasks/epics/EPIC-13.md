@@ -240,14 +240,14 @@ Implementar regras de retenção/exportação sem expandir o escopo para funcion
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova RPC `log_finance_export` — só escreve uma linha de auditoria, nenhum dado financeiro novo, nenhum privilégio novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Inalterado — as 3 rotas de exportação continuam a depender só de `requireProfile()`; a RPC nova deriva `tenant_id` de `current_tenant_id()`, nunca do input.
+- Registar risco residual ou decisão temporária. `log_finance_export` não limita `p_range_days` por si própria — o limite real já é aplicado antes, em TypeScript (`resolveCustomRange`, NEX-131), pelo que um valor fora desse limite chegando à RPC não representaria um bypass de nada, só uma métrica de auditoria menos fiável se alguém chamasse a RPC diretamente sem passar pela rota.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
