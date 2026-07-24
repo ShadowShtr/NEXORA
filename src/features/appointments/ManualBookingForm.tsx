@@ -5,6 +5,9 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Button } from '@/components/ui/Button';
 import { createManualBooking } from './manual-booking-actions';
 import { getManualBookingAvailability } from './manual-availability-actions';
+import { createRecurringSeries } from './recurring-series-actions';
+import { checkRecurrenceConflicts } from './recurrence-conflicts-actions';
+import { generateRecurrenceOccurrences, type RecurrenceFrequency } from './domain/recurrence';
 import {
   suggestExistingClients,
   type ClientSuggestion,
@@ -22,6 +25,29 @@ function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
 }
 
+const FREQUENCY_LABELS: Record<RecurrenceFrequency, string> = {
+  weekly: 'Semanal',
+  biweekly: 'Quinzenal',
+  three_weeks: 'A cada 3 semanas',
+  monthly: 'Mensal',
+  custom: 'Intervalo personalizado',
+};
+
+// NEX-122: recurring_series.interval_value only carries meaning for frequency='custom'
+// (see NEX-120's domain/recurrence.ts) — the four named frequencies are fully
+// self-describing, so they're always stored as 1.
+function intervalValueFor(frequency: RecurrenceFrequency, customIntervalDays: number): number {
+  return frequency === 'custom' ? customIntervalDays : 1;
+}
+
+type OccurrenceReview = {
+  originalIso: string;
+  hasConflict: boolean;
+  alternativesIso: string[];
+  chosenIso: string;
+  removed: boolean;
+};
+
 type ClientOption = { id: string; name: string; phoneE164: string };
 type CategoryGroup = { id: string; name: string; services: ServiceLine[] };
 
@@ -29,6 +55,13 @@ type CategoryGroup = { id: string; name: string; services: ServiceLine[] };
 // existing client — a <select> populated from the owner's own client list (NEX-090's
 // eventual search UI is a superset of this; this task only needs the ability to pick
 // one instead of always re-typing contact details) plus a "novo cliente" fallback.
+//
+// NEX-122 extends this with an optional recurring series: enabling it swaps the submit
+// button for "Rever ocorrências", which generates candidate dates (NEX-120) from the
+// already-chosen first slot, checks them against real availability (NEX-121), and moves
+// to a review step where the owner resolves any conflict (pick a suggested alternative
+// or drop that occurrence) before a second, separate form actually creates the series
+// (createRecurringSeries -> create_recurring_series, atomic — NEX-122's own migration).
 export function ManualBookingForm({
   clients,
   categoryGroups,
@@ -46,6 +79,10 @@ export function ManualBookingForm({
     createManualBooking,
     null,
   );
+  const [seriesState, seriesFormAction, seriesPending] = useActionState<
+    Result<null> | null,
+    FormData
+  >(createRecurringSeries, null);
 
   const preselectedClient =
     initialClientId && clients.some((client) => client.id === initialClientId)
@@ -64,7 +101,18 @@ export function ManualBookingForm({
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [observation, setObservation] = useState('');
   const [suggestions, setSuggestions] = useState<ClientSuggestion[]>([]);
+
+  const [recurringEnabled, setRecurringEnabled] = useState(false);
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>('weekly');
+  const [occurrenceCount, setOccurrenceCount] = useState(4);
+  const [customIntervalDays, setCustomIntervalDays] = useState(14);
+  const [conflictsLoading, setConflictsLoading] = useState(false);
+  const [conflictsError, setConflictsError] = useState<string | null>(null);
+  const [step, setStep] = useState<'compose' | 'review'>('compose');
+  const [occurrenceReviews, setOccurrenceReviews] = useState<OccurrenceReview[] | null>(null);
 
   const servicesById = useMemo(() => {
     const map = new Map<string, ServiceLine>();
@@ -168,6 +216,192 @@ export function ManualBookingForm({
     setNewClientPhone('');
   }
 
+  async function handlePreviewRecurrence() {
+    if (!selectedSlotIso || lines.length === 0) return;
+    setConflictsError(null);
+    setConflictsLoading(true);
+
+    try {
+      const occurrencesMs = generateRecurrenceOccurrences({
+        firstOccurrenceMs: new Date(selectedSlotIso).getTime(),
+        timeZone: timezone,
+        frequency,
+        occurrenceCount,
+        ...(frequency === 'custom' ? { customIntervalDays } : {}),
+      });
+      const occurrencesIso = occurrencesMs.map((ms) => new Date(ms).toISOString());
+
+      const result = await checkRecurrenceConflicts(occurrencesIso, totalMinutes);
+      if (!result.ok) {
+        setConflictsError(result.error.message);
+        return;
+      }
+
+      setOccurrenceReviews(
+        result.value.checks.map((check) => ({
+          originalIso: check.occurrenceIso,
+          hasConflict: check.hasConflict,
+          alternativesIso: [...check.alternativeSlotsIso],
+          chosenIso: check.occurrenceIso,
+          removed: false,
+        })),
+      );
+      setStep('review');
+    } catch {
+      setConflictsError('Não foi possível gerar as ocorrências.');
+    } finally {
+      setConflictsLoading(false);
+    }
+  }
+
+  function pickAlternative(originalIso: string, alternativeIso: string) {
+    setOccurrenceReviews(
+      (current) =>
+        current?.map((occurrence) =>
+          occurrence.originalIso === originalIso
+            ? { ...occurrence, chosenIso: alternativeIso, removed: false }
+            : occurrence,
+        ) ?? null,
+    );
+  }
+
+  function toggleRemoved(originalIso: string) {
+    setOccurrenceReviews(
+      (current) =>
+        current?.map((occurrence) =>
+          occurrence.originalIso === originalIso
+            ? { ...occurrence, removed: !occurrence.removed }
+            : occurrence,
+        ) ?? null,
+    );
+  }
+
+  if (step === 'review' && occurrenceReviews) {
+    const remaining = occurrenceReviews.filter((occurrence) => !occurrence.removed);
+    const hasUnresolvedConflict = remaining.some(
+      (occurrence) => occurrence.hasConflict && occurrence.chosenIso === occurrence.originalIso,
+    );
+    const canConfirm = remaining.length >= 2 && !hasUnresolvedConflict;
+
+    return (
+      <form action={seriesFormAction} className="stack">
+        {clientMode === 'existing' ? (
+          <input type="hidden" name="clientId" value={selectedClientId} />
+        ) : (
+          <>
+            <input type="hidden" name="clientId" value="" />
+            <input type="hidden" name="clientName" value={newClientName} />
+            <input type="hidden" name="clientPhone" value={newClientPhone} />
+            <input type="hidden" name="clientEmail" value={newClientEmail} />
+          </>
+        )}
+        {Array.from(selectedServiceIds).map((id) => (
+          <input key={id} type="hidden" name="selectedServiceIds" value={id} />
+        ))}
+        {selectedPackageId ? (
+          <input type="hidden" name="selectedPackageId" value={selectedPackageId} />
+        ) : null}
+        <input type="hidden" name="observation" value={observation} />
+        <input type="hidden" name="frequency" value={frequency} />
+        <input
+          type="hidden"
+          name="intervalValue"
+          value={intervalValueFor(frequency, customIntervalDays)}
+        />
+        {remaining.map((occurrence) => (
+          <input
+            key={occurrence.originalIso}
+            type="hidden"
+            name="occurrencesIso"
+            value={occurrence.chosenIso}
+          />
+        ))}
+
+        <h2 className="text-subtitle">Rever ocorrências</h2>
+        <p className="text-support">
+          {FREQUENCY_LABELS[frequency]} · {remaining.length} de {occurrenceReviews.length} marcações
+        </p>
+
+        <ul className="stack">
+          {occurrenceReviews.map((occurrence) => {
+            const isResolvedConflict =
+              occurrence.hasConflict && occurrence.chosenIso !== occurrence.originalIso;
+            return (
+              <li key={occurrence.originalIso} className="public-service-item stack">
+                <div className="public-service-choice">
+                  <span
+                    className={occurrence.removed ? 'recurrence-occurrence-removed' : undefined}
+                  >
+                    {formatInTimeZone(occurrence.chosenIso, timezone, "EEEE, dd/MM 'às' HH:mm")}
+                  </span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => toggleRemoved(occurrence.originalIso)}
+                  >
+                    {occurrence.removed ? 'Readicionar' : 'Remover'}
+                  </button>
+                </div>
+
+                {!occurrence.removed && occurrence.hasConflict ? (
+                  isResolvedConflict ? (
+                    <p className="text-support">Substituída por horário livre acima.</p>
+                  ) : (
+                    <div className="stack">
+                      <p role="alert" className="form-error">
+                        Este horário já está ocupado.
+                      </p>
+                      {occurrence.alternativesIso.length > 0 ? (
+                        <ul className="public-slot-list">
+                          {occurrence.alternativesIso.map((alternativeIso) => (
+                            <li key={alternativeIso}>
+                              <button
+                                type="button"
+                                className="public-slot-button"
+                                onClick={() =>
+                                  pickAlternative(occurrence.originalIso, alternativeIso)
+                                }
+                              >
+                                {formatInTimeZone(alternativeIso, timezone, 'dd/MM HH:mm')}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-support">Sem alternativas próximas disponíveis.</p>
+                      )}
+                    </div>
+                  )
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+
+        {remaining.length < 2 ? (
+          <p role="alert" className="form-error">
+            Uma série precisa de pelo menos 2 marcações.
+          </p>
+        ) : null}
+
+        {seriesState && !seriesState.ok ? (
+          <p role="alert" className="form-error">
+            {seriesState.error.message}
+          </p>
+        ) : null}
+
+        <div className="wizard-actions">
+          <Button type="button" variant="secondary" onClick={() => setStep('compose')}>
+            Voltar
+          </Button>
+          <Button type="submit" disabled={seriesPending || !canConfirm}>
+            {seriesPending ? 'A criar…' : `Confirmar ${remaining.length} marcações`}
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <form action={formAction} className="stack">
       <fieldset>
@@ -235,7 +469,13 @@ export function ManualBookingForm({
             </label>
             <label>
               E-mail (opcional)
-              <input name="clientEmail" type="text" inputMode="email" />
+              <input
+                name="clientEmail"
+                type="text"
+                inputMode="email"
+                value={newClientEmail}
+                onChange={(event) => setNewClientEmail(event.target.value)}
+              />
             </label>
 
             {suggestions.length > 0 ? (
@@ -366,9 +606,78 @@ export function ManualBookingForm({
         <input type="hidden" name="startAtIso" value={selectedSlotIso ?? ''} />
       </fieldset>
 
+      <fieldset>
+        <legend className="text-subtitle">Repetição</legend>
+        <label>
+          <input
+            type="checkbox"
+            checked={recurringEnabled}
+            onChange={(event) => {
+              setRecurringEnabled(event.target.checked);
+              setConflictsError(null);
+            }}
+          />
+          Marcação recorrente
+        </label>
+
+        {recurringEnabled ? (
+          <div className="stack">
+            <label>
+              Frequência
+              <select
+                value={frequency}
+                onChange={(event) => setFrequency(event.target.value as RecurrenceFrequency)}
+              >
+                {(Object.keys(FREQUENCY_LABELS) as RecurrenceFrequency[]).map((value) => (
+                  <option key={value} value={value}>
+                    {FREQUENCY_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {frequency === 'custom' ? (
+              <label>
+                Repetir a cada quantos dias
+                <input
+                  type="number"
+                  min={1}
+                  max={52}
+                  value={customIntervalDays}
+                  onChange={(event) => setCustomIntervalDays(Number(event.target.value))}
+                />
+              </label>
+            ) : null}
+
+            <label>
+              Número de marcações (incluindo a primeira)
+              <input
+                type="number"
+                min={2}
+                max={52}
+                value={occurrenceCount}
+                onChange={(event) => setOccurrenceCount(Number(event.target.value))}
+              />
+            </label>
+
+            {conflictsError ? (
+              <p role="alert" className="form-error">
+                {conflictsError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </fieldset>
+
       <label>
         Observação (opcional)
-        <textarea name="observation" maxLength={2000} rows={3} />
+        <textarea
+          name="observation"
+          maxLength={2000}
+          rows={3}
+          value={observation}
+          onChange={(event) => setObservation(event.target.value)}
+        />
       </label>
 
       {state && !state.ok ? (
@@ -377,9 +686,19 @@ export function ManualBookingForm({
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending || !selectedSlotIso || lines.length === 0}>
-        {pending ? 'A criar…' : 'Criar marcação'}
-      </Button>
+      {recurringEnabled ? (
+        <Button
+          type="button"
+          disabled={!selectedSlotIso || lines.length === 0 || conflictsLoading}
+          onClick={() => void handlePreviewRecurrence()}
+        >
+          {conflictsLoading ? 'A verificar…' : 'Rever ocorrências'}
+        </Button>
+      ) : (
+        <Button type="submit" disabled={pending || !selectedSlotIso || lines.length === 0}>
+          {pending ? 'A criar…' : 'Criar marcação'}
+        </Button>
+      )}
     </form>
   );
 }
