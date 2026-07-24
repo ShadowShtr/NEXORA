@@ -21,9 +21,9 @@ const requestSchema = z.object({
   // held by the caller across retries — generating it inside this action instead would
   // mint a fresh key on every retry, defeating idempotency entirely.
   idempotencyKey: z.string().regex(/^[0-9a-f]{64}$/, 'idempotencyKey must be 64 hex chars'),
-  // Absent when Turnstile isn't rendered client-side (TURNSTILE_SITE_KEY unset) —
-  // verifyTurnstileToken already no-ops server-side in that same case, so an empty
-  // string here is fine rather than a validation error.
+  // Absent when Turnstile isn't rendered client-side (NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  // unset, see TurnstileWidget.tsx) — verifyTurnstileToken already no-ops server-side in
+  // that same case, so an empty string here is fine rather than a validation error.
   turnstileToken: z.string().optional(),
   observation: z.string().trim().max(2000).optional(),
 });

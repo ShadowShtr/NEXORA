@@ -12,10 +12,11 @@ const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(20),
   // Public site key for the Turnstile widget (NEX-066) — safe to expose, mirrors
-  // reCAPTCHA/hCaptcha's site-key convention. Optional: bot protection degrades to
-  // rate-limit-only when unset, same "planned, not yet configured" pattern as the other
-  // optional server secrets below.
-  TURNSTILE_SITE_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  // reCAPTCHA/hCaptcha's site-key convention. Must carry the NEXT_PUBLIC_ prefix or
+  // Next.js never inlines it into the client bundle. Optional: bot protection degrades
+  // to rate-limit-only when unset, same "planned, not yet configured" pattern as the
+  // other optional server secrets below.
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 const serverSchema = publicSchema.extend({
@@ -36,7 +37,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
 });
 
 export const serverEnv = () =>
