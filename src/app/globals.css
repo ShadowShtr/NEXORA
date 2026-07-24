@@ -591,6 +591,24 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
   color: var(--pink-600);
 }
+.public-lookup-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.public-lookup-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--pink-100);
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--pink-600);
+  cursor: pointer;
+}
 .public-cart-bar {
   position: fixed;
   left: 1rem;
