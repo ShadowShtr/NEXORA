@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import type { Result } from '@/lib/result';
 
@@ -35,6 +35,7 @@ export function BusinessImageUpload({
     Result<null> | null,
     FormData
   >(removeAction, null);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const error = [uploadState, removeState].find((state) => state && !state.ok) as
     { ok: false; error: { message: string } } | undefined;
@@ -64,15 +65,33 @@ export function BusinessImageUpload({
                 />
               </label>
             </form>
-            <form action={removeFormAction}>
+            {confirmingRemove ? (
+              <form action={removeFormAction} className="business-image-remove-confirm">
+                <span className="text-support">Remover esta imagem?</span>
+                <button
+                  type="submit"
+                  className="business-image-remove-button"
+                  disabled={removePending}
+                >
+                  {removePending ? 'A remover…' : 'Sim, remover'}
+                </button>
+                <button
+                  type="button"
+                  className="business-image-replace-button"
+                  onClick={() => setConfirmingRemove(false)}
+                >
+                  Cancelar
+                </button>
+              </form>
+            ) : (
               <button
-                type="submit"
+                type="button"
                 className="business-image-remove-button"
-                disabled={removePending}
+                onClick={() => setConfirmingRemove(true)}
               >
-                {removePending ? 'A remover…' : 'Remover'}
+                Remover
               </button>
-            </form>
+            )}
           </div>
         </div>
       ) : (

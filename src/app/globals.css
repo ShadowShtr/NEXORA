@@ -4820,6 +4820,13 @@ body[data-sheet-open='true'] .services-fab {
   color: var(--pink-600);
   cursor: pointer;
 }
+/* NEX-143: "Ações destrutivas confirmam" — inline confirm step before removing a
+   logo/cover image, replacing the Trocar/Remover pair momentarily. */
+.business-image-remove-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* Public booking flow desktop containment (audit follow-up): this route renders
    straight into <body> with no .shell wrapper (see .public-booking-content's own

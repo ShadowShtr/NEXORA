@@ -137,7 +137,7 @@
 - [x] **NEX-140** — Central de definições em cartões _(depende: NEX-023,NEX-035)_
 - [x] **NEX-141** — Defaults e “usar recomendações” _(depende: NEX-140)_
 - [ ] **NEX-142** — Pré-visualização da página pública _(depende: NEX-140)_
-- [ ] **NEX-143** — Confirmações e desfazer _(depende: NEX-140)_
+- [x] **NEX-143** — Confirmações e desfazer _(depende: NEX-140)_
 - [ ] **NEX-144** — Ajuda contextual curta _(depende: NEX-140)_
 
 ### EPIC-15 — PWA, design e acessibilidade

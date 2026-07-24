@@ -158,17 +158,17 @@ Implementar confirmações e desfazer sem expandir o escopo para funcionalidades
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só adiciona um passo de confirmação na UI antes de ações de remoção já existentes, sem alterar as RPCs/actions em si.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Inalterado.
+- Registar risco residual ou decisão temporária. NEX-142 (pré-visualização) foi explicitamente deixada de fora por decisão da dona; esta tarefa não depende dela. Ver `docs/evidence/NEX-143_CONFIRMACOES_DESFAZER.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-144 — Ajuda contextual curta
 
