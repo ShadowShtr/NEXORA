@@ -294,6 +294,7 @@ export default async function FinanceiroPage({
   }
   const exportUrl = `/api/financeiro/export?${exportSearchParams.toString()}`;
   const exportExcelUrl = `/api/financeiro/export-excel?${exportSearchParams.toString()}`;
+  const exportPdfUrl = `/api/financeiro/export-pdf?${exportSearchParams.toString()}`;
 
   return (
     <div className="shell finance-page">
@@ -345,6 +346,11 @@ export default async function FinanceiroPage({
       <a href={exportExcelUrl} className="full-report-button">
         <Download aria-hidden="true" size={19} />
         Exportar Excel
+      </a>
+
+      <a href={exportPdfUrl} className="full-report-button">
+        <Download aria-hidden="true" size={19} />
+        Exportar PDF
       </a>
     </div>
   );

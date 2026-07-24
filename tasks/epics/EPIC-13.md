@@ -199,17 +199,17 @@ Implementar exportar pdf sem expandir o escopo para funcionalidades não aprovad
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova dependência `pdfkit` (sem alternativa viável para gerar `.pdf` real sem uma lib) — sem escrita nova.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Mesmo padrão de `NEX-132`/`NEX-133`.
+- Registar risco residual ou decisão temporária. Este projeto não tem infraestrutura de "visual regression" (sem Percy/Chromatic/screenshots do Playwright) — ver `docs/evidence/NEX-134_EXPORTAR_PDF.md` para a interpretação pragmática adotada (testar o invariante de layout como função pura, não o PDF renderizado pixel a pixel).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-135 — Regras de retenção/exportação
 

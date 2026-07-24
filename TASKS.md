@@ -129,7 +129,7 @@
 - [x] **NEX-131** — Filtros por período _(depende: NEX-130)_
 - [x] **NEX-132** — Exportar CSV _(depende: NEX-131)_
 - [x] **NEX-133** — Exportar Excel _(depende: NEX-131)_
-- [ ] **NEX-134** — Exportar PDF _(depende: NEX-131)_
+- [x] **NEX-134** — Exportar PDF _(depende: NEX-131)_
 - [ ] **NEX-135** — Regras de retenção/exportação _(depende: NEX-132,NEX-133,NEX-134)_
 
 ### EPIC-14 — Definições e simplicidade operacional
