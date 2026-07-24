@@ -293,6 +293,7 @@ export default async function FinanceiroPage({
     exportSearchParams.set('to', period.range.dateKeys[period.range.dateKeys.length - 1]!);
   }
   const exportUrl = `/api/financeiro/export?${exportSearchParams.toString()}`;
+  const exportExcelUrl = `/api/financeiro/export-excel?${exportSearchParams.toString()}`;
 
   return (
     <div className="shell finance-page">
@@ -339,6 +340,11 @@ export default async function FinanceiroPage({
       <a href={exportUrl} className="full-report-button">
         <Download aria-hidden="true" size={19} />
         Exportar CSV
+      </a>
+
+      <a href={exportExcelUrl} className="full-report-button">
+        <Download aria-hidden="true" size={19} />
+        Exportar Excel
       </a>
     </div>
   );

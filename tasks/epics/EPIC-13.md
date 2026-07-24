@@ -158,17 +158,17 @@ Implementar exportar excel sem expandir o escopo para funcionalidades não aprov
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova dependência `exceljs` (biblioteca de geração de .xlsx, sem alternativa viável sem uma lib) — sem escrita nova, só leitura já exposta ao dono (NEX-130).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Mesmo padrão de `NEX-132`: `tenantId` só de `requireProfile()`.
+- Registar risco residual ou decisão temporária. `npm audit` sinaliza uma vulnerabilidade moderada transitiva (`uuid <11.1.1` via `exceljs`) — usada internamente pelo `exceljs` só para nomear partes internas do ficheiro .xlsx, não para nada criptográfico/de segurança nesta aplicação; risco residual baixo, a rever se o `exceljs` publicar uma versão sem esta dependência.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-134 — Exportar PDF
 
