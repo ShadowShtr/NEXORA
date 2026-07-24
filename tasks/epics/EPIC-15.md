@@ -117,17 +117,17 @@ Implementar manifest e instalação pwa sem expandir o escopo para funcionalidad
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só ícones estáticos, metadata e um cartão de UI que lê `beforeinstallprompt`/`navigator.userAgent`/`matchMedia`, sem novo dado, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — manifest e instalação são globais à app, sem ligação a `tenant_id`.
+- Registar risco residual ou decisão temporária. O caminho Android/desktop (`beforeinstallprompt`) não foi testado por E2E automatizado — o Chromium só o dispara com critérios reais de instalabilidade que `next dev` sob Playwright não cumpre; validado só por leitura do código e pelos testes obrigatórios "Lighthouse/Android/iOS manual" (não executados nesta sessão — sem Lighthouse CI nem dispositivo Android/iOS físico disponível). Ver `docs/evidence/NEX-152_MANIFEST_INSTALACAO_PWA.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-153 — Estratégia de cache segura
 
