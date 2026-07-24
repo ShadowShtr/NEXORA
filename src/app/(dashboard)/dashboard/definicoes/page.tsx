@@ -15,6 +15,7 @@ import {
   uploadBusinessLogo,
 } from '@/features/settings/business-photo-actions';
 import { AvailabilityBlocksManager } from '@/features/settings/AvailabilityBlocksManager';
+import { BusinessHoursExceptionsManager } from '@/features/settings/BusinessHoursExceptionsManager';
 
 // NEX-095/NEX-104: the rest of this page (EPIC-14, "Central de definições em cartões")
 // is not built yet — this only adds the cards asked for by those two tasks (plus the
@@ -23,22 +24,29 @@ import { AvailabilityBlocksManager } from '@/features/settings/AvailabilityBlock
 export default async function DefinicoesPage() {
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
-  const [{ data: settings }, { data: tenant }, { data: blockRows }] = await Promise.all([
-    supabase
-      .from('business_settings')
-      .select(
-        'no_show_limit, no_show_window_days, reminder_message_template, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled, timezone',
-      )
-      .eq('tenant_id', tenantId)
-      .maybeSingle(),
-    supabase.from('tenants').select('slug').eq('id', tenantId).single(),
-    supabase
-      .from('availability_blocks')
-      .select('id, starts_at, ends_at, reason, is_all_day')
-      .eq('tenant_id', tenantId)
-      .gt('ends_at', new Date().toISOString())
-      .order('starts_at'),
-  ]);
+  const [{ data: settings }, { data: tenant }, { data: blockRows }, { data: exceptionRows }] =
+    await Promise.all([
+      supabase
+        .from('business_settings')
+        .select(
+          'no_show_limit, no_show_window_days, reminder_message_template, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled, timezone',
+        )
+        .eq('tenant_id', tenantId)
+        .maybeSingle(),
+      supabase.from('tenants').select('slug').eq('id', tenantId).single(),
+      supabase
+        .from('availability_blocks')
+        .select('id, starts_at, ends_at, reason, is_all_day')
+        .eq('tenant_id', tenantId)
+        .gt('ends_at', new Date().toISOString())
+        .order('starts_at'),
+      supabase
+        .from('business_hours_exceptions')
+        .select('id, exception_date, is_open, opens_at, closes_at')
+        .eq('tenant_id', tenantId)
+        .gte('exception_date', new Date().toISOString().slice(0, 10))
+        .order('exception_date'),
+    ]);
 
   const logoUrl = settings?.logo_path
     ? supabase.storage.from('business-logos').getPublicUrl(settings.logo_path).data.publicUrl
@@ -111,6 +119,18 @@ export default async function DefinicoesPage() {
             isAllDay: block.is_all_day,
           }))}
           timezone={settings?.timezone ?? 'Europe/Lisbon'}
+        />
+      </Card>
+      <Card>
+        <p className="text-eyebrow">Horários especiais</p>
+        <BusinessHoursExceptionsManager
+          exceptions={(exceptionRows ?? []).map((exception) => ({
+            id: exception.id,
+            exceptionDate: exception.exception_date,
+            isOpen: exception.is_open,
+            opensAt: exception.opens_at,
+            closesAt: exception.closes_at,
+          }))}
         />
       </Card>
     </div>

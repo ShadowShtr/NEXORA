@@ -240,14 +240,14 @@ Implementar horários especiais sem expandir o escopo para funcionalidades não 
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma tabela nova — `business_hours_exceptions` já existe desde `0006_business_hours_exceptions.sql` (NEX-060), com RLS CRUD tenant-scoped, nunca usada por nenhuma UI até agora.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenantId` só de `requireProfile()`; a leitura pública passa pelo cliente service-role (`getPublicAvailability`, NEX-062) porque a tabela não tem política `anon` por desenho — nenhuma exposição direta do horário em bruto.
+- Registar risco residual ou decisão temporária. Nenhum.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

@@ -121,7 +121,7 @@
 - [x] **NEX-122** — Criar série atomicamente _(depende: NEX-121)_
 - [x] **NEX-123** — Editar escopo da série _(depende: NEX-122)_
 - [x] **NEX-124** — Bloqueios completos _(depende: NEX-060,NEX-082)_
-- [ ] **NEX-125** — Horários especiais _(depende: NEX-124)_
+- [x] **NEX-125** — Horários especiais _(depende: NEX-124)_
 
 ### EPIC-13 — Financeiro e relatórios
 
