@@ -46,15 +46,14 @@ async function loadMoreData(tenantId: string) {
 // bottom-nav item and the previous page's floating "+" is gone simply because this page
 // never renders one (every FAB is page-scoped: AgendaFab/ClientsFab/ServicesFab).
 //
-// Deliberately not built (documented, not silently dropped): the reference's
-// "Definições" split into Meu negócio / Agenda e marcações / Aparência / Segurança as
-// four separate rows — only one real settings destination exists today
-// (/dashboard/definicoes, currently just no-show policy + reminder template + a "coming
-// soon" placeholder), so this keeps the exact four destinations the old overlay menu
-// already had (Lembretes/Financeiro/Relatórios/Definições) rather than inventing three
-// settings screens that don't exist. Same reasoning drops the reference's "Suporte"
-// section entirely — no help center, feedback form, or support contact exists anywhere
-// in this app to link to.
+// This screen still keeps a single "Definições" row (not the reference's four-way
+// split) — /dashboard/definicoes is itself now a category hub (NEX-140: Negócio,
+// Agenda, Marcações, Lembretes, Pagamentos, Aparência, Dados), so the split the
+// reference asked for lives one level down instead of duplicated here. Keeps the exact
+// four destinations the old overlay menu already had (Lembretes/Financeiro/
+// Relatórios/Definições). Also drops the reference's "Suporte" section entirely — no
+// help center, feedback form, or support contact exists anywhere in this app to link
+// to.
 export default async function MaisPage() {
   const { tenantId } = await requireProfile();
   const { displayName, tenantSlug, pendingRemindersCount, pendingPaymentsCount } =

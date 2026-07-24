@@ -95,7 +95,7 @@ async function uploadBusinessImage(
     await supabase.storage.from(bucket).remove([previousPath]);
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/aparencia');
   return { ok: true, value: null };
 }
 
@@ -130,7 +130,7 @@ async function removeBusinessImage(
 
   await supabase.storage.from(bucket).remove([existingPath]);
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/aparencia');
   return { ok: true, value: null };
 }
 

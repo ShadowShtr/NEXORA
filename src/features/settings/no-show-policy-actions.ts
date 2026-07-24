@@ -51,6 +51,6 @@ export async function updateNoShowPolicy(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/marcacoes');
   return { ok: true, value: null };
 }

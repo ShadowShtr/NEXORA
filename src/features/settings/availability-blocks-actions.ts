@@ -169,7 +169,7 @@ export async function createAvailabilityBlock(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/agenda');
   return { ok: true, value: null };
 }
 
@@ -201,6 +201,6 @@ export async function deleteAvailabilityBlock(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/agenda');
   return { ok: true, value: null };
 }

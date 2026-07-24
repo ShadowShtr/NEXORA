@@ -61,6 +61,6 @@ export async function updateReminderTemplate(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/lembretes');
   return { ok: true, value: null };
 }

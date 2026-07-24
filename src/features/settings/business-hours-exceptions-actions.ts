@@ -107,7 +107,7 @@ export async function createBusinessHoursException(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/agenda');
   return { ok: true, value: null };
 }
 
@@ -142,6 +142,6 @@ export async function deleteBusinessHoursException(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/agenda');
   return { ok: true, value: null };
 }
