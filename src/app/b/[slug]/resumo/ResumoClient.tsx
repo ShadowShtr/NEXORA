@@ -8,7 +8,9 @@ import { pt } from 'date-fns/locale/pt';
 import { ArrowLeft, CalendarDays, Clock, SquareCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { initials } from '@/lib/initials';
+import { publicEnv } from '@/lib/env';
 import { BookingConfirmation } from '../BookingConfirmation';
+import { TurnstileWidget } from '../TurnstileWidget';
 import { createPublicBooking } from '../booking-actions';
 import { generateIdempotencyKey } from '../domain/idempotency-key';
 import { useBookingSession } from '../useBookingSession';
@@ -64,6 +66,8 @@ export function ResumoClient({
   const [idempotencyKey] = useState(() => generateIdempotencyKey());
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileSiteKey = publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const [confirmedBooking, setConfirmedBooking] = useState<{
     bookingToken: string;
     lookupCode: string;
@@ -108,6 +112,7 @@ export function ResumoClient({
         startAtIso: state.selectedSlotIso,
         idempotencyKey,
         observation: observation.trim() || undefined,
+        turnstileToken: turnstileToken ?? undefined,
       });
     } catch {
       setIsBooking(false);
@@ -228,6 +233,9 @@ export function ResumoClient({
           <span className="text-support">Total estimado</span>
           <span className="public-resumo-total-value">{formatEuros(totalCents)}</span>
         </div>
+        {turnstileSiteKey ? (
+          <TurnstileWidget siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
+        ) : null}
         {bookingError ? (
           <p role="alert" className="form-error">
             {bookingError}
@@ -235,7 +243,7 @@ export function ResumoClient({
         ) : null}
         <Button
           type="button"
-          disabled={isBooking}
+          disabled={isBooking || (turnstileSiteKey !== undefined && !turnstileToken)}
           onClick={() => void handleConfirm()}
           className="public-resumo-confirm"
         >

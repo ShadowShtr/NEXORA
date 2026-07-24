@@ -515,6 +515,10 @@ a:focus-visible {
 .public-resumo-confirm {
   width: 100%;
 }
+.public-turnstile-widget {
+  display: flex;
+  justify-content: center;
+}
 .public-summary .link-button[aria-disabled='true'] {
   pointer-events: none;
   opacity: 0.5;

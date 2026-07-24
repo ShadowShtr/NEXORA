@@ -286,7 +286,7 @@ Implementar rate limit e bot protection sem expandir o escopo para funcionalidad
 
 - Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhum privilégio novo — camada de defesa adicional em frente a RPCs já existentes (`NEX-062`/`064`).
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. N/A — rate limit atua antes de qualquer acesso a dados, por IP, não por tenant.
-- Registar risco residual ou decisão temporária. **Risco residual**: sem `RATE_LIMIT_REDIS_URL`/`_TOKEN`/`TURNSTILE_SECRET_KEY` configurados em produção, o código degrada para "sem limite"/"assume humano" — proteção real só existe após provisionar Upstash + Cloudflare Turnstile e configurar as variáveis (`docs/ENVIRONMENTS_AND_SECRETS.md`, atualizado nesta tarefa). O widget Turnstile client-side (`TURNSTILE_SITE_KEY`) ainda não foi renderizado na UI pública — só a verificação server-side está pronta; `turnstileToken` chega vazio de `PublicBookingCart.tsx` até essa decisão de UX ser tomada.
+- Registar risco residual ou decisão temporária. **Risco residual**: sem `RATE_LIMIT_REDIS_URL`/`_TOKEN`/`TURNSTILE_SECRET_KEY` configurados em produção, o código degrada para "sem limite"/"assume humano" — proteção real só existe após provisionar Upstash + Cloudflare Turnstile e configurar as variáveis (`docs/ENVIRONMENTS_AND_SECRETS.md`). O widget Turnstile client-side (`src/app/b/[slug]/TurnstileWidget.tsx`) foi renderizado no passo de resumo (`ResumoClient.tsx`) e envia `turnstileToken` a `createPublicBooking` — condicionado a `NEXT_PUBLIC_TURNSTILE_SITE_KEY` estar configurado; sem essa variável, o passo de confirmação segue funcionando sem desafio, igual à degradação já existente do lado servidor.
 
 **Definition of Done**
 
