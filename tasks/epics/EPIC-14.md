@@ -76,17 +76,17 @@ Implementar defaults e “usar recomendações” sem expandir o escopo para fun
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só expõe 5 colunas já existentes de `business_settings` (já editáveis uma vez no onboarding, NEX-034) para edição contínua.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `updateBookingRules` usa `requireProfile()` + `.eq('tenant_id', tenantId)`, mesmo padrão de `submitRulesStep` (onboarding) e de todas as outras actions de definições.
+- Registar risco residual ou decisão temporária. Nenhum.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-142 — Pré-visualização da página pública
 
