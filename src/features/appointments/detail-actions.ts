@@ -12,6 +12,7 @@ const rescheduleSchema = z.object({
   newStartAtIso: z.iso.datetime(),
 });
 const noShowSchema = z.object({ appointmentId: z.uuid() });
+const reopenSchema = z.object({ appointmentId: z.uuid() });
 
 // NEX-084: "Ações internas com confirmação e auditoria". Both delegate to
 // security-definer RPCs (supabase/migrations/0008_cancel_reschedule_appointment.sql)
@@ -90,6 +91,44 @@ export async function markAppointmentNoShow(
         code: 'INTERNAL_ERROR',
         message: 'Não foi possível registar a falta. Tente novamente.',
       },
+    };
+  }
+
+  revalidatePath('/dashboard/agenda');
+  return { ok: true, value: null };
+}
+
+// NEX-115: "Reabrir/corrigir com auditoria" — undoes a completion made in error.
+// reopen_appointment (supabase/migrations/0031_reopen_appointment.sql) reverts status to
+// 'confirmed', drops the manual_extra/discount items the completion added, marks the
+// resulting payment 'refunded' (never deletes it), and writes a full snapshot of the
+// prior state to audit_logs — same tenant-derivation and authorization boundary as every
+// other RPC here.
+export async function reopenAppointment(
+  _prevState: Result<null> | null,
+  formData: FormData,
+): Promise<Result<null>> {
+  const parsed = reopenSchema.safeParse({ appointmentId: formData.get('appointmentId') });
+  if (!parsed.success) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Marcação inválida.' } };
+  }
+
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('reopen_appointment', {
+    p_appointment_id: parsed.data.appointmentId,
+  });
+
+  if (error) {
+    if (error.code === '22023') {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Esta marcação já não pode ser reaberta.' },
+      };
+    }
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível reabrir. Tente novamente.' },
     };
   }
 

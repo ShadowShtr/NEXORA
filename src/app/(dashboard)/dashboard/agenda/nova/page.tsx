@@ -5,9 +5,17 @@ import { ManualBookingForm } from '@/features/appointments/ManualBookingForm';
 
 // NEX-085: "Cliente, itens, slot, valor, observação" — server-loaded catalog/client
 // list, same tenant-scoped pattern as every other authenticated dashboard page
-// (requireProfile() + RLS-enforced createClient()).
-export default async function NewManualBookingPage() {
+// (requireProfile() + RLS-enforced createClient()). Accepts an optional ?clientId= so
+// "nova marcação para {cliente}" links (client detail page, completed-appointment
+// "duplicar" action) can arrive with the client already selected instead of the owner
+// re-picking them from the list.
+export default async function NewManualBookingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ clientId?: string }>;
+}) {
   const { tenantId } = await requireProfile();
+  const { clientId } = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -94,6 +102,7 @@ export default async function NewManualBookingPage() {
           categoryGroups={categoryGroups}
           packages={packageOptions}
           timezone={settings?.timezone ?? 'Europe/Lisbon'}
+          initialClientId={clientId}
         />
       </Card>
     </div>

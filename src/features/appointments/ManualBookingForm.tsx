@@ -34,21 +34,29 @@ export function ManualBookingForm({
   categoryGroups,
   packages,
   timezone,
+  initialClientId,
 }: {
   clients: ClientOption[];
   categoryGroups: CategoryGroup[];
   packages: PackageOption[];
   timezone: string;
+  initialClientId?: string | undefined;
 }) {
   const [state, formAction, pending] = useActionState<Result<null> | null, FormData>(
     createManualBooking,
     null,
   );
 
+  const preselectedClient =
+    initialClientId && clients.some((client) => client.id === initialClientId)
+      ? initialClientId
+      : null;
   const [clientMode, setClientMode] = useState<'existing' | 'new'>(
     clients.length > 0 ? 'existing' : 'new',
   );
-  const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id ?? '');
+  const [selectedClientId, setSelectedClientId] = useState(
+    preselectedClient ?? clients[0]?.id ?? '',
+  );
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
