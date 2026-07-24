@@ -158,17 +158,17 @@ Implementar editar escopo da série sem expandir o escopo para funcionalidades n
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova RPC `cancel_recurring_series`, mas só cancela (`status='cancelled'`) marcações já existentes do próprio tenant — nenhum dado novo, nenhum privilégio novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `tenant_id` só de `current_tenant_id()`; a marcação-gatilho é validada contra o tenant do chamador antes de qualquer escrita, e a atualização em massa está sempre filtrada por `tenant_id` também (defesa em profundidade, não confia só na FK `recurring_series_id`). Testado em `tests/integration/cancel-recurring-series.test.ts` (anon bloqueado 42501; marcação doutro tenant rejeitada 22023, confirmado sem alteração de estado).
+- Registar risco residual ou decisão temporária. Nenhum — "apenas ocorrência" reutiliza `cancel_appointment` (NEX-084) sem alterações; esta tarefa só adiciona os dois escopos multi-linha.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-124 — Bloqueios completos
 

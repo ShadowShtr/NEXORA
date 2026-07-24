@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import {
   cancelAppointment,
+  cancelRecurringSeries,
   markAppointmentNoShow,
   reopenAppointment,
   rescheduleAppointment,
@@ -24,12 +25,14 @@ import type { Result } from '@/lib/result';
 export function AppointmentDetailActions({
   appointmentId,
   clientId,
+  recurringSeriesId,
   canCancel,
   canReschedule,
   canReopen,
 }: {
   appointmentId: string;
   clientId: string | null;
+  recurringSeriesId: string | null;
   canCancel: boolean;
   canReschedule: boolean;
   canReopen: boolean;
@@ -38,6 +41,10 @@ export function AppointmentDetailActions({
     Result<null> | null,
     FormData
   >(cancelAppointment, null);
+  const [cancelSeriesState, cancelSeriesFormAction, cancelSeriesPending] = useActionState<
+    Result<{ cancelledCount: number }> | null,
+    FormData
+  >(cancelRecurringSeries, null);
   const [rescheduleState, rescheduleFormAction, reschedulePending] = useActionState<
     Result<null> | null,
     FormData
@@ -56,12 +63,21 @@ export function AppointmentDetailActions({
   const [confirmingReopen, setConfirmingReopen] = useState(false);
   const [showRescheduleForm, setShowRescheduleForm] = useState(false);
 
-  const error = [cancelState, rescheduleState, noShowState, reopenState].find(
-    (state): state is Extract<Result<null>, { ok: false }> => state !== null && !state.ok,
+  const error = [cancelState, rescheduleState, noShowState, reopenState, cancelSeriesState].find(
+    (state): state is Extract<Result<unknown>, { ok: false }> => state !== null && !state.ok,
   );
 
   if (cancelState?.ok) {
     return <p role="status">Marcação cancelada.</p>;
+  }
+  if (cancelSeriesState?.ok) {
+    return (
+      <p role="status">
+        {cancelSeriesState.value.cancelledCount === 1
+          ? '1 marcação cancelada.'
+          : `${cancelSeriesState.value.cancelledCount} marcações canceladas.`}
+      </p>
+    );
   }
   if (rescheduleState?.ok) {
     return <p role="status">Marcação reagendada.</p>;
@@ -154,6 +170,37 @@ export function AppointmentDetailActions({
               <Button type="button" variant="secondary" onClick={() => setConfirmingCancel(true)}>
                 Cancelar marcação
               </Button>
+            ) : recurringSeriesId ? (
+              <div className="stack">
+                <p>Esta marcação faz parte de uma série recorrente. O que quer cancelar?</p>
+                <form action={cancelFormAction} className="wizard-actions">
+                  <input type="hidden" name="appointmentId" value={appointmentId} />
+                  <Button type="submit" disabled={cancelPending}>
+                    {cancelPending ? 'A cancelar…' : 'Só esta marcação'}
+                  </Button>
+                </form>
+                <form action={cancelSeriesFormAction} className="wizard-actions">
+                  <input type="hidden" name="appointmentId" value={appointmentId} />
+                  <input type="hidden" name="scope" value="this_and_future" />
+                  <Button type="submit" disabled={cancelSeriesPending}>
+                    {cancelSeriesPending ? 'A cancelar…' : 'Esta e as próximas'}
+                  </Button>
+                </form>
+                <form action={cancelSeriesFormAction} className="wizard-actions">
+                  <input type="hidden" name="appointmentId" value={appointmentId} />
+                  <input type="hidden" name="scope" value="all" />
+                  <Button type="submit" disabled={cancelSeriesPending}>
+                    {cancelSeriesPending ? 'A cancelar…' : 'Toda a série'}
+                  </Button>
+                </form>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConfirmingCancel(false)}
+                >
+                  Voltar
+                </Button>
+              </div>
             ) : (
               <form action={cancelFormAction} className="wizard-actions">
                 <input type="hidden" name="appointmentId" value={appointmentId} />

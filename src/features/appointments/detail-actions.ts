@@ -13,6 +13,10 @@ const rescheduleSchema = z.object({
 });
 const noShowSchema = z.object({ appointmentId: z.uuid() });
 const reopenSchema = z.object({ appointmentId: z.uuid() });
+const cancelSeriesSchema = z.object({
+  appointmentId: z.uuid(),
+  scope: z.enum(['this_and_future', 'all']),
+});
 
 // NEX-084: "Ações internas com confirmação e auditoria". Both delegate to
 // security-definer RPCs (supabase/migrations/0008_cancel_reschedule_appointment.sql)
@@ -134,6 +138,46 @@ export async function reopenAppointment(
 
   revalidatePath('/dashboard/agenda');
   return { ok: true, value: null };
+}
+
+// NEX-123: "Editar escopo da série" — "esta, esta e próximas, ou toda a série". "Esta"
+// is exactly cancelAppointment above (unchanged); this covers the two multi-row scopes
+// via cancel_recurring_series (0033_cancel_recurring_series_scope.sql), which cancels
+// every still-cancellable appointment in the same recurring_series atomically.
+export async function cancelRecurringSeries(
+  _prevState: Result<{ cancelledCount: number }> | null,
+  formData: FormData,
+): Promise<Result<{ cancelledCount: number }>> {
+  const parsed = cancelSeriesSchema.safeParse({
+    appointmentId: formData.get('appointmentId'),
+    scope: formData.get('scope'),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Pedido inválido.' } };
+  }
+
+  await requireProfile();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('cancel_recurring_series', {
+    p_appointment_id: parsed.data.appointmentId,
+    p_scope: parsed.data.scope,
+  });
+
+  if (error) {
+    if (error.code === '22023') {
+      return {
+        ok: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Esta marcação já não pode ser cancelada.' },
+      };
+    }
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível cancelar. Tente novamente.' },
+    };
+  }
+
+  revalidatePath('/dashboard/agenda');
+  return { ok: true, value: { cancelledCount: data as number } };
 }
 
 export async function rescheduleAppointment(
