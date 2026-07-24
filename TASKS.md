@@ -112,7 +112,7 @@
 - [x] **NEX-112** — Descontos fixos/percentuais _(depende: NEX-111)_
 - [x] **NEX-113** — Transação de conclusão _(depende: NEX-110)_
 - [x] **NEX-114** — Área de pagamentos pendentes _(depende: NEX-113)_
-- [ ] **NEX-115** — Reabrir/corrigir com auditoria _(depende: NEX-113)_
+- [x] **NEX-115** — Reabrir/corrigir com auditoria _(depende: NEX-113)_
 
 ### EPIC-12 — Recorrência e disponibilidade avançada
 
