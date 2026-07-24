@@ -68,6 +68,6 @@ export async function updatePublicProfile(
     };
   }
 
-  revalidatePath('/dashboard/definicoes');
+  revalidatePath('/dashboard/definicoes/aparencia');
   return { ok: true, value: null };
 }

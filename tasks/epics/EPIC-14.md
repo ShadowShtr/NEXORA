@@ -35,17 +35,17 @@ Implementar central de definições em cartões sem expandir o escopo para funci
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só reorganiza páginas e queries já existentes em 7 rotas novas, sem tabela/RPC nova.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Cada subpágina nova chama `requireProfile()` e filtra por `tenant_id`, mesmo padrão de sempre.
+- Registar risco residual ou decisão temporária. Âmbito reduzido por decisão do dono: só reorganiza o que já existe em 7 categorias; 3 delas (Negócio, Pagamentos, Dados) ficam com placeholder "em breve" porque construir esses formulários pela primeira vez expandiria o escopo desta tarefa. Ver `docs/evidence/NEX-140_CENTRAL_DEFINICOES.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-141 — Defaults e “usar recomendações”
 

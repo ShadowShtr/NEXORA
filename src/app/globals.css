@@ -4674,6 +4674,55 @@ body[data-sheet-open='true'] .services-fab {
   }
 }
 
+/* NEX-140: "Central de definições em cartões" — hub grid of navigation cards, one per
+   category, linking to its own subpage. */
+.settings-hub-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  list-style: none;
+  padding: 0;
+}
+.settings-hub-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.settings-hub-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--pink-50);
+  color: var(--pink-600);
+}
+.settings-hub-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-hub-card-label {
+  font-weight: 700;
+  font-size: 15px;
+}
+.settings-hub-card-description {
+  font-size: 13px;
+  color: var(--muted);
+}
+.settings-hub-card-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
 /* Definições — "Perfil público" (logótipo/capa, seguindo o mesmo padrão de
    ServicePhotoUpload.tsx). */
 .settings-preview-link {
