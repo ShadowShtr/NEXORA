@@ -10,6 +10,12 @@ import {
 
 export type FinancePeriodView = CalendarView | 'custom';
 
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isFinanceView(value: string | undefined): value is FinancePeriodView {
+  return value === 'day' || value === 'week' || value === 'month' || value === 'custom';
+}
+
 // A custom range is user-supplied (URL query params), so it's clamped to a sane upper
 // bound the same way any other untrusted boundary input would be — this is not a
 // product decision about how far back financeiro can be viewed, just a guard against a
@@ -48,6 +54,38 @@ export type FinancePeriod = {
   dateKey: string;
   range: CalendarRange;
 };
+
+// Shared by the financeiro page (NEX-130/131) and the CSV export route (NEX-132) so the
+// two can never resolve a different range for the same view/from/to — a "custom" view
+// only takes effect once both fromKey/toKey are present and well-formed; anything else
+// (including an unrecognized view) falls back to "day".
+export function resolvePeriod(
+  view: FinancePeriodView | undefined,
+  fromKey: string | undefined,
+  toKey: string | undefined,
+  todayKey: string,
+  timezone: string,
+): FinancePeriod {
+  if (
+    view === 'custom' &&
+    fromKey &&
+    toKey &&
+    DATE_KEY_PATTERN.test(fromKey) &&
+    DATE_KEY_PATTERN.test(toKey)
+  ) {
+    return {
+      view: 'custom',
+      dateKey: todayKey,
+      range: resolveCustomRange(fromKey, toKey, timezone),
+    };
+  }
+  const effectiveView = view === 'week' || view === 'month' ? view : 'day';
+  return {
+    view: effectiveView,
+    dateKey: todayKey,
+    range: resolveCalendarRange(effectiveView, todayKey, timezone),
+  };
+}
 
 // The comparison period (NEX-130's "comparação com o período anterior") is always the
 // immediately preceding span of the same length — yesterday for "hoje", the prior

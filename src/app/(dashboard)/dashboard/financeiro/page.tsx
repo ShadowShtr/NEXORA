@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   Bell,
   Clock,
+  Download,
   Minus,
   PieChart,
   Smartphone,
@@ -12,13 +13,11 @@ import {
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { formatInTimeZone } from 'date-fns-tz';
-import {
-  resolveCalendarRange,
-  type CalendarRange,
-} from '@/features/appointments/domain/calendar-navigation';
+import type { CalendarRange } from '@/features/appointments/domain/calendar-navigation';
 import {
   formatFinanceRangeLabel,
-  resolveCustomRange,
+  isFinanceView,
+  resolvePeriod,
   resolvePreviousRange,
   summaryTitle,
   type FinancePeriod,
@@ -35,42 +34,8 @@ import {
 import { FinancePeriodSelector } from '@/features/finance/FinancePeriodSelector';
 import { RevenueInfoButton } from '@/features/finance/RevenueInfoButton';
 
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
-}
-
-function isFinanceView(value: string | undefined): value is FinancePeriodView {
-  return value === 'day' || value === 'week' || value === 'month' || value === 'custom';
-}
-
-function resolvePeriod(
-  view: FinancePeriodView | undefined,
-  fromKey: string | undefined,
-  toKey: string | undefined,
-  todayKey: string,
-  timezone: string,
-): FinancePeriod {
-  if (
-    view === 'custom' &&
-    fromKey &&
-    toKey &&
-    DATE_KEY_PATTERN.test(fromKey) &&
-    DATE_KEY_PATTERN.test(toKey)
-  ) {
-    return {
-      view: 'custom',
-      dateKey: todayKey,
-      range: resolveCustomRange(fromKey, toKey, timezone),
-    };
-  }
-  const effectiveView = view === 'week' || view === 'month' ? view : 'day';
-  return {
-    view: effectiveView,
-    dateKey: todayKey,
-    range: resolveCalendarRange(effectiveView, todayKey, timezone),
-  };
 }
 
 function mapCompletedRows(data: unknown): CompletedAppointmentRow[] {
@@ -320,6 +285,15 @@ export default async function FinanceiroPage({
     params.to,
   );
 
+  // Mirrors exactly what's on screen (not the raw, possibly-partial searchParams) so the
+  // export always matches the currently-displayed period.
+  const exportSearchParams = new URLSearchParams({ view: period.view });
+  if (period.view === 'custom') {
+    exportSearchParams.set('from', period.range.dateKeys[0]!);
+    exportSearchParams.set('to', period.range.dateKeys[period.range.dateKeys.length - 1]!);
+  }
+  const exportUrl = `/api/financeiro/export?${exportSearchParams.toString()}`;
+
   return (
     <div className="shell finance-page">
       <header className="more-top-header">
@@ -361,6 +335,11 @@ export default async function FinanceiroPage({
         <PieChart aria-hidden="true" size={19} />
         Ver relatório completo
       </Link>
+
+      <a href={exportUrl} className="full-report-button">
+        <Download aria-hidden="true" size={19} />
+        Exportar CSV
+      </a>
     </div>
   );
 }
