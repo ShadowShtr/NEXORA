@@ -30,6 +30,7 @@ tokens, sombras, tipografia e componentes reutilizáveis.
 | `--muted`        | `#74656d`                   | Texto de apoio (`.text-support`)                                                    |
 | `--success`      | `#24805b`                   | Estados positivos (ex.: marcação concluída)                                         |
 | `--danger`       | `#b9344a`                   | Erros de formulário, estados negativos (falta, atraso)                              |
+| `--warning`      | `#975c10`                   | Estados de aviso/pendente (ex.: pagamento pendente) — NEX-154                       |
 | `--shadow-dark`  | `rgba(153, 86, 114, 0.16)`  | Sombra escura do relevo claymorphism                                                |
 | `--shadow-light` | `rgba(255, 255, 255, 0.95)` | Sombra clara do relevo claymorphism                                                 |
 
@@ -57,6 +58,20 @@ texto/fundo realmente usados na app. Qualquer alteração futura a um destes tok
 quebre o contraste falha este teste, não só uma auditoria manual.
 `src/lib/color-contrast.ts` expõe `contrastRatio()` como função pura, testada
 separadamente contra os pares de referência da própria WCAG (preto/branco = 21:1).
+
+**NEX-154 — auditoria e correção de cores ad-hoc:** além dos tokens em `:root`, o
+ficheiro tinha ~25 cores hexadecimais soltas (fora da escala de tokens) usadas como
+texto ou fundo de gradiente com texto branco, a maioria variações próximas de
+`--pink-600` ou de um vermelho "perigo" nunca formalizado. Auditadas uma a uma
+(contraste real calculado contra o fundo efetivo de cada uma, não só branco) —
+confirmadas 23 falhas reais de AA para texto normal, das quais uma severa (~2,5:1, o
+laranja de "pagamento pendente", pior que todas as outras). Todas corrigidas,
+substituindo por `var(--pink-600)`, `var(--danger)` ou pelo novo `var(--warning)`
+consoante o significado semântico de cada uso (não trocado às cegas — "atrasado"/
+"negativo" mantém-se vermelho-perigo, "pendente"/link/acento mantém-se rosa). Ícones e
+elementos puramente decorativos que já cumpriam o limiar mais permissivo de 3:1 (WCAG
+1.4.11) foram deixados como estavam. Detalhe completo em
+`docs/evidence/NEX-154_AUDITORIA_WCAG_AA.md`.
 
 ## Componentes reutilizáveis (`src/components/ui/`)
 
