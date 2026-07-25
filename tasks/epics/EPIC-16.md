@@ -117,17 +117,17 @@ Implementar exportar dados da cliente sem expandir o escopo para funcionalidades
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma nova entrada — só lê dados já existentes (`clients`/`appointments`/`client_photos`) e devolve-os como ficheiro; sem RPC nova nem privilégio novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `requireProfile()` + `.eq('tenant_id', tenantId)` em todas as queries, mesmo padrão de `/api/financeiro/export` (NEX-132) e da própria página da ficha da cliente — um `id` de outra tenant devolve 404, nunca os dados.
+- Registar risco residual ou decisão temporária. Fotografias exportadas só como metadados (tipo + data) — os ficheiros de imagem em si não são incluídos no JSON (impraticável embutir binário; URLs assinadas expirariam). Se a dona precisar das fotos em si, continuam disponíveis na própria ficha da cliente. Ver `docs/evidence/NEX-162_EXPORTAR_DADOS_CLIENTE.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-163 — Apagar/anonimizar cliente
 

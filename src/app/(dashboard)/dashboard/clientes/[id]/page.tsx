@@ -187,6 +187,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <p className="text-eyebrow">Contacto</p>
         <p>{client.phone_e164}</p>
         {client.email ? <p>{client.email}</p> : null}
+        <a href={`/api/clientes/${client.id}/export`} className="button button-secondary">
+          Exportar dados desta cliente
+        </a>
       </Card>
 
       <Card>
