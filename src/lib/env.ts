@@ -31,6 +31,12 @@ const serverSchema = publicSchema.extend({
   RATE_LIMIT_REDIS_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   RATE_LIMIT_REDIS_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
   TURNSTILE_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  // Verifies that /api/cron/cleanup-booking-drafts (NEX-161) is really called by
+  // Vercel Cron and not by anyone who finds the URL. Optional, matching this project's
+  // established degrade pattern for not-yet-provisioned secrets: unset means the
+  // endpoint accepts any caller — low-risk here (the only effect is deleting rows that
+  // are already expired), unlike the other secrets above.
+  CRON_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
 export const publicEnv = publicSchema.parse({
@@ -49,4 +55,5 @@ export const serverEnv = () =>
     RATE_LIMIT_REDIS_URL: process.env.RATE_LIMIT_REDIS_URL,
     RATE_LIMIT_REDIS_TOKEN: process.env.RATE_LIMIT_REDIS_TOKEN,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+    CRON_SECRET: process.env.CRON_SECRET,
   });
