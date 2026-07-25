@@ -151,7 +151,7 @@
 
 ### EPIC-16 — Privacidade, segurança e direitos
 
-- [ ] **NEX-160** — Data map e subprocessadores _(depende: NEX-004,NEX-011)_
+- [x] **NEX-160** — Data map e subprocessadores _(depende: NEX-004,NEX-011)_
 - [ ] **NEX-161** — Retenção e limpeza de drafts _(depende: NEX-052)_
 - [ ] **NEX-162** — Exportar dados da cliente _(depende: NEX-091)_
 - [ ] **NEX-163** — Apagar/anonimizar cliente _(depende: NEX-091,NEX-094)_

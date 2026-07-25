@@ -35,17 +35,17 @@ Implementar data map e subprocessadores sem expandir o escopo para funcionalidad
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só documentação; sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — tarefa puramente documental.
+- Registar risco residual ou decisão temporária. Achado novo nesta tarefa: a Vercel executa as funções serverless em `iad1` (EUA), divergente da região UE do Supabase — transferência internacional não avaliada juridicamente. DPAs individuais não assinados (dependem de ação da dona em cada dashboard). Ver `docs/DATA_MAP.md` e `docs/evidence/NEX-160_DATA_MAP_SUBPROCESSADORES.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-161 — Retenção e limpeza de drafts
 

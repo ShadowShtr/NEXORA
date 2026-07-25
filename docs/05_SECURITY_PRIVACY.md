@@ -114,11 +114,10 @@ Backlog inclui:
 
 ### Subprocessadores
 
-- Vercel;
-- Supabase;
-- fornecedor de e-mail;
-- GitHub para código/CI, sem dados de produção;
-- ferramenta de observabilidade, se ativada.
+Lista completa (com região, dados envolvidos, DPA e owners) em
+`docs/DATA_MAP.md` (`NEX-160`). Resumo: Vercel (hospedagem, EUA — `iad1`), Supabase
+(BD/Auth/Storage, UE), GitHub (código/CI, sem dados de produção), Resend/Upstash
+Redis/Cloudflare Turnstile (schema pronto, sem conta real provisionada).
 
 Manter lista, regiões, DPA e transferências internacionais documentadas antes de produção.
 
