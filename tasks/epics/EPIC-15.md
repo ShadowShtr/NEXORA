@@ -240,14 +240,14 @@ Implementar performance e web vitals sem expandir o escopo para funcionalidades 
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — script de build/CI e documentação; sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. "p75 alvo" não é mensurável sem tráfego real de utilizadoras e uma ferramenta de RUM (nenhuma configurada); documentados alvos de laboratório (Lighthouse) como proxy, não um p75 real. `lighthouse-budgets.json` é só documentação de alvos — a versão instalada do CLI Lighthouse (13.4.1) já não tem a flag `--budget-path`; só o budget de tamanho de bundle (`npm run budget`) é imposto automaticamente. Ver `docs/evidence/NEX-155_PERFORMANCE_WEB_VITALS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

@@ -147,7 +147,7 @@
 - [x] **NEX-152** — Manifest e instalação PWA _(depende: NEX-150)_
 - [x] **NEX-153** — Estratégia de cache segura _(depende: NEX-152)_
 - [x] **NEX-154** — Auditoria WCAG 2.2 AA _(depende: NEX-151)_
-- [ ] **NEX-155** — Performance e Web Vitals _(depende: NEX-151)_
+- [x] **NEX-155** — Performance e Web Vitals _(depende: NEX-151)_
 
 ### EPIC-16 — Privacidade, segurança e direitos
 

@@ -19,7 +19,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "verify": "npm run format && npm run lint && npm run typecheck && npm test && npm run build"
+    "budget": "node scripts/check-bundle-budget.mjs",
+    "verify": "npm run format && npm run lint && npm run typecheck && npm test && npm run build && npm run budget"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.3",
