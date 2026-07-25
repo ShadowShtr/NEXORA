@@ -158,17 +158,17 @@ Implementar estratégia de cache segura sem expandir o escopo para funcionalidad
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. `src/proxy.ts` (novo) é puro path-matching + um header, sem I/O nem lógica de autorização — não altera quem pode aceder ao quê, só como a resposta pode ser guardada em cache.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — cache é uma preocupação de transporte HTTP, não de dados; RLS/autorização de cada rota está inalterada.
+- Registar risco residual ou decisão temporária. `next.config.ts`'s `headers()` não consegue forçar `no-store` nestas rotas (o Cache-Control interno do Next.js para páginas dinâmicas sobrepõe-se) — confirmado empiricamente com `next start` + curl; resolvido com `src/proxy.ts` (antigo `middleware.ts`, convenção `proxy` desde o Next.js 16). Ver `docs/evidence/NEX-153_ESTRATEGIA_CACHE_SEGURA.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-154 — Auditoria WCAG 2.2 AA
 
