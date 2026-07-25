@@ -29,6 +29,7 @@ const text = token('text');
 const muted = token('muted');
 const success = token('success');
 const danger = token('danger');
+const warning = token('warning');
 
 const pairs: Array<[string, string, string]> = [
   ['--text on --pink-50 (default body copy)', text, pink50],
@@ -45,6 +46,8 @@ const pairs: Array<[string, string, string]> = [
   ['--success on --pink-50', success, pink50],
   ['--danger on white (.form-error, appointment status "faltou")', danger, white],
   ['--danger on --pink-50', danger, pink50],
+  ['--warning on white (NEX-154: pagamento pendente)', warning, white],
+  ['--warning on --pink-50', warning, pink50],
 ];
 
 describe('design tokens — WCAG AA contrast (globals.css :root)', () => {

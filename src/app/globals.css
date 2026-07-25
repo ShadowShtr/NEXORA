@@ -8,6 +8,7 @@
   --muted: #74656d;
   --success: #24805b;
   --danger: #b9344a;
+  --warning: #975c10;
   --shadow-dark: rgba(153, 86, 114, 0.16);
   --shadow-light: rgba(255, 255, 255, 0.95);
   font-family:
@@ -974,7 +975,7 @@ select {
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: #cb3c70;
+  color: var(--pink-600);
 }
 .next-client-content {
   margin-top: 14px;
@@ -1018,7 +1019,7 @@ select {
   font-size: 13px;
   line-height: 18px;
   font-weight: 650;
-  color: #ed3f79;
+  color: var(--pink-600);
 }
 .next-client-state {
   flex-shrink: 0;
@@ -1040,7 +1041,7 @@ select {
   justify-content: center;
   border-radius: 12px;
   border: 0;
-  background: linear-gradient(135deg, #f55b8d, #d93675);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -1068,7 +1069,7 @@ select {
   border-radius: 12px;
   border: 1px solid rgba(237, 63, 121, 0.22);
   background: #fff;
-  color: #d93675;
+  color: var(--pink-600);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -1099,7 +1100,7 @@ select {
   font-size: 12px;
   line-height: 17px;
   font-weight: 600;
-  color: #df3c77;
+  color: var(--pink-600);
   text-decoration: none;
 }
 
@@ -1144,7 +1145,7 @@ select {
 }
 .summary-card[data-type='pending'] .summary-icon {
   background: #fdead0;
-  color: #e59220;
+  color: var(--warning);
 }
 .summary-text {
   min-width: 0;
@@ -1202,7 +1203,7 @@ select {
   place-items: center;
   border-radius: 11px;
   background: #fff1f5;
-  color: #d83a72;
+  color: var(--pink-600);
 }
 .reminder-text {
   min-width: 0;
@@ -1260,7 +1261,7 @@ select {
 .today-agenda-time {
   font-size: 13px;
   font-weight: 700;
-  color: #ed3f79;
+  color: var(--pink-600);
 }
 .today-agenda-info {
   min-width: 0;
@@ -1329,7 +1330,7 @@ select {
   border-radius: 18px;
   border: 1px solid rgba(240, 230, 234, 0.92);
   background: rgba(255, 255, 255, 0.96);
-  color: #d83a72;
+  color: var(--pink-600);
   box-shadow: 0 8px 19px rgba(42, 27, 35, 0.045);
   text-decoration: none;
 }
@@ -1457,7 +1458,7 @@ select {
     display: grid;
     place-items: center;
     border-radius: 10px;
-    background: linear-gradient(135deg, #f55b8d, #d93675);
+    background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
     color: #fff;
     font-weight: 800;
     font-size: 0.9rem;
@@ -1956,9 +1957,9 @@ body[data-sheet-open='true'] .agenda-fab,
   color: #413d44;
 }
 .agenda-view-tabs .nx-tab[aria-current='page'] {
-  background: linear-gradient(135deg, #fff1f6, #ffe7ef);
+  background: var(--pink-50);
   border-color: transparent;
-  color: #ed3f79;
+  color: var(--pink-600);
   font-weight: 700;
 }
 .agenda-date-row {
@@ -2662,7 +2663,7 @@ body[data-sheet-open='true'] .agenda-fab,
 }
 .services-filter-button[data-active] {
   border-color: transparent;
-  background: linear-gradient(135deg, #f65b8d 0%, #ed3f79 100%);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: #fff;
 }
 .services-category-row {
@@ -2699,7 +2700,7 @@ body[data-sheet-open='true'] .agenda-fab,
 }
 .service-category-chip[data-active] {
   border-color: transparent;
-  background: linear-gradient(135deg, #f65b8d 0%, #ed3f79 100%);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: #fff;
   box-shadow: 0 8px 17px rgba(237, 63, 121, 0.22);
 }
@@ -2838,7 +2839,7 @@ body[data-sheet-open='true'] .agenda-fab,
 .package-card-discount {
   font-size: 12px;
   font-weight: 700;
-  color: #d83a70;
+  color: var(--pink-600);
 }
 .service-toggle {
   position: relative;
@@ -3124,7 +3125,7 @@ body[data-sheet-open='true'] .agenda-fab,
 .duration-chip[data-active] {
   border-color: var(--pink-500);
   background: #fff1f6;
-  color: #d73373;
+  color: var(--pink-600);
 }
 .service-editor-custom-duration {
   margin-top: 10px;
@@ -3152,7 +3153,7 @@ body[data-sheet-open='true'] .agenda-fab,
   width: 100%;
   height: 52px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #f55b8d, #d93675);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   box-shadow: 0 10px 22px rgba(217, 54, 117, 0.24);
   font-size: 15px;
   font-weight: 650;
@@ -3224,7 +3225,7 @@ body[data-sheet-open='true'] .agenda-fab,
   cursor: pointer;
 }
 .service-photo-remove-button {
-  color: #d83a70;
+  color: var(--pink-600);
 }
 
 /* Package editor summary strip */
@@ -3432,7 +3433,7 @@ body[data-sheet-open='true'] .services-fab {
   justify-content: center;
   border-radius: 999px;
   background: #fff0f5;
-  color: #d93270;
+  color: var(--pink-600);
   font-size: 11px;
   font-weight: 700;
 }
@@ -3471,7 +3472,7 @@ body[data-sheet-open='true'] .services-fab {
   border-radius: 16px;
   border: 1px solid rgba(225, 72, 72, 0.22);
   background: rgba(255, 248, 248, 0.92);
-  color: #d14a48;
+  color: var(--danger);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -3594,7 +3595,7 @@ body[data-sheet-open='true'] .services-fab {
   text-decoration: none;
 }
 .period-option[data-active='true'] {
-  color: #ed3f79;
+  color: var(--pink-600);
   font-weight: 600;
 }
 .period-custom-form {
@@ -3719,7 +3720,7 @@ body[data-sheet-open='true'] .services-fab {
   font-weight: 650;
 }
 .revenue-comparison-value[data-trend='negative'] {
-  color: #d94c4b;
+  color: var(--danger);
   font-weight: 650;
 }
 .revenue-comparison-value[data-trend='neutral'] {
@@ -3763,7 +3764,7 @@ body[data-sheet-open='true'] .services-fab {
 }
 .payment-method-card[data-method='pending'] .payment-method-icon {
   background: #fff5e9;
-  color: #e58c19;
+  color: var(--warning);
 }
 .payment-method-name {
   font-size: 15px;
@@ -3790,7 +3791,7 @@ body[data-sheet-open='true'] .services-fab {
   color: #18a957;
 }
 .payment-method-card[data-method='pending'] .payment-method-percentage {
-  color: #e58c19;
+  color: var(--warning);
 }
 .payment-progress {
   grid-column: 2 / -1;
@@ -3908,7 +3909,7 @@ body[data-sheet-open='true'] .services-fab {
   gap: 9px;
   border: 0;
   border-radius: 17px;
-  background: linear-gradient(135deg, #f65b8d 0%, #df3978 100%);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: #ffffff;
   font-size: 14px;
   line-height: 20px;
@@ -3979,7 +3980,7 @@ body[data-sheet-open='true'] .services-fab {
   font-size: 15px;
   line-height: 21px;
   font-weight: 700;
-  color: #e58c19;
+  color: var(--warning);
   white-space: nowrap;
 }
 .pending-payment-actions {
@@ -3997,7 +3998,7 @@ body[data-sheet-open='true'] .services-fab {
   border: 1px solid rgba(237, 63, 121, 0.22);
   border-radius: 12px;
   background: #fff;
-  color: #d93675;
+  color: var(--pink-600);
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
@@ -4096,10 +4097,10 @@ body[data-sheet-open='true'] .services-fab {
   background: #fff7f7;
 }
 .reminder-summary-card[data-type='late'] .reminder-summary-value {
-  color: #d94b49;
+  color: var(--danger);
 }
 .reminder-summary-card[data-type='pending'] .reminder-summary-value {
-  color: #d83a72;
+  color: var(--pink-600);
 }
 .reminder-summary-card[data-type='opened'] .reminder-summary-value {
   color: #15a957;
@@ -4162,7 +4163,7 @@ body[data-sheet-open='true'] .services-fab {
 }
 .reminder-filter-chip[data-active='true'] {
   border-color: transparent;
-  background: linear-gradient(135deg, #f45c8d, #df3978);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: #fff;
   box-shadow: 0 8px 17px rgba(223, 57, 120, 0.2);
 }
@@ -4186,7 +4187,7 @@ body[data-sheet-open='true'] .services-fab {
   justify-content: center;
   border-radius: 999px;
   background: #fff0f5;
-  color: #d93675;
+  color: var(--pink-600);
   font-size: 11px;
   font-weight: 700;
 }
@@ -4245,11 +4246,11 @@ body[data-sheet-open='true'] .services-fab {
   place-items: center;
   border-radius: 14px;
   background: #fff1f5;
-  color: #d83a72;
+  color: var(--pink-600);
 }
 .reminder-card[data-status='overdue'] .reminder-status-icon {
   background: #fff0f0;
-  color: #d94b49;
+  color: var(--danger);
 }
 .reminder-card[data-status='opened'] .reminder-status-icon {
   background: #edf9f2;
@@ -4304,7 +4305,7 @@ body[data-sheet-open='true'] .services-fab {
   align-items: center;
   border-radius: 999px;
   background: #fff1f5;
-  color: #d83a72;
+  color: var(--pink-600);
   font-size: 10px;
   line-height: 28px;
   font-weight: 700;
@@ -4312,7 +4313,7 @@ body[data-sheet-open='true'] .services-fab {
 }
 .reminder-status-badge[data-status='overdue'] {
   background: #fff0f0;
-  color: #d94b49;
+  color: var(--danger);
 }
 .reminder-status-badge[data-status='opened'] {
   background: #edf9f2;
@@ -4374,7 +4375,7 @@ body[data-sheet-open='true'] .services-fab {
   border-radius: 14px;
   border: 1px solid rgba(237, 63, 121, 0.2);
   background: #fff4f7;
-  color: #d93675;
+  color: var(--pink-600);
   cursor: pointer;
 }
 
@@ -4652,7 +4653,7 @@ body[data-sheet-open='true'] .services-fab {
   border: 0;
   background: transparent;
   padding: 0;
-  color: #d93675;
+  color: var(--pink-600);
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
@@ -4685,7 +4686,7 @@ body[data-sheet-open='true'] .services-fab {
   gap: 9px;
   border: 0;
   border-radius: 17px;
-  background: linear-gradient(135deg, #f65b8d 0%, #dd3777 100%);
+  background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: #ffffff;
   font-size: 15px;
   line-height: 21px;

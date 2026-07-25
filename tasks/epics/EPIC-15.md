@@ -199,17 +199,17 @@ Implementar auditoria wcag 2.2 aa sem expandir o escopo para funcionalidades nã
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só cores de CSS, um token novo (`--warning`) e testes; sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — correções são puramente de apresentação.
+- Registar risco residual ou decisão temporária. Auditados e corrigidos 23 casos reais de falha AA (texto normal <4,5:1), incluindo uma falha severa (~2,5:1) em valores monetários de pagamentos pendentes. Ícones/controlos puramente decorativos que já cumpriam o limiar mais permissivo de 3:1 (WCAG 1.4.11) foram deixados como estavam — não é uma auditoria exaustiva de 100% das cores do ficheiro (ver `docs/evidence/NEX-154_AUDITORIA_WCAG_AA.md` para a lista completa do que foi e não foi tocado). "Manual screen reader" não foi executado com leitor de ecrã real nesta sessão — validado por revisão de código (aria-hidden em ícones decorativos, texto real nos badges de estado, `aria-label`/`role` já existentes).
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-155 — Performance e Web Vitals
 
