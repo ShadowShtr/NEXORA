@@ -76,17 +76,17 @@ Implementar retenção e limpeza de drafts sem expandir o escopo para funcionali
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. `cleanup_expired_booking_drafts` é `security definer`, revogada de `anon`/`authenticated`, só `service_role` (mesmo padrão de `provision_tenant_owner`, NEX-013) — nenhum utilizador comum consegue invocá-la. Novo endpoint `/api/cron/cleanup-booking-drafts` protegido por `CRON_SECRET` opcional (risco baixo se ausente: só apaga rascunhos já expirados).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `booking_drafts` continua sem policy `anon`; a limpeza corre inteiramente com service role, nunca via sessão de tenant.
+- Registar risco residual ou decisão temporária. Migração 0035 não pôde ser aplicada/testada localmente (sem Docker/WSL2, `ADR-007`) — verificada só via CI (`integration`). Ver `docs/evidence/NEX-161_RETENCAO_LIMPEZA_DRAFTS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-162 — Exportar dados da cliente
 
