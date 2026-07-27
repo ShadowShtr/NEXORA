@@ -4,13 +4,19 @@ Documento de referência para `NEX-004`. Mantém-se atualizado sempre que uma ta
 
 ## Matriz de ambientes
 
-| Ambiente     | Onde corre                           | Projeto Supabase                                                                                                                                                                                                                                                                                | Projeto Vercel             | Dados                                                    | Quem acede                                            |
-| ------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
-| **Local**    | Máquina do developer (`npm run dev`) | **Efetivo (`ADR-007`):** projeto cloud Supabase Free `znakuwpmapkhzuntzorj` ("NEXORA", org "vitorshadowmedina@gmail.com's Org"), usado como dev interativo por indisponibilidade de Docker/WSL2. **Pretendido:** `supabase start` — `config.toml` pronto para quando Docker estiver disponível. | — (não aplicável)          | Sintéticos/seed (`supabase/seed.sql`), nunca dados reais | Quem tiver o repositório clonado                      |
-| **Preview**  | Deploy automático por PR (Vercel)    | Projeto Supabase de preview/dev, **separado** de produção                                                                                                                                                                                                                                       | Preview deployment por PR  | Sintéticos, nunca dados de clientes reais                | Owner do repositório; link de preview é privado ao PR |
-| **Produção** | `main` → deploy Vercel de produção   | Projeto Supabase de produção, isolado (**nunca** o projeto usado como "Local" acima)                                                                                                                                                                                                            | Projeto Vercel de produção | Dados reais de clientes                                  | Apenas owner (`ShadowShtr`) nesta fase solo           |
+> **Atualizado em `NEX-172` (2026-07-27) para refletir o estado real, não o
+> pretendido** — ver "Tentativa de separação Preview/Produção (NEX-172)" mais
+> abaixo para o que foi tentado, o incidente que causou, e a decisão de reverter.
 
-**Regra fixa (`08_OPERATIONS.md`):** nunca reutilizar a service role de produção em preview ou local. O projeto Supabase usado como "Local" nesta fase é descartável/recriável — nunca recebe dados reais nem se torna produção.
+| Ambiente     | Onde corre                           | Projeto Supabase                                                                                                                                                                                                                                                                                | Projeto Vercel             | Dados                                                                     | Quem acede                                            |
+| ------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Local**    | Máquina do developer (`npm run dev`) | **Efetivo (`ADR-007`):** projeto cloud Supabase Free `znakuwpmapkhzuntzorj` ("NEXORA", org "vitorshadowmedina@gmail.com's Org"), usado como dev interativo por indisponibilidade de Docker/WSL2. **Pretendido:** `supabase start` — `config.toml` pronto para quando Docker estiver disponível. | — (não aplicável)          | Sintéticos/seed (`supabase/seed.sql`), nunca dados reais                  | Quem tiver o repositório clonado                      |
+| **Preview**  | Deploy automático por PR (Vercel)    | **O mesmo projeto `znakuwpmapkhzuntzorj` usado em Local** — confirmado em `NEX-172`; este documento afirmava antes ser um projeto separado, o que não corresponde à realidade                                                                                                                   | Preview deployment por PR  | O mesmo Supabase de Local/dev — nunca dados reais de clientes de produção | Owner do repositório; link de preview é privado ao PR |
+| **Produção** | `main` → deploy Vercel de produção   | Projeto Supabase de produção próprio, distinto do de dev                                                                                                                                                                                                                                        | Projeto Vercel de produção | Dados reais de clientes                                                   | Apenas owner (`ShadowShtr`) nesta fase solo           |
+
+**Risco residual aceite (`NEX-172`):** `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `BOOKING_DRAFT_ENCRYPTION_KEY`, `NEXT_PUBLIC_APP_URL` e `APP_TIMEZONE` estão hoje configuradas no Vercel como um **único valor partilhado entre Production e Preview** — a regra abaixo está **atualmente violada na prática**. Decisão consciente e temporária, não um esquecimento: uma tentativa de separar os valores por ambiente causou um incidente real de produção (`NEX-172` — `NEXT_PUBLIC_SUPABASE_URL` foi apagada por completo de Produção ao tentar retirá-la só do Preview, por comportamento inesperado do Vercel para variáveis com o mesmo valor partilhado entre ambientes) e foi revertida a pedido explícito da dona, para não voltar a arriscar isso sem um plano mais cuidadoso. Aceitável por agora dado que o projeto ainda não tem clientes reais em produção; deve ser revisitado antes do lançamento comercial — ver `docs/evidence/NEX-172_DEPLOY_PREVIEW_PROD_SEPARADOS.md`.
+
+**Regra fixa (`08_OPERATIONS.md`):** nunca reutilizar a service role de produção em preview ou local — ver risco residual acima, esta regra não está a ser cumprida hoje. O projeto Supabase usado como "Local" nesta fase é descartável/recriável — nunca recebe dados reais nem se torna produção.
 
 ## Owner de segredos
 
@@ -44,9 +50,43 @@ Nesta fase (profissional independente, projeto solo), o owner único de todos os
 - Logs nunca imprimem valores de segredos (ver `CLAUDE.md`: "Nunca registe passwords, tokens, links secretos completos ou dados pessoais desnecessários").
 - Cada nova variável introduzida por uma tarefa futura deve atualizar esta tabela como parte da Definição de Pronto dessa tarefa.
 
+## Tentativa de separação Preview/Produção (`NEX-172`)
+
+Detalhe completo em `docs/evidence/NEX-172_DEPLOY_PREVIEW_PROD_SEPARADOS.md`. Resumo:
+
+- Ao tentar separar `NEXT_PUBLIC_SUPABASE_URL` entre Preview e Produção via
+  `vercel env rm NEXT_PUBLIC_SUPABASE_URL preview`, o comando **apagou a variável
+  por completo, dos dois ambientes** — o Vercel guarda um valor partilhado entre
+  ambientes como um único registo; retirar um ambiente desse registo não o divide
+  em dois, elimina-o inteiro. Isto não está documentado de forma óbvia na ajuda do
+  comando (`vercel env rm --help`).
+- Isto causou uma falha real de build de Produção (`ZodError` em
+  `NEXT_PUBLIC_SUPABASE_URL`, `src/lib/env.ts`) em duas tentativas de redeploy —
+  ambas rejeitadas automaticamente pelo Vercel (nunca chegou a substituir o
+  deployment de produção já ativo, que continuou a servir tráfego normalmente com
+  a configuração anterior, correta).
+- A tentativa de correção seguinte (adicionar valores só de Preview pelo painel)
+  teve o mesmo problema pelo caminho inverso: adicionar uma variável já existente
+  com um âmbito diferente **substituiu** o registo em vez de criar um segundo, em
+  paralelo — deixando de vez em quando Produção ou Preview sem a variável.
+- Decisão final, a pedido explícito da dona: reverter as seis variáveis afetadas
+  para o estado partilhado original (Production + Preview com o mesmo valor),
+  confirmado via `vercel env ls`, e não voltar a tentar a separação sem um plano
+  mais cuidadoso (provavelmente fora do fluxo normal de CLI/painel usado aqui).
+- `BOOKING_DRAFT_ENCRYPTION_KEY` acabou com um valor novo (gerado durante esta
+  tentativa) em vez do original — impacto mínimo e transitório: só invalida a
+  decifra de rascunhos de marcação (`booking_drafts`) já existentes no momento da
+  troca, um dado efémero com TTL curto (`NEX-052`/`NEX-161`), não dados de cliente
+  permanentes.
+- **Confirmado pela dona, com login real**, que a produção ficou saudável depois
+  da reposição.
+
 ## Verificação executada nesta tarefa
 
 - Revisão manual de `.env.example`: só chaves vazias, sem valores.
 - `git log -p --all -- .env .env.local` → sem resultados (nunca commitados).
 - Secret scan automático (Gitleaks) já corre em CI (`NEX-003`) e não acusou segredos no histórico atual.
 - `npm run verify`: aprovado.
+- Incidente real de deploy em produção causado e recuperado nesta própria tarefa —
+  ver secção acima. Serve como o "deploy rehearsal" exigido, embora não planeado
+  desta forma.

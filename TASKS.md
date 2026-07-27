@@ -164,7 +164,7 @@
 
 - [x] **NEX-170** — Logs estruturados e redaction _(depende: NEX-004)_
 - [x] **NEX-171** — Métricas e alertas _(depende: NEX-170)_
-- [ ] **NEX-172** — Deploy Vercel e Supabase separados _(depende: NEX-003,NEX-010)_
+- [!] **NEX-172** — Deploy Vercel e Supabase separados _(depende: NEX-003,NEX-010)_ — tentado, revertido após incidente real de produção; segredos continuam partilhados entre Preview/Produção por decisão da dona (`docs/evidence/NEX-172_DEPLOY_PREVIEW_PROD_SEPARADOS.md`)
 - [ ] **NEX-173** — Backups e restore test _(depende: NEX-172)_
 - [ ] **NEX-174** — Runbooks de incidentes _(depende: NEX-171,NEX-173)_
 - [ ] **NEX-175** — Load/concurrency test _(depende: NEX-064,NEX-155)_
