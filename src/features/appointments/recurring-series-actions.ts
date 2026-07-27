@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
@@ -47,10 +46,15 @@ const requestSchema = z
 // NEX-121) aborts the whole call, so the owner never ends up with a half-created series
 // — same SLOT_TAKEN handling as createManualBooking, just meaning "at least one
 // occurrence" here rather than "the one slot".
+//
+// Visual refinement mid-2026 (Nova marcação wizard): returns the series id instead of
+// redirecting server-side, so the wizard can show its own success screen first — same
+// reasoning as createManualBooking. There's no single "the" appointment to deep link to
+// for a series, so the success screen links to the agenda list instead.
 export async function createRecurringSeries(
-  _prevState: Result<null> | null,
+  _prevState: Result<{ seriesId: string }> | null,
   formData: FormData,
-): Promise<Result<null>> {
+): Promise<Result<{ seriesId: string }>> {
   const rawClientId = formData.get('clientId');
   const parsed = requestSchema.safeParse({
     clientId: rawClientId ? String(rawClientId) : null,
@@ -90,7 +94,7 @@ export async function createRecurringSeries(
     normalizedEmail = contact.email || null;
   }
 
-  const { error } = await supabase.rpc('create_recurring_series', {
+  const { data: seriesId, error } = await supabase.rpc('create_recurring_series', {
     p_client_id: parsed.data.clientId,
     p_client_name: parsed.data.clientId ? null : (parsed.data.clientName ?? null),
     p_client_phone_e164: parsed.data.clientId ? null : normalizedPhone,
@@ -127,5 +131,5 @@ export async function createRecurringSeries(
   }
 
   revalidatePath('/dashboard/agenda');
-  redirect('/dashboard/agenda');
+  return { ok: true, value: { seriesId: seriesId as string } };
 }

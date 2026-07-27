@@ -7,9 +7,11 @@ import {
 } from './support/provisioned-user';
 
 // NEX-092 acceptance criteria: "Sugestões sem expor dados cruzados" + "Telefones
-// equivalentes" — typing a "new" client's name/phone in the manual booking form must
-// surface an existing client from the same phone typed in a different format, and must
-// never surface another tenant's client.
+// equivalentes" — typing a "new" client's name/phone in the manual booking wizard's
+// client step must surface an existing client from the same phone typed in a different
+// format, and must never surface another tenant's client. Updated for the Nova marcação
+// wizard redesign (mid-2026): the plain "Cliente existente"/"Nova cliente" radios are
+// gone — this now goes through the wizard's "Criar nova cliente" sub-form instead.
 test.describe('manual booking client suggestion (NEX-092)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
@@ -55,7 +57,7 @@ test.describe('manual booking client suggestion (NEX-092)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda/nova');
 
-    await page.getByRole('radio', { name: 'Nova cliente' }).check();
+    await page.getByRole('button', { name: 'Criar nova cliente' }).click();
     // Typed with spaces/local format — normalizePhoneE164 must still match
     // +351910000000 stored for Ana Ferreira.
     await page.getByLabel('Telemóvel').fill('910 000 000');
@@ -65,8 +67,8 @@ test.describe('manual booking client suggestion (NEX-092)', () => {
     await expect(page.getByText('Ana De Outro Tenant')).toHaveCount(0);
 
     await page.getByRole('button', { name: /Ana Ferreira/ }).click();
-    // Selecting the suggestion switches back to "cliente existente" mode.
-    await expect(page.getByRole('radio', { name: 'Cliente existente' })).toBeChecked();
+    // Selecting the suggestion swaps the new-client form for the selected-client card.
+    await expect(page.locator('.selected-client-card')).toContainText('Ana Ferreira');
   });
 
   test('does not suggest anything for a name/phone that matches no existing client', async ({
@@ -81,6 +83,7 @@ test.describe('manual booking client suggestion (NEX-092)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda/nova');
 
+    await page.getByRole('button', { name: 'Criar nova cliente' }).click();
     await page.getByLabel('Nome').fill('Cliente Totalmente Nova');
     await page.getByLabel('Telemóvel').fill('969999999');
 

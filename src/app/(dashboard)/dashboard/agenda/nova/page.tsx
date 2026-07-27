@@ -1,14 +1,16 @@
-import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
-import { ManualBookingForm } from '@/features/appointments/ManualBookingForm';
+import { NewAppointmentWizard } from '@/features/appointments/wizard/NewAppointmentWizard';
 
-// NEX-085: "Cliente, itens, slot, valor, observação" — server-loaded catalog/client
-// list, same tenant-scoped pattern as every other authenticated dashboard page
-// (requireProfile() + RLS-enforced createClient()). Accepts an optional ?clientId= so
-// "nova marcação para {cliente}" links (client detail page, completed-appointment
-// "duplicar" action) can arrive with the client already selected instead of the owner
-// re-picking them from the list.
+// NEX-085: "Cliente, itens, slot, valor, observação" — server-loaded catalog, same
+// tenant-scoped pattern as every other authenticated dashboard page (requireProfile() +
+// RLS-enforced createClient()). Accepts an optional ?clientId= so "nova marcação para
+// {cliente}" links (client detail page, completed-appointment "duplicar" action) can
+// arrive with the client already selected instead of the owner re-picking them.
+//
+// Visual refinement mid-2026 (Nova marcação wizard): no longer preloads every client —
+// ClientStep searches on demand (suggestExistingClients, NEX-092) instead of a <select>
+// populated from the full list, so this only fetches the one client named by ?clientId=.
 export default async function NewManualBookingPage({
   searchParams,
 }: {
@@ -19,14 +21,21 @@ export default async function NewManualBookingPage({
   const supabase = await createClient();
 
   const [
-    { data: clientRows },
+    { data: initialClientRow },
     { data: categoryRows },
     { data: serviceRows },
     { data: packageRows },
     { data: packageServiceRows },
     { data: settings },
   ] = await Promise.all([
-    supabase.from('clients').select('id, name, phone_e164').eq('tenant_id', tenantId).order('name'),
+    clientId
+      ? supabase
+          .from('clients')
+          .select('id, name, phone_e164')
+          .eq('tenant_id', tenantId)
+          .eq('id', clientId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
     supabase
       .from('service_categories')
       .select('id, name, sort_order')
@@ -89,22 +98,21 @@ export default async function NewManualBookingPage({
   });
 
   return (
-    <div className="shell">
-      <p className="text-eyebrow">Agenda</p>
-      <h1 className="text-title">Nova marcação</h1>
-      <Card>
-        <ManualBookingForm
-          clients={(clientRows ?? []).map((client) => ({
-            id: client.id,
-            name: client.name,
-            phoneE164: client.phone_e164,
-          }))}
-          categoryGroups={categoryGroups}
-          packages={packageOptions}
-          timezone={settings?.timezone ?? 'Europe/Lisbon'}
-          initialClientId={clientId}
-        />
-      </Card>
+    <div className="new-appointment-page">
+      <NewAppointmentWizard
+        categoryGroups={categoryGroups}
+        packages={packageOptions}
+        timezone={settings?.timezone ?? 'Europe/Lisbon'}
+        initialClient={
+          initialClientRow
+            ? {
+                id: initialClientRow.id,
+                name: initialClientRow.name,
+                phoneE164: initialClientRow.phone_e164,
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

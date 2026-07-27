@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
@@ -41,10 +40,17 @@ const requestSchema = z
 // derives tenant_id from the caller's own session and re-prices every item from the
 // live catalog, same authority boundary as every other appointment-mutating RPC in
 // this codebase (NEX-064, NEX-084).
+//
+// Visual refinement mid-2026 (Nova marcação wizard): returns the new appointment id
+// instead of redirecting server-side, so the wizard can show its own success screen
+// ("Ver marcação" / "Criar outra" / "Abrir WhatsApp") before the owner navigates away —
+// every field that screen needs besides the id (client name/phone, total, slot) is
+// already sitting in the wizard's own client-side state, since it's exactly what was
+// just submitted.
 export async function createManualBooking(
-  _prevState: Result<null> | null,
+  _prevState: Result<{ appointmentId: string }> | null,
   formData: FormData,
-): Promise<Result<null>> {
+): Promise<Result<{ appointmentId: string }>> {
   const rawClientId = formData.get('clientId');
   const parsed = requestSchema.safeParse({
     clientId: rawClientId ? String(rawClientId) : null,
@@ -110,5 +116,5 @@ export async function createManualBooking(
   }
 
   revalidatePath('/dashboard/agenda');
-  redirect(`/dashboard/agenda/${appointmentId as string}`);
+  return { ok: true, value: { appointmentId: appointmentId as string } };
 }
