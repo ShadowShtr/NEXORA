@@ -76,17 +76,17 @@ Implementar métricas e alertas sem expandir o escopo para funcionalidades não 
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só observabilidade sobre fluxos já existentes.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — instrumentação de logging, sem novo acesso a dados; `tenantId` incluído nos logs vem sempre de `requireProfile()`/sessão, nunca de input.
+- Registar risco residual ou decisão temporária. Reminders "pending overdue" só medido ao carregamento da página (sem cron dedicado). Payments pending, e-mail provider degradado e RLS denials ficam sem instrumentação — fora dos seis critérios de aceite explícitos desta tarefa (booking, conflitos, 5xx, auth, reminders, exports); investigação confirmou que não existe hoje nenhum caminho de código que alcance genuinamente uma RLS denial (`42501`) para instrumentar. Ver `docs/evidence/NEX-171_METRICAS_ALERTAS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-172 — Deploy Vercel e Supabase separados
 

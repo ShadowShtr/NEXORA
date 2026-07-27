@@ -31,24 +31,51 @@ Nunca reutilizar service role de produção em preview.
 
 ## Observabilidade
 
-Métricas:
+Base: `src/lib/logger.ts` (`NEX-170`) — cada linha é JSON estruturado em stdout/stderr,
+capturado pela Vercel sem serviço externo. `src/lib/metrics.ts`
+(`severityForErrorCode`, `NEX-171`) define a única regra de severidade que importa
+para alertas: **`error` é o que deveria acordar alguém; `warn` é um resultado de
+negócio já esperado e tratado** (password errada, slot já ocupado, rate limit) —
+configurar qualquer ferramenta de log-drain/alerta futura para disparar em `level:
+error` já cobre "falha contínua", sem precisar de lógica adicional no código.
 
-- booking success/failure;
-- slot conflict rate;
-- p50/p95/p99;
-- login failures;
-- reminders pending overdue;
-- payments pending;
-- export failures;
-- RLS denials/anomalias sem PII.
+Métricas (evento → onde é emitido):
+
+- booking success/failure — `booking.public.created` (info) /
+  `booking.public.failed` (error) — `src/app/b/[slug]/booking-actions.ts`.
+- slot conflict rate — `booking.public.slot_conflict` (warn) — mesmo ficheiro.
+- p50/p95/p99 — não instrumentado no código da app; usar o próprio dashboard de
+  performance da Vercel (tempo de resposta por rota).
+- login failures — `auth.login.rate_limited` / `auth.login.failed` (warn),
+  `auth.login.succeeded` (info) — `src/features/auth/actions.ts`.
+- reminders pending overdue — `reminders.page_loaded` (warn quando `lateTotal > 0`,
+  info caso contrário) — `src/app/(dashboard)/dashboard/lembretes/page.tsx`. Só emite
+  quando a dona abre a página (sem cron dedicado, ver "Riscos residuais" da
+  `NEX-171`).
+- payments pending — ainda não instrumentado; candidato natural a uma futura
+  iteração desta mesma página/consulta.
+- export failures — `finance.export.succeeded` / `finance.export.failed` (error) —
+  as três rotas `api/financeiro/export*`; `clients.export.succeeded` /
+  `clients.export.failed` (error) — `api/clientes/[id]/export`;
+  `finance.export.audit_log_failed` (warn, best-effort, nunca bloqueia o download) —
+  `src/features/finance/log-export.ts`.
+- RLS denials/anomalias sem PII — não instrumentado nesta tarefa (âmbito da
+  `NEX-171` cobria só booking/conflitos/5xx/auth/reminders/exports); não existe hoje
+  nenhum caminho de código que alcance um `42501` de RLS genuína (o único `42501`
+  existente é uma exceção de negócio explícita, "tenant não publicado", não uma RLS
+  denial) — ver `docs/evidence/NEX-171_METRICAS_ALERTAS.md`.
 
 Alertas iniciais:
 
-- aumento de 5xx;
-- falha contínua de booking;
-- migrations/deploy falho;
-- e-mail provider degradado;
-- erros de autenticação acima do baseline.
+- aumento de 5xx — filtrar `level: error` nos eventos acima (`booking.public.failed`,
+  `finance.export.failed`, `clients.export.failed`).
+- falha contínua de booking — volume de `booking.public.failed` (error) ou
+  `booking.public.slot_conflict` (warn) acima do baseline num dado tenant/período.
+- migrations/deploy falho — fora do código da app (GitHub Actions/Vercel).
+- e-mail provider degradado — não instrumentado (o envio de confirmação de
+  marcação é fire-and-forget, `booking-actions.ts`); candidato a futura iteração.
+- erros de autenticação acima do baseline — volume de `auth.login.rate_limited`/
+  `auth.login.failed` (warn) acima do baseline.
 
 ## Backups
 

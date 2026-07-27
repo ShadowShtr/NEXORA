@@ -14,6 +14,9 @@ import {
   checkPasswordResetRateLimit,
 } from '@/lib/rate-limit';
 import { getRequestIp } from '@/lib/request-ip';
+import { getRequestId } from '@/lib/request-id';
+import { logEvent } from '@/lib/logger';
+import { severityForErrorCode } from '@/lib/metrics';
 import type { Result } from '@/lib/result';
 
 export async function login(
@@ -39,11 +42,23 @@ export async function login(
   // generic error as a wrong password below — a distinct "too many attempts" message
   // would itself be a new way to tell a rate-limited guess from a merely wrong one.
   const ip = await getRequestIp();
+  const requestId = await getRequestId();
   const [ipLimit, emailLimit] = await Promise.all([
     checkLoginIpRateLimit(ip),
     checkLoginEmailRateLimit(parsed.data.email.toLowerCase()),
   ]);
   if (ipLimit.limited || emailLimit.limited) {
+    // NEX-171: "Métricas e alertas" — the "login failures" metric. Never logs the
+    // e-mail itself (logger.ts would redact it anyway by key name, but there's no
+    // reason to pass it at all) — ipLimited/emailLimited as booleans are enough to
+    // tell a targeted attack (repeated emailLimited across different IPs) from a
+    // broad one (repeated ipLimited across different accounts) without any PII.
+    logEvent(
+      severityForErrorCode('RATE_LIMITED'),
+      'auth.login.rate_limited',
+      { ipLimited: ipLimit.limited, emailLimited: emailLimit.limited },
+      requestId,
+    );
     return {
       ok: false,
       error: { code: 'UNAUTHENTICATED', message: 'E-mail ou palavra-passe incorretos.' },
@@ -55,12 +70,14 @@ export async function login(
 
   if (error) {
     // Generic message regardless of cause: never reveal whether the e-mail exists.
+    logEvent(severityForErrorCode('UNAUTHENTICATED'), 'auth.login.failed', {}, requestId);
     return {
       ok: false,
       error: { code: 'UNAUTHENTICATED', message: 'E-mail ou palavra-passe incorretos.' },
     };
   }
 
+  logEvent('info', 'auth.login.succeeded', {}, requestId);
   redirect('/dashboard');
 }
 
