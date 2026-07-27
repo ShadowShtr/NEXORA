@@ -234,7 +234,7 @@ describe.runIf(canRun)('resolve_booking_lookup_code grant', () => {
     });
 
     const idempotencyKey = randomUUID().replace(/-/g, '').padEnd(64, '0');
-    const { data } = await anon
+    const { data, error } = await anon
       .rpc('create_public_booking', {
         p_tenant_id: tenantId,
         p_client_name: 'Anon Visitor',
@@ -246,6 +246,10 @@ describe.runIf(canRun)('resolve_booking_lookup_code grant', () => {
         p_idempotency_key: idempotencyKey,
       })
       .single<{ lookup_code: string }>();
+    // Surface the real Supabase error on setup failure instead of a confusing
+    // "Cannot read properties of null" a few lines down — same defensive pattern the
+    // describe block above this one already uses for its own setup inserts.
+    if (error) throw error;
     lookupCode = data!.lookup_code;
   });
 
