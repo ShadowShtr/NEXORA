@@ -199,17 +199,17 @@ Implementar headers/csp completos sem expandir o escopo para funcionalidades nã
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma — só cabeçalhos HTTP; sem dado novo, RPC ou privilégio.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — CSP/HSTS são preocupação de transporte, não de dados.
+- Registar risco residual ou decisão temporária. **Achado crítico**: `src/proxy.ts` (renomeado de `middleware.ts` na `NEX-153`) nunca foi realmente detetado pelo build de produção Turbopack do Next.js 16.2.10 — `middleware-manifest.json` saía sempre vazio, confirmado por rebuild A/B. Revertido para `src/middleware.ts` (a única forma que compila de facto nesta versão) — corrige silenciosamente também o `no-store` da NEX-153, que nunca esteve ativo em produção desde esse rename. Durante a verificação, correr uma amostra real de specs E2E revelou problemas pré-existentes não relacionados (violações de acessibilidade, e páginas públicas de tenant suspenso/não publicado a devolver 200 em vez de 404) — fora do âmbito desta tarefa, reportados à parte. Ver `docs/evidence/NEX-164_HEADERS_CSP_COMPLETOS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-165 — Hardening uploads
 

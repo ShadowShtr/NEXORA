@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
 import { Inter, Poppins } from 'next/font/google';
 import { ServiceWorkerRegistration } from '@/features/shell/ServiceWorkerRegistration';
 import './globals.css';
@@ -36,7 +37,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // NEX-164: reading a dynamic API (headers()) here is what lets Next.js detect the
+  // per-request nonce src/proxy.ts set on the CSP response header and automatically
+  // apply it to every script tag Next.js itself renders (its own runtime/hydration
+  // scripts, and next/script usages like TurnstileWidget) — without this call
+  // somewhere in the root layout, Next has no per-request context to thread a nonce
+  // through at all. The nonce value itself isn't otherwise used here.
+  await headers();
+
   return (
     <html lang="pt-PT" className={`${inter.variable} ${poppins.variable}`}>
       <body>
