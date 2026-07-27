@@ -6,7 +6,13 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { reencodePhotoAsJpeg } from '@/lib/image-processing';
-import { CLIENT_PHOTO_KINDS, isAllowedPhotoMimeType, isAllowedPhotoSize } from './domain/photos';
+import {
+  CLIENT_PHOTO_KINDS,
+  hasReachedPhotoQuota,
+  isAllowedPhotoMimeType,
+  isAllowedPhotoSize,
+  MAX_PHOTOS_PER_CLIENT,
+} from './domain/photos';
 import type { Result } from '@/lib/result';
 
 const uploadSchema = z.object({
@@ -53,6 +59,29 @@ export async function uploadClientPhoto(
 
   const { tenantId } = await requireProfile();
   const supabase = await createClient();
+
+  // NEX-165: quota check before the (comparatively expensive) sharp re-encode below —
+  // RLS already scopes this count to the caller's own tenant, same as every other
+  // tenant-scoped query in this file.
+  const { count, error: countError } = await supabase
+    .from('client_photos')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', clientId);
+  if (countError) {
+    return {
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Não foi possível enviar a fotografia.' },
+    };
+  }
+  if (hasReachedPhotoQuota(count ?? 0)) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: `Esta cliente já tem o máximo de ${MAX_PHOTOS_PER_CLIENT} fotografias.`,
+      },
+    };
+  }
 
   let jpegBuffer: Buffer;
   try {

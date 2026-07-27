@@ -54,4 +54,19 @@ describe('reencodePhotoAsJpeg', () => {
     );
     await expect(reencodePhotoAsJpeg(notAnImage)).rejects.toThrow();
   });
+
+  // NEX-165: "Hardening uploads — ficheiros adversariais." A small, well-compressed file
+  // can still decode to an enormous pixel grid (the classic decompression-bomb shape) —
+  // dimensions alone, not byte size, are what makes decoding expensive. 10500x10000 is
+  // 105 megapixels, over the app's explicit 100-megapixel input limit, while staying a
+  // solid-colour JPEG that's cheap for *this test* to generate.
+  it('rejects an input whose pixel count exceeds the explicit decompression-bomb limit', async () => {
+    const bomb = await sharp({
+      create: { width: 10500, height: 10000, channels: 3, background: { r: 10, g: 10, b: 10 } },
+    })
+      .jpeg()
+      .toBuffer();
+
+    await expect(reencodePhotoAsJpeg(bomb)).rejects.toThrow();
+  });
 });
