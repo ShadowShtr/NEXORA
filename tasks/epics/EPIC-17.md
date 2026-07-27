@@ -240,17 +240,17 @@ Implementar load/concurrency test sem expandir o escopo para funcionalidades nã
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — script de teste usa os fluxos públicos existentes (`getPublicAvailability`, `createPublicBooking`) sem alterar código de produção; não cria endpoints, permissões ou entradas novas.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Cada corrida provisiona um tenant descartável próprio (`loadtest-<hex>`) via `provision_tenant_owner`; todos os pedidos concorrentes operam dentro desse tenant, nunca cruzando dados de outro tenant. `SUPABASE_SERVICE_ROLE_KEY` usada só para provisionar/limpar (nunca exposta ao browser, script corre em Node local).
+- Registar risco residual ou decisão temporária. Utilizadores Auth de teste ficam órfãos após cada corrida (FK `RESTRICT` de `audit_logs` para o autor impede `deleteUser`, comportamento intencional já confirmado noutra tarefa) — tenant fica soft-deleted e sem appointments/clients, mas o registo em `auth.users`/`audit_logs` permanece; sem impacto funcional (e-mail `@example.test` descartável), mas corridas repetidas acumulam órfãos — script agora avisa no log em vez de falhar silenciosamente. Testado só contra `localhost`, não contra o deployment Vercel real (Deployment Protection bloqueia pedidos automatizados). `concurrency` testada até 15/10, proporcional ao volume esperado de uma profissional independente. Ver `docs/evidence/NEX-175_LOAD_CONCURRENCY_TEST.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-176 — Checklist beta privado
 

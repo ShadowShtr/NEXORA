@@ -167,7 +167,7 @@
 - [!] **NEX-172** — Deploy Vercel e Supabase separados _(depende: NEX-003,NEX-010)_ — tentado, revertido após incidente real de produção; segredos continuam partilhados entre Preview/Produção por decisão da dona (`docs/evidence/NEX-172_DEPLOY_PREVIEW_PROD_SEPARADOS.md`)
 - [ ] **NEX-173** — Backups e restore test _(depende: NEX-172)_
 - [ ] **NEX-174** — Runbooks de incidentes _(depende: NEX-171,NEX-173)_
-- [ ] **NEX-175** — Load/concurrency test _(depende: NEX-064,NEX-155)_
+- [x] **NEX-175** — Load/concurrency test _(depende: NEX-064,NEX-155)_
 - [ ] **NEX-176** — Checklist beta privado _(depende: NEX-154,NEX-167,NEX-175)_
 - [ ] **NEX-177** — Lançamento e monitorização inicial _(depende: NEX-176)_
 
