@@ -10,6 +10,9 @@ import { verifyTurnstileToken } from '@/lib/turnstile';
 import { getEmailProvider } from '@/lib/email';
 import { buildBookingConfirmationEmail } from '@/lib/email/booking-confirmation-template';
 import { resolveBookingByToken } from '@/lib/booking-token-lookup';
+import { logEvent } from '@/lib/logger';
+import { severityForErrorCode } from '@/lib/metrics';
+import { getRequestId } from '@/lib/request-id';
 
 const requestSchema = z.object({
   tenantId: z.uuid(),
@@ -64,9 +67,16 @@ export async function createPublicBooking(request: CreateBookingRequest): Promis
   } = parsed.data;
 
   const ip = await getRequestIp();
+  const requestId = await getRequestId();
 
   const rateLimit = await checkBookingRateLimit(ip);
   if (rateLimit.limited) {
+    logEvent(
+      severityForErrorCode('RATE_LIMITED'),
+      'booking.public.rate_limited',
+      { tenantId },
+      requestId,
+    );
     return {
       ok: false,
       error: { code: 'RATE_LIMITED', message: 'Demasiados pedidos. Tente novamente em breve.' },
@@ -107,13 +117,30 @@ export async function createPublicBooking(request: CreateBookingRequest): Promis
     .single<CreatePublicBookingRow>();
 
   if (error) {
+    // NEX-171: "Métricas e alertas" — slot_conflict is the "conflict rate" metric,
+    // logged at 'warn' (severityForErrorCode) since a losing bid on a taken slot is
+    // an expected, already-handled outcome (public-booking-race.spec.ts), not
+    // something to page anyone over. Anything falling through to INTERNAL_ERROR is
+    // the one case that logs at 'error'.
     if (error.code === '23P01') {
+      logEvent(
+        severityForErrorCode('SLOT_TAKEN'),
+        'booking.public.slot_conflict',
+        { tenantId },
+        requestId,
+      );
       return {
         ok: false,
         error: { code: 'SLOT_TAKEN', message: 'Este horário acabou de ser reservado.' },
       };
     }
     if (error.code === '23505') {
+      logEvent(
+        severityForErrorCode('IDEMPOTENCY_CONFLICT'),
+        'booking.public.idempotency_conflict',
+        { tenantId },
+        requestId,
+      );
       return {
         ok: false,
         error: {
@@ -123,13 +150,27 @@ export async function createPublicBooking(request: CreateBookingRequest): Promis
       };
     }
     if (error.code === '42501') {
+      logEvent(
+        severityForErrorCode('NOT_FOUND'),
+        'booking.public.tenant_not_published',
+        { tenantId },
+        requestId,
+      );
       return { ok: false, error: { code: 'NOT_FOUND', message: 'Negócio não encontrado.' } };
     }
+    logEvent(
+      severityForErrorCode('INTERNAL_ERROR'),
+      'booking.public.failed',
+      { tenantId, code: error.code ?? 'unknown' },
+      requestId,
+    );
     return {
       ok: false,
       error: { code: 'INTERNAL_ERROR', message: 'Não foi possível concluir a marcação.' },
     };
   }
+
+  logEvent('info', 'booking.public.created', { tenantId, isReplay: data.is_replay }, requestId);
 
   // Fire-and-forget: booking success has already been decided above (the transaction
   // committed) and must never depend on e-mail delivery (task acceptance criteria:

@@ -4,6 +4,8 @@ import { pt } from 'date-fns/locale/pt';
 import { CheckCircle2, ChevronLeft } from 'lucide-react';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
+import { logEvent } from '@/lib/logger';
+import { getRequestId } from '@/lib/request-id';
 import { buildWhatsappDeepLink } from '@/features/appointments/domain/appointment-card';
 import {
   resolveReminderBadge,
@@ -237,6 +239,20 @@ export default async function LembretesPage({
   const pendingTotal = rows.filter((row) => row.badge !== 'marked_sent').length;
   const lateTotal = rows.filter((row) => row.badge === 'overdue').length;
   const openedTotal = rows.filter((row) => row.badge === 'opened').length;
+
+  // NEX-171: "Métricas e alertas" — the "reminders pending overdue" metric. There's
+  // no scheduled/cron job independent of the dona opening this page (unlike
+  // cleanup-booking-drafts) — out of scope here, a real periodic check would be its
+  // own task — so this is only a signal for whenever the page is actually loaded,
+  // not a continuous count. `warn` only when there's something actually overdue, so
+  // a normal empty-inbox page load doesn't add log noise at a level anyone would
+  // filter alerts on.
+  logEvent(
+    lateTotal > 0 ? 'warn' : 'info',
+    'reminders.page_loaded',
+    { tenantId, pendingTotal, lateTotal, openedTotal },
+    await getRequestId(),
+  );
 
   const allGroups = groupReminders(rows, nowMs, timezone);
   const visibleGroups = filterGroups(allGroups, rows, filter);
