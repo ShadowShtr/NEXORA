@@ -83,6 +83,69 @@ describe.runIf(canRun)('create_public_booking grant (NEX-064)', () => {
   });
 });
 
+// NEX-166 (security review): 0023_create_public_booking_observation.sql replaced
+// create_public_booking with a new 9-argument overload (adding p_client_observation)
+// without re-applying the revoke/grant from 0007/0018 — an untested deviation from
+// ADR-008 fixed in 0037_create_public_booking_grant_fix.sql. This is the negative
+// test that deviation should have had from the start: confirms a real signed-in
+// `authenticated` session (not just anon) gets 42501, not just that anon works.
+describe.runIf(canRun)('create_public_booking grant — authenticated is rejected (NEX-166)', () => {
+  let admin: SupabaseClient;
+  let owner: SupabaseClient;
+  let ownerId: string;
+  const tenantId = randomUUID();
+  const email = `nex166-grant-${randomUUID()}@example.test`;
+  const password = `Test-${randomUUID()}!`;
+
+  beforeAll(async () => {
+    admin = createClient(url!, serviceRoleKey!);
+
+    const { error: tenantError } = await admin.from('tenants').insert({
+      id: tenantId,
+      slug: `nex166-grant-${tenantId.slice(0, 8)}`,
+      name: 'Grant Owner Tenant',
+      status: 'setup',
+    });
+    if (tenantError) throw tenantError;
+
+    const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+    if (created.error) throw created.error;
+    ownerId = created.data.user.id;
+
+    const { error: profileError } = await admin
+      .from('profiles')
+      .insert({ user_id: ownerId, tenant_id: tenantId, role: 'owner', display_name: 'Owner' });
+    if (profileError) throw profileError;
+
+    owner = createClient(url!, publishableKey!);
+    const signIn = await owner.auth.signInWithPassword({ email, password });
+    if (signIn.error) throw signIn.error;
+  });
+
+  afterAll(async () => {
+    await admin.from('tenants').delete().eq('id', tenantId);
+    await admin.auth.admin.deleteUser(ownerId).catch(() => {});
+  });
+
+  it('rejects a real authenticated session with 42501', async () => {
+    const idempotencyKey = randomUUID().replace(/-/g, '').padEnd(64, '0');
+    const { error } = await owner.rpc('create_public_booking', {
+      p_tenant_id: tenantId,
+      p_client_name: 'Should Not Work',
+      p_client_phone_e164: '+351900000000',
+      p_client_email: null,
+      p_selected_service_ids: [],
+      p_selected_package_id: null,
+      p_start_at: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+      p_idempotency_key: idempotencyKey,
+      p_client_observation: null,
+    });
+
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe('42501');
+  });
+});
+
 // Confirms the EXECUTE grant on resolve_booking_lookup_code
 // (supabase/migrations/0018_booking_lookup_code.sql) also reaches anon through
 // PostgREST — same ADR-008 concern as create_public_booking above.

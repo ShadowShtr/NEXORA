@@ -14,7 +14,14 @@ import { Redis } from '@upstash/redis';
 // that module parses the full app schema (including required NEXT_PUBLIC_* Supabase
 // vars) eagerly at import time, which would make this file — and every unit test that
 // imports it — depend on unrelated Supabase env vars being present.
-type Limiters = { availability: Ratelimit; booking: Ratelimit; bookingLookup: Ratelimit };
+type Limiters = {
+  availability: Ratelimit;
+  booking: Ratelimit;
+  bookingLookup: Ratelimit;
+  loginIp: Ratelimit;
+  loginEmail: Ratelimit;
+  passwordReset: Ratelimit;
+};
 let cachedLimiters: Limiters | null = null;
 
 function getLimiters(): Limiters | null {
@@ -51,6 +58,29 @@ function getLimiters(): Limiters | null {
       limiter: Ratelimit.slidingWindow(60, '1 m'),
       prefix: 'nexora:ratelimit:booking-lookup',
     }),
+    // NEX-166 (security review): login had no application-level rate limit at all —
+    // only Supabase Auth's own built-in, unconfigurable throttling. Two limiters, both
+    // checked on every login attempt: by IP (blunts a single source hammering many
+    // accounts) and by e-mail (protects one specific account even from many different
+    // source IPs — credential stuffing via residential proxies wouldn't trip the IP
+    // limit alone).
+    loginIp: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, '5 m'),
+      prefix: 'nexora:ratelimit:login-ip',
+    }),
+    loginEmail: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(8, '5 m'),
+      prefix: 'nexora:ratelimit:login-email',
+    }),
+    // Password reset triggers a real e-mail send — tighter than login, since abuse
+    // here also spams a victim's inbox, not just their account.
+    passwordReset: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, '5 m'),
+      prefix: 'nexora:ratelimit:password-reset',
+    }),
   };
   return cachedLimiters;
 }
@@ -79,4 +109,22 @@ export async function checkBookingLookupRateLimit(identifier: string): Promise<R
   const limiters = getLimiters();
   if (!limiters) return { limited: false };
   return check(limiters.bookingLookup, identifier);
+}
+
+export async function checkLoginIpRateLimit(identifier: string): Promise<RateLimitResult> {
+  const limiters = getLimiters();
+  if (!limiters) return { limited: false };
+  return check(limiters.loginIp, identifier);
+}
+
+export async function checkLoginEmailRateLimit(identifier: string): Promise<RateLimitResult> {
+  const limiters = getLimiters();
+  if (!limiters) return { limited: false };
+  return check(limiters.loginEmail, identifier);
+}
+
+export async function checkPasswordResetRateLimit(identifier: string): Promise<RateLimitResult> {
+  const limiters = getLimiters();
+  if (!limiters) return { limited: false };
+  return check(limiters.passwordReset, identifier);
 }

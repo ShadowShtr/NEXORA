@@ -200,4 +200,19 @@ test.describe('public business page /b/{slug} (NEX-050)', () => {
     const response = await page.goto('/b/este-slug-nao-existe-de-todo');
     expect(response?.status()).toBe(404);
   });
+
+  // NEX-166 (security review): /b/{slug}/dados was missing the published_at check its
+  // sibling pages already had — regression test for that fix.
+  test('/dados returns 404 for an active but unpublished tenant', async ({ page }) => {
+    user = await createProvisionedTestUser('nex050');
+    const { data: tenant } = await user.admin
+      .from('tenants')
+      .select('id')
+      .eq('slug', user.slug)
+      .single();
+    await user.admin.from('tenants').update({ status: 'active' }).eq('id', tenant!.id);
+
+    const response = await page.goto(`/b/${user.slug}/dados`);
+    expect(response?.status()).toBe(404);
+  });
 });
