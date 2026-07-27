@@ -240,17 +240,17 @@ Implementar hardening uploads sem expandir o escopo para funcionalidades não ap
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nenhuma entrada nova — reforça limites já existentes (contagem de linhas, dimensão de pixels de entrada) sobre os três caminhos de upload já mapeados no threat model.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. A quota de `client_photos` é reforçada na server action com `count` filtrado por `client_id` sob RLS (mesma sessão/tenant do `requireProfile()`), não confiando em nada vindo do cliente; nenhuma alteração de RLS foi necessária.
+- Registar risco residual ou decisão temporária. Investigação confirmou que fotos de catálogo/logo/capa já têm quota natural (um registo por campo, semântica de substituição) — só `client_photos` (galeria sem limite) precisava de quota explícita, agora 40/cliente. `reencodePhotoAsJpeg` já removia EXIF e verificava assinatura por decode-or-throw; adicionado `limitInputPixels` explícito (100 MP) como defesa documentada contra decompression bombs, substituindo o default implícito da libvips. Signed URLs (Storage privado + RLS) já estavam corretos desde a NEX-094, não alterados. Ver `docs/evidence/NEX-165_HARDENING_UPLOADS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-166 — Threat model atualizado e security review
 

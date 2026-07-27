@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALLOWED_PHOTO_MIME_TYPES,
+  hasReachedPhotoQuota,
   isAllowedPhotoMimeType,
   isAllowedPhotoSize,
   isClientPhotoKind,
   MAX_PHOTO_SIZE_BYTES,
+  MAX_PHOTOS_PER_CLIENT,
 } from '@/features/clients/domain/photos';
 
 describe('isAllowedPhotoMimeType', () => {
@@ -33,6 +35,18 @@ describe('isAllowedPhotoSize', () => {
     expect(isAllowedPhotoSize(0)).toBe(false);
     expect(isAllowedPhotoSize(-1)).toBe(false);
     expect(isAllowedPhotoSize(MAX_PHOTO_SIZE_BYTES + 1)).toBe(false);
+  });
+});
+
+describe('hasReachedPhotoQuota', () => {
+  it('allows uploads while under the limit', () => {
+    expect(hasReachedPhotoQuota(0)).toBe(false);
+    expect(hasReachedPhotoQuota(MAX_PHOTOS_PER_CLIENT - 1)).toBe(false);
+  });
+
+  it('blocks uploads at or over the limit', () => {
+    expect(hasReachedPhotoQuota(MAX_PHOTOS_PER_CLIENT)).toBe(true);
+    expect(hasReachedPhotoQuota(MAX_PHOTOS_PER_CLIENT + 1)).toBe(true);
   });
 });
 

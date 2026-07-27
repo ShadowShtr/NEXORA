@@ -156,7 +156,7 @@
 - [x] **NEX-162** — Exportar dados da cliente _(depende: NEX-091)_
 - [x] **NEX-163** — Apagar/anonimizar cliente _(depende: NEX-091,NEX-094)_
 - [x] **NEX-164** — Headers/CSP completos _(depende: NEX-023)_
-- [ ] **NEX-165** — Hardening uploads _(depende: NEX-094)_
+- [x] **NEX-165** — Hardening uploads _(depende: NEX-094)_
 - [ ] **NEX-166** — Threat model atualizado e security review _(depende: NEX-115,NEX-135,NEX-164)_
 - [ ] **NEX-167** — Pentest proporcional _(depende: NEX-166)_
 

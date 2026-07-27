@@ -21,6 +21,18 @@ export function isClientPhotoKind(value: string): value is ClientPhotoKind {
 export const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const MAX_PHOTO_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB — a phone photo, pre-compression headroom
 
+// NEX-165: "Hardening uploads — quotas." Unlike catalog/logo/cover photos (one row per
+// service/field, replace semantics — a natural quota of one), client_photos is a true
+// unbounded gallery with no existing limit: nothing stopped a single client_id from
+// accumulating unlimited rows/Storage objects. 40 covers realistic before/after history
+// for one client many times over while bounding per-client Storage cost and the size of
+// any single gallery render.
+export const MAX_PHOTOS_PER_CLIENT = 40;
+
+export function hasReachedPhotoQuota(currentCount: number): boolean {
+  return currentCount >= MAX_PHOTOS_PER_CLIENT;
+}
+
 export function isAllowedPhotoMimeType(mimeType: string): boolean {
   return (ALLOWED_PHOTO_MIME_TYPES as readonly string[]).includes(mimeType);
 }
