@@ -1,10 +1,18 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
+import { fixupConfigRules } from '@eslint/compat';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTypeScript from 'eslint-config-next/typescript';
 
+// eslint-config-next (via eslint-plugin-react/jsx-a11y) still calls RuleContext
+// methods ESLint 10 removed (context.getFilename(), etc. — see
+// https://github.com/jsx-eslint/eslint-plugin-react/pull/3972, open upstream).
+// fixupConfigRules() is the official @eslint/compat shim that restores those
+// methods on the context object passed into each wrapped rule — remove this
+// wrapping once eslint-config-next ships a release built on an ESLint-10-compatible
+// eslint-plugin-react/jsx-a11y.
 export default defineConfig([
-  ...nextVitals,
-  ...nextTypeScript,
+  ...fixupConfigRules(nextVitals),
+  ...fixupConfigRules(nextTypeScript),
   globalIgnores(['.next/**', 'coverage/**', 'playwright-report/**', 'supabase/.temp/**']),
   {
     files: ['**/*.ts', '**/*.tsx'],
