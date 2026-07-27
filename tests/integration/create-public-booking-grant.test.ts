@@ -88,12 +88,28 @@ describe.runIf(canRun)('create_public_booking grant (NEX-064)', () => {
 // without re-applying the revoke/grant from 0007/0018 — an untested deviation from
 // ADR-008 fixed in 0037_create_public_booking_grant_fix.sql. This is the negative
 // test that deviation should have had from the start: confirms a real signed-in
-// `authenticated` session (not just anon) gets 42501, not just that anon works.
+// `authenticated` session (not just anon) gets rejected, not just that anon works.
+//
+// NEX-167 (pentest retest): this test originally used a tenant with no published
+// business_settings row at all, so the RPC's own internal check ("tenant % is not
+// published", raised with errcode 42501) fired before the grant could ever matter —
+// asserting only `error.code === '42501'` passed regardless of whether the revoke
+// actually worked, because that business-logic exception and PostgREST's genuine
+// "permission denied for function" error share the exact same SQLSTATE. Caught by a
+// real wire-level retest via raw REST (curl-equivalent, bypassing supabase-js) during
+// NEX-167 that got the same ambiguous 42501 and couldn't tell which cause it was.
+// Fixed by using a fully published, bookable tenant (same setup as the anon-success
+// test above) — if the revoke had NOT worked, this call would either succeed outright
+// (creating a real appointment) or fail with the *business* 42501, not a permission
+// one, so asserting on the error message text, not just the code, is what actually
+// distinguishes the two.
 describe.runIf(canRun)('create_public_booking grant — authenticated is rejected (NEX-166)', () => {
   let admin: SupabaseClient;
   let owner: SupabaseClient;
   let ownerId: string;
   const tenantId = randomUUID();
+  const categoryId = randomUUID();
+  const serviceId = randomUUID();
   const email = `nex166-grant-${randomUUID()}@example.test`;
   const password = `Test-${randomUUID()}!`;
 
@@ -104,9 +120,30 @@ describe.runIf(canRun)('create_public_booking grant — authenticated is rejecte
       id: tenantId,
       slug: `nex166-grant-${tenantId.slice(0, 8)}`,
       name: 'Grant Owner Tenant',
-      status: 'setup',
+      status: 'active',
     });
     if (tenantError) throw tenantError;
+
+    const { error: settingsError } = await admin
+      .from('business_settings')
+      .insert({ tenant_id: tenantId, buffer_minutes: 15, published_at: new Date().toISOString() });
+    if (settingsError) throw settingsError;
+
+    const { error: categoryError } = await admin
+      .from('service_categories')
+      .insert({ id: categoryId, tenant_id: tenantId, name: 'Manicure' });
+    if (categoryError) throw categoryError;
+
+    const { error: serviceError } = await admin.from('services').insert({
+      id: serviceId,
+      tenant_id: tenantId,
+      category_id: categoryId,
+      name: 'Verniz Gel',
+      price_cents: 3000,
+      duration_minutes: 60,
+      is_active: true,
+    });
+    if (serviceError) throw serviceError;
 
     const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
     if (created.error) throw created.error;
@@ -123,18 +160,20 @@ describe.runIf(canRun)('create_public_booking grant — authenticated is rejecte
   });
 
   afterAll(async () => {
+    await admin.from('appointments').delete().eq('tenant_id', tenantId);
+    await admin.from('clients').delete().eq('tenant_id', tenantId);
     await admin.from('tenants').delete().eq('id', tenantId);
     await admin.auth.admin.deleteUser(ownerId).catch(() => {});
   });
 
-  it('rejects a real authenticated session with 42501', async () => {
+  it('rejects a real authenticated session with a genuine permission error, not the business "not published" check', async () => {
     const idempotencyKey = randomUUID().replace(/-/g, '').padEnd(64, '0');
     const { error } = await owner.rpc('create_public_booking', {
       p_tenant_id: tenantId,
       p_client_name: 'Should Not Work',
       p_client_phone_e164: '+351900000000',
       p_client_email: null,
-      p_selected_service_ids: [],
+      p_selected_service_ids: [serviceId],
       p_selected_package_id: null,
       p_start_at: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
       p_idempotency_key: idempotencyKey,
@@ -143,6 +182,18 @@ describe.runIf(canRun)('create_public_booking grant — authenticated is rejecte
 
     expect(error).not.toBeNull();
     expect(error?.code).toBe('42501');
+    // The discriminator: PostgREST's own "permission denied for function" comes from
+    // Postgres refusing the call before the function body runs at all — the exact
+    // string the RPC's own business-logic exception never uses.
+    expect(error?.message).toMatch(/permission denied for function/i);
+
+    // Belt and braces: if the grant were somehow still open, this would have created
+    // a real appointment despite the error above being unexpected either way.
+    const { data: appointments } = await admin
+      .from('appointments')
+      .select('id')
+      .eq('tenant_id', tenantId);
+    expect(appointments).toEqual([]);
   });
 });
 
