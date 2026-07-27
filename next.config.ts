@@ -25,11 +25,11 @@ const nextConfig: NextConfig = {
   // control affected by this — production builds don't run the dev HMR endpoint).
   allowedDevOrigins: ['127.0.0.1'],
   // NEX-153/164: `Cache-Control: no-store` (auth/booking-token routes) and the CSP
-  // (with its per-request nonce, NEX-164) are both enforced in src/proxy.ts, not here
-  // — a plain `headers()` rule on those paths gets overridden by Next.js's own
+  // (with its per-request nonce, NEX-164) are both enforced in src/middleware.ts, not
+  // here — a plain `headers()` rule on those paths gets overridden by Next.js's own
   // internally-set Cache-Control for dynamically-rendered routes (verified via
   // `next start` + curl), and a static CSP here has no way to carry a per-request
-  // nonce at all. Proxy runs last in the response pipeline, so it's what actually
+  // nonce at all. Middleware runs last in the response pipeline, so it's what actually
   // reaches the client.
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];

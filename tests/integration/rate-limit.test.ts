@@ -58,4 +58,38 @@ describe.runIf(canRun)('rate limiting against real Upstash Redis (NEX-066)', () 
     const availabilityResult = await checkAvailabilityRateLimit(identifier);
     expect(availabilityResult).toEqual({ limited: false });
   });
+
+  // NEX-166 (security review): login/password-reset had no rate limit at all before
+  // this task — same "real 429 after the limit" shape as the booking tests above.
+  it('returns limited: true once the login e-mail limit is exceeded, independently of the login IP limiter', async () => {
+    const { checkLoginEmailRateLimit, checkLoginIpRateLimit } = await import('@/lib/rate-limit');
+    const email = `test-${randomUUID()}@example.test`;
+    const ip = `198.51.100.${Math.floor(Math.random() * 254) + 1}`;
+
+    // Login-by-email limiter is configured for 8 requests per 5 minutes.
+    for (let i = 0; i < 8; i += 1) {
+      const result = await checkLoginEmailRateLimit(email);
+      expect(result).toEqual({ limited: false });
+    }
+    const ninth = await checkLoginEmailRateLimit(email);
+    expect(ninth.limited).toBe(true);
+
+    // A fresh IP hitting the same (now-exhausted) e-mail isn't blocked by the IP
+    // limiter, which tracks a completely different identifier.
+    const ipResult = await checkLoginIpRateLimit(ip);
+    expect(ipResult).toEqual({ limited: false });
+  });
+
+  it('returns limited: true once the password reset limit is exceeded', async () => {
+    const { checkPasswordResetRateLimit } = await import('@/lib/rate-limit');
+    const identifier = `test-${randomUUID()}`;
+
+    // Password reset limiter is configured for 5 requests per 5 minutes.
+    for (let i = 0; i < 5; i += 1) {
+      const result = await checkPasswordResetRateLimit(identifier);
+      expect(result).toEqual({ limited: false });
+    }
+    const sixth = await checkPasswordResetRateLimit(identifier);
+    expect(sixth.limited).toBe(true);
+  });
 });

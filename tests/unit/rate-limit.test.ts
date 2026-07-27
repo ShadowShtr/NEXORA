@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { checkAvailabilityRateLimit, checkBookingRateLimit } from '@/lib/rate-limit';
+import {
+  checkAvailabilityRateLimit,
+  checkBookingRateLimit,
+  checkLoginEmailRateLimit,
+  checkLoginIpRateLimit,
+  checkPasswordResetRateLimit,
+} from '@/lib/rate-limit';
 import { verifyTurnstileToken } from '@/lib/turnstile';
 
 // NEX-066: RATE_LIMIT_REDIS_URL/_TOKEN and TURNSTILE_SECRET_KEY are optional
@@ -17,6 +23,23 @@ describe('rate limiting (fails open when unconfigured)', () => {
 
   it('checkBookingRateLimit never blocks without Upstash credentials', async () => {
     const result = await checkBookingRateLimit('203.0.113.1');
+    expect(result).toEqual({ limited: false });
+  });
+
+  // NEX-166: same graceful-degradation contract for the login/password-reset
+  // limiters added by the security review.
+  it('checkLoginIpRateLimit never blocks without Upstash credentials', async () => {
+    const result = await checkLoginIpRateLimit('203.0.113.1');
+    expect(result).toEqual({ limited: false });
+  });
+
+  it('checkLoginEmailRateLimit never blocks without Upstash credentials', async () => {
+    const result = await checkLoginEmailRateLimit('dona@example.com');
+    expect(result).toEqual({ limited: false });
+  });
+
+  it('checkPasswordResetRateLimit never blocks without Upstash credentials', async () => {
+    const result = await checkPasswordResetRateLimit('203.0.113.1');
     expect(result).toEqual({ limited: false });
   });
 });

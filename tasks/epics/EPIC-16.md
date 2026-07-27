@@ -281,17 +281,17 @@ Implementar threat model atualizado e security review sem expandir o escopo para
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. É o próprio objetivo desta tarefa — tabela T1-T10 atualizada com a implementação real (mais T11, novo, sobre o bug de deteção `middleware`/`proxy` do Turbopack encontrado na NEX-164).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Review independente confirmou RLS completa nas 19 tabelas do schema, sem lacunas; encontrou e corrigiu dois desvios pontuais em RPCs públicas (grant em falta no overload de 9 args de `create_public_booking`; `get_public_business_hours` sem validação de tenant publicado).
+- Registar risco residual ou decisão temporária. Achado mais relevante corrigido: login/recuperação de password não tinham rate limit aplicativo (só o nativo do Supabase Auth) — adicionado. Achados de menor severidade fechados: código morto (`proxy.ts` raiz + `src/lib/supabase/proxy.ts`) apagado; `/b/[slug]/dados` alinhado com as páginas irmãs. Riscos residuais não corrigidos nesta tarefa (Actions sem pin por SHA, CodeQL sem upload de alertas por limitação de GHAS, CVE em `exceljs`→`archiver` sem correção a montante, rate limit/Turnstile públicos sem conta provisionada) documentados em `docs/05_SECURITY_PRIVACY.md`. A suspeita da NEX-164 sobre `/b/[slug]` devolver 200 para tenant suspenso/não publicado foi investigada e refutada — não era um bug real. Ver `docs/evidence/NEX-166_THREAT_MODEL_SECURITY_REVIEW.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-167 — Pentest proporcional
 
