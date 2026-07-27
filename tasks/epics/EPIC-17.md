@@ -35,17 +35,17 @@ Implementar logs estruturados e redaction sem expandir o escopo para funcionalid
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Fecha a lacuna do T8 (`docs/05_SECURITY_PRIVACY.md`) já registada na NEX-166 ("sem mecanismo de redaction automática dedicado") — `src/lib/logger.ts` agora é o controlo real.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — infraestrutura de logging, sem novo acesso a dados.
+- Registar risco residual ou decisão temporária. Redaction por forma do valor cobre e-mail/telemóvel completos, não substrings dentro de mensagens de erro mais longas — a allowlist de nomes de chave continua a ser a proteção principal. Nenhum ponto de logging novo instrumentado além do já existente (cron de limpeza) — eventos de negócio ficam para a NEX-171. Ver `docs/evidence/NEX-170_LOGS_ESTRUTURADOS_REDACTION.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-171 — Métricas e alertas
 

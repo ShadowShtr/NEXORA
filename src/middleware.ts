@@ -76,11 +76,22 @@ export function middleware(request: NextRequest) {
   const nonce = crypto.randomUUID().replace(/-/g, '');
   const csp = buildCsp(nonce);
 
+  // NEX-170: "Logs estruturados e redaction — Correlation ID." Generated once per
+  // request, here, same reasoning as the nonce above — this is the one place that
+  // sees every request before anything else runs. Threaded through as a request
+  // header so Server Components/Actions can read it via next/headers
+  // (src/lib/request-id.ts) and stamp every log line from this request with the same
+  // id, and echoed back as a response header so it can be surfaced to a visitor
+  // reporting an issue ("what's the id at the top of your network tab?").
+  const requestId = crypto.randomUUID();
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('x-request-id', requestId);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('Content-Security-Policy', csp);
+  response.headers.set('x-request-id', requestId);
 
   if (isNoStorePath(request.nextUrl.pathname)) {
     response.headers.set('Cache-Control', 'no-store');

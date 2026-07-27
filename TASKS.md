@@ -162,7 +162,7 @@
 
 ### EPIC-17 — Observabilidade, CI/CD e lançamento
 
-- [ ] **NEX-170** — Logs estruturados e redaction _(depende: NEX-004)_
+- [x] **NEX-170** — Logs estruturados e redaction _(depende: NEX-004)_
 - [ ] **NEX-171** — Métricas e alertas _(depende: NEX-170)_
 - [ ] **NEX-172** — Deploy Vercel e Supabase separados _(depende: NEX-003,NEX-010)_
 - [ ] **NEX-173** — Backups e restore test _(depende: NEX-172)_

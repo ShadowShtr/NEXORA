@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { serverEnv } from '@/lib/env';
+import { errorMessage, logEvent } from '@/lib/logger';
+import { getRequestId } from '@/lib/request-id';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,18 +22,25 @@ export async function GET(request: Request) {
     );
   }
 
+  const requestId = await getRequestId();
+
   try {
     const admin = createAdminClient();
     const { data, error } = await admin.rpc('cleanup_expired_booking_drafts');
     if (error) throw error;
 
-    console.log(`[cron:cleanup-booking-drafts] removed ${data} expired draft(s).`);
+    logEvent('info', 'cron.cleanup_booking_drafts.completed', { deleted: data }, requestId);
     return NextResponse.json(
       { ok: true, deleted: data },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
-    console.error('[cron:cleanup-booking-drafts] failed', error);
+    logEvent(
+      'error',
+      'cron.cleanup_booking_drafts.failed',
+      { message: errorMessage(error) },
+      requestId,
+    );
     return NextResponse.json(
       { ok: false },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

@@ -52,6 +52,22 @@ test.describe('security headers e CSP (NEX-164)', () => {
     expect(new Set(nonceMatches).size).toBe(1);
   });
 
+  // NEX-170: "Logs estruturados e redaction — Correlation ID." src/middleware.ts sets
+  // x-request-id on every request; this confirms it actually reaches the client (so a
+  // visitor reporting an issue could quote it) and is genuinely per-request, not a
+  // build-time constant that would make log correlation meaningless.
+  test('every response carries a unique x-request-id', async ({ page }) => {
+    const first = await page.goto('/login');
+    const second = await page.goto('/login');
+
+    const firstId = first!.headers()['x-request-id'];
+    const secondId = second!.headers()['x-request-id'];
+
+    expect(firstId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(secondId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(firstId).not.toBe(secondId);
+  });
+
   test('a real page load never trips a CSP violation, and the app stays interactive', async ({
     page,
   }) => {
