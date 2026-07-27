@@ -117,16 +117,16 @@ Implementar deploy vercel e supabase separados sem expandir o escopo para funcio
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não criou nada novo — investigação/tentativa de configuração de infraestrutura já existente.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. **Tarefa não concluída como pedido.** Uma tentativa real de separar segredos de Preview/Produção no Vercel causou um incidente de produção (`NEXT_PUBLIC_SUPABASE_URL` apagada de Produção ao tentar retirá-la só de Preview — o Vercel guarda valores partilhados entre ambientes como um único registo, remover um ambiente elimina o registo inteiro, não o divide). Recuperado sem perda de dados de cliente (o Vercel nunca promoveu a build falhada a produção) e confirmado saudável com login real da dona. Por pedido explícito dela, revertido para o estado original partilhado em vez de insistir na separação. Risco residual aceite e documentado em `docs/ENVIRONMENTS_AND_SECRETS.md` — Preview e Produção continuam a partilhar todos os segredos, incluindo a service role key, até um plano mais cuidadoso ser feito, idealmente antes do lançamento comercial. Ver `docs/evidence/NEX-172_DEPLOY_PREVIEW_PROD_SEPARADOS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
+- [ ] Implementação concluída — separação de segredos não alcançada, revertida por decisão da dona
+- [x] Testes concluídos — "deploy rehearsal" aconteceu de facto (incidente real + recuperação)
+- [x] Documentação atualizada
+- [ ] Critérios de aceite validados — "secrets separados" não cumprido
 - [ ] Tarefa marcada no `TASKS.md`
 
 ### NEX-173 — Backups e restore test
