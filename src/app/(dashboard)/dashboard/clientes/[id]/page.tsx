@@ -8,6 +8,7 @@ import { parseClientPreferences } from '@/features/clients/domain/preferences';
 import { ClientPreferencesForm } from '@/features/clients/ClientPreferencesForm';
 import { ClientPrivateNotesForm } from '@/features/clients/ClientPrivateNotesForm';
 import { ClientPhotosForm, type ClientPhotoItem } from '@/features/clients/ClientPhotosForm';
+import { ClientDeleteSection } from '@/features/clients/ClientDeleteSection';
 import { isClientPhotoKind } from '@/features/clients/domain/photos';
 import { countRecentNoShows, exceedsNoShowLimit } from '@/features/clients/domain/no-show-policy';
 
@@ -259,6 +260,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             ))}
           </ul>
         )}
+      </Card>
+
+      <Card>
+        <p className="text-eyebrow">Apagar dados</p>
+        <ClientDeleteSection clientId={client.id} hasAppointments={allAppointments.length > 0} />
       </Card>
     </div>
   );
