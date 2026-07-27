@@ -158,17 +158,17 @@ Implementar apagar/anonimizar cliente sem expandir o escopo para funcionalidades
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova coluna `clients.anonymized_at` e nova RPC `delete_or_anonymize_client` (`security definer`, revogada de `anon`/`public`, só `authenticated`) — sem privilégio novo além do que a própria dona já tem sobre os seus clientes.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `current_tenant_id()` deriva sempre da sessão real (mesmo padrão de todas as outras RPCs); um `client_id` de outra tenant falha com `22023` antes de tocar em qualquer linha — confirmado com duas donas reais autenticadas (não `service_role`) no teste de integração.
+- Registar risco residual ou decisão temporária. Telefone anonimizado é derivado deterministicamente do `id` da cliente via `hashtext()` — colisão teoricamente possível mas astronomicamente improvável (mesma margem já aceite para códigos de consulta de marcação); se colidir, a operação falha em vez de corromper dados. Ver `docs/evidence/NEX-163_APAGAR_ANONIMIZAR_CLIENTE.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-164 — Headers/CSP completos
 
