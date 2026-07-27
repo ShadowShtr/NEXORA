@@ -158,7 +158,7 @@
 - [x] **NEX-164** — Headers/CSP completos _(depende: NEX-023)_
 - [x] **NEX-165** — Hardening uploads _(depende: NEX-094)_
 - [x] **NEX-166** — Threat model atualizado e security review _(depende: NEX-115,NEX-135,NEX-164)_
-- [ ] **NEX-167** — Pentest proporcional _(depende: NEX-166)_
+- [x] **NEX-167** — Pentest proporcional _(depende: NEX-166)_
 
 ### EPIC-17 — Observabilidade, CI/CD e lançamento
 

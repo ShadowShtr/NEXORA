@@ -322,14 +322,14 @@ Implementar pentest proporcional sem expandir o escopo para funcionalidades não
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não criou nada novo — pentest dinâmico contra o que já existe.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Testado ao vivo (não só por leitura de código): adulteração do campo oculto `clientId` num formulário real, apontando para uma cliente de outro tenant — rejeitado corretamente, cliente da vítima intacta.
+- Registar risco residual ou decisão temporária. Sem achados novos de segurança. Corrigiu um teste de regressão da própria NEX-166 (`create_public_booking` grant) que passava pela razão errada, revalidado via CI. Documentou um risco operacional: o projeto Supabase de dev partilhado está atrasado em relação a `supabase/migrations/` (falta pelo menos a NEX-163/0036 em diante), o que produziu falsos alarmes durante o retest manual — não é um bug de código, mas afeta a fiabilidade de verificações manuais locais futuras até ser corrigido com `supabase db push`. Ver `docs/evidence/NEX-167_PENTEST_PROPORCIONAL.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
