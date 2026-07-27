@@ -232,11 +232,17 @@ foi alterada por nenhuma migração desde `0001_initial.sql`. Não era um bug re
   `NEX-166`).
 - token enumeration — mitigação T3, formato/entropia do token coberto onde é gerado.
 - upload adversarial — `tests/unit/image-processing.test.ts` (`NEX-165`: dimensões
-  extremas/decompression bomb, bytes não-imagem).
+  extremas/decompression bomb, bytes não-imagem) +
+  `tests/e2e/pentest-client-photo-upload.spec.ts` (`NEX-167`: mesmos ataques através
+  do pipeline real — browser → Server Action → Storage — não só a função pura).
 - concorrência de slots — `tests/e2e/public-booking-race.spec.ts`,
   `tests/integration/create-public-booking.test.ts`.
 - secret scanning — `gitleaks` no CI (`.github/workflows/secret-scan.yml`).
 - SAST/SCA/CodeQL — `.github/workflows/codeql.yml` +
   `.github/workflows/dependency-review.yml`; alertas do Dependabot triados
   2026-07-27 (ver T10).
-- pentest proporcional antes de produção pública — `NEX-167`, ainda não feito.
+- pentest proporcional antes de produção pública — `NEX-167`: sem achados novos;
+  confirmou dinamicamente (via UI real, não só leitura de código) que adulteração de
+  campos ocultos entre tenants, upload adversarial e headers de segurança aguentam um
+  ataque real. Corrigiu um teste de regressão da própria NEX-166 que passava pela
+  razão errada. Ver `docs/evidence/NEX-167_PENTEST_PROPORCIONAL.md`.
