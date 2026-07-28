@@ -203,7 +203,7 @@ export function ServiceEditorSheet({
 
         <div className="form-sticky-footer">
           <Button type="submit" className="primary-save-button" disabled={pending}>
-            {pending ? 'A guardar…' : 'Guardar'}
+            {pending ? 'A guardar…' : service ? 'Guardar' : 'Criar serviço'}
           </Button>
         </div>
       </form>

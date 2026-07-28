@@ -5,6 +5,7 @@ import { publicEnv } from '@/lib/env';
 import { publicBookingUrl } from '@/features/onboarding/domain/publish-step';
 import { CatalogSheetProvider } from '@/features/catalog/CatalogSheetContext';
 import { CategoryChips, type CategoryFilter } from '@/features/catalog/CategoryChips';
+import { ManageCategoriesButton } from '@/features/catalog/ManageCategoriesButton';
 import { NewServiceHeaderButton } from '@/features/catalog/NewServiceHeaderButton';
 import { OnlyActiveFilterButton } from '@/features/catalog/OnlyActiveFilterButton';
 import { ServiceCard } from '@/features/catalog/ServiceCard';
@@ -127,7 +128,8 @@ export default async function ServicosPage({
     ? `${publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantRow.slug)}/servicos`
     : null;
 
-  const isEmptyTenant = categories.length === 0 && allServices.length === 0;
+  const hasNoCategories = categories.length === 0;
+  const isEmptyTenant = allServices.length === 0;
   const isSearchingOrFiltering = query.length > 0 || onlyActive;
   const listIsEmpty = showingPackages
     ? filteredPackages.length === 0
@@ -168,7 +170,17 @@ export default async function ServicosPage({
 
         <CategoryChips categories={categories} activeFilter={activeFilter} query={query} />
 
-        {isEmptyTenant ? (
+        {hasNoCategories ? (
+          <div className="services-empty-state">
+            <p className="text-support">Crie primeiro uma categoria para poder criar serviços.</p>
+            <ManageCategoriesButton label="Gerir categorias" />
+          </div>
+        ) : showingPackages && isEmptyTenant ? (
+          <div className="services-empty-state">
+            <p className="text-support">Crie primeiro um serviço para poder criar pacotes.</p>
+            <NewServiceHeaderButton label="Criar serviço" />
+          </div>
+        ) : !showingPackages && isEmptyTenant ? (
           <div className="services-empty-state">
             <p className="text-support">Ainda não criou nenhum serviço.</p>
             <p className="text-support">

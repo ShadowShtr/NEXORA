@@ -1540,7 +1540,12 @@ select {
   }
   .desktop-nav a[aria-current='page'] {
     background: var(--pink-100);
-    color: var(--pink-600);
+    /* var(--pink-600) on var(--pink-100) is 4.37:1 — under WCAG AA's 4.5:1 minimum for
+       this text size (axe-core flagged it, confirmed live). A touch darker than the
+       shared token clears it (4.98:1) without redefining --pink-600 itself, which is
+       used all over the app on different (mostly white/near-white) backgrounds where
+       4.37:1 already passes. */
+    color: #b03a70;
     font-weight: 800;
     box-shadow: inset 3px 0 0 var(--pink-500);
   }
@@ -1567,7 +1572,9 @@ select {
     place-items: center;
     border-radius: 50%;
     background: var(--pink-100);
-    color: var(--pink-600);
+    /* Same WCAG AA contrast fix as .desktop-nav a[aria-current='page'] above — see
+       that rule's comment. */
+    color: #b03a70;
     font-weight: 800;
     font-size: 0.8rem;
   }
@@ -2859,6 +2866,9 @@ body[data-sheet-open='true'] .agenda-fab,
   display: flex;
   align-items: baseline;
   gap: 8px;
+}
+.service-card-inactive-note {
+  margin-top: 6px;
 }
 .package-card-compare-price {
   font-size: 13px;
