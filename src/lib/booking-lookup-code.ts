@@ -42,7 +42,7 @@ type LookupRow = {
 // resolve_booking_lookup_code (0018_booking_lookup_code.sql) via the admin client — the
 // RPC is anon-grantable but this keeps the same "always go through admin client for
 // public writes/reads" convention the rest of this feature already follows
-// (draft-actions.ts, booking-actions.ts).
+// (draft-actions.ts, src/app/api/public/business/[slug]/bookings/route.ts).
 export async function resolveBookingByLookupCode(
   code: string,
 ): Promise<ResolvedBookingByCode | null> {

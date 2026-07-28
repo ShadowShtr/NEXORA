@@ -100,7 +100,10 @@ test.describe('public booking race (NEX-065)', () => {
     const confirmA = pageA.locator('.public-resumo-confirm');
     const confirmB = pageB.locator('.public-resumo-confirm');
 
-    // Fire both confirmations as close to simultaneously as Playwright allows.
+    // Fire both confirmations as close to simultaneously as Playwright allows. A native
+    // DOM .click() (bypassing Playwright's CDP input dispatch) was tried during
+    // NEX-BOOKING-RACE-001's investigation and reproduced the exact same failure,
+    // ruling out Playwright's own click mechanism as the cause.
     await Promise.all([confirmA.click(), confirmB.click()]);
 
     const successLocatorA = pageA.getByRole('heading', {

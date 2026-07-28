@@ -11,7 +11,6 @@ import { initials } from '@/lib/initials';
 import { publicEnv } from '@/lib/env';
 import { BookingConfirmation } from '../BookingConfirmation';
 import { TurnstileWidget } from '../TurnstileWidget';
-import { createPublicBooking } from '../booking-actions';
 import { generateIdempotencyKey } from '../domain/idempotency-key';
 import { useBookingSession } from '../useBookingSession';
 import {
@@ -102,17 +101,27 @@ export function ResumoClient({
     setIsBooking(true);
     setBookingError(null);
 
-    let result;
+    // A plain HTTP POST (docs/06_API_CONTRACTS.md), not a Server Action — Next.js
+    // Server Actions are processed sequentially per server instance and don't reliably
+    // deliver a response back to the client under genuine concurrent invocations
+    // (NEX-BOOKING-RACE-001: two simultaneous confirms for the same slot both completed
+    // server-side within ~100ms — one success, one the expected conflict — but neither
+    // browser ever received its response while this called createPublicBooking as an
+    // action). See src/app/api/public/business/[slug]/bookings/route.ts.
+    let response: Response;
     try {
-      result = await createPublicBooking({
-        tenantId,
-        registration: state.registration,
-        selectedServiceIds: state.selectedServiceIds,
-        selectedPackageId: state.selectedPackageId,
-        startAtIso: state.selectedSlotIso,
-        idempotencyKey,
-        observation: observation.trim() || undefined,
-        turnstileToken: turnstileToken ?? undefined,
+      response = await fetch(`/api/public/business/${tenantSlug}/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registration: state.registration,
+          selectedServiceIds: state.selectedServiceIds,
+          selectedPackageId: state.selectedPackageId,
+          startAtIso: state.selectedSlotIso,
+          idempotencyKey,
+          observation: observation.trim() || undefined,
+          turnstileToken: turnstileToken ?? undefined,
+        }),
       });
     } catch {
       setIsBooking(false);
@@ -120,23 +129,27 @@ export function ResumoClient({
       return;
     }
 
+    const payload = (await response.json()) as {
+      data?: { bookingToken: string | null; lookupCode: string | null };
+      error?: { code: string; message: string };
+    };
     setIsBooking(false);
 
-    if (!result.ok) {
-      if (result.error.code === 'SLOT_TAKEN') {
+    if (!response.ok || !payload.data) {
+      if (payload.error?.code === 'SLOT_TAKEN') {
         persist({ ...state, selectedSlotIso: null });
         router.push(`/b/${tenantSlug}/horario?slotTaken=1`);
         return;
       }
-      setBookingError(result.error.message);
+      setBookingError(payload.error?.message ?? 'Não foi possível concluir a marcação.');
       return;
     }
 
     clear();
-    if (result.value.bookingToken && result.value.lookupCode) {
+    if (payload.data.bookingToken && payload.data.lookupCode) {
       setConfirmedBooking({
-        bookingToken: result.value.bookingToken,
-        lookupCode: result.value.lookupCode,
+        bookingToken: payload.data.bookingToken,
+        lookupCode: payload.data.lookupCode,
       });
     }
   }
