@@ -5,10 +5,14 @@ import { createClient } from '@/lib/supabase/server';
 import { getOptionalProfile } from '@/lib/auth/require-profile';
 import { resolveLocationUrl } from '@/lib/open-location';
 import { initials } from '@/lib/initials';
+import { publicEnv } from '@/lib/env';
+import { publicBookingUrl } from '@/features/onboarding/domain/publish-step';
 import { buildWhatsappDeepLink } from '@/features/appointments/domain/appointment-card';
 import { buildWeeklyHoursLines, resolveTodayHoursSummary } from './domain/hours-summary';
 import { PublicHoursRow } from './PublicHoursRow';
 import { PublicAboutSection } from './PublicAboutSection';
+import { PublicFeaturedServices, type FeaturedService } from './PublicFeaturedServices';
+import { PublicShareButton } from './PublicShareButton';
 
 // get_public_business_hours (0030_business_public_profile.sql) isn't a table select, so
 // postgrest-js has no column list to structurally type its result against on this
@@ -68,33 +72,48 @@ async function loadPublicProfile(slug: string) {
   const viewerProfile = await getOptionalProfile();
   const isOwnerPreview = viewerProfile?.tenantId === tenant.id;
 
-  const [{ data: hoursRows }, { count: activeServicesCount }, { count: activePackagesCount }] =
-    await Promise.all([
-      isOwnerPreview
-        ? // Read the table directly: her own authenticated policy (business_hours_select,
-          // tenant_id = current_tenant_id()) grants this regardless of published_at, unlike
-          // the RPC below (security definer, hardcodes the published-only check for every
-          // caller — NEX-166/0038 — so it can't tell the owner apart from a stranger).
-          supabase
-            .from('business_hours')
-            .select('day_of_week, is_open, opens_at, closes_at')
-            .eq('tenant_id', tenant.id)
-        : // business_hours has no anon policy of its own by design (docs/04_DATA_MODEL.md)
-          // — this narrow security-definer RPC (0030_business_public_profile.sql) is the
-          // only public window into it for a genuine visitor, same minimal-surface pattern
-          // as the availability engine's own RPC.
-          supabase.rpc('get_public_business_hours', { p_tenant_id: tenant.id }),
-      supabase
-        .from('services')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', tenant.id)
-        .eq('is_active', true),
-      supabase
-        .from('packages')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', tenant.id)
-        .eq('is_active', true),
-    ]);
+  const [
+    { data: hoursRows },
+    { count: activeServicesCount },
+    { count: activePackagesCount },
+    { data: featuredServiceRows },
+  ] = await Promise.all([
+    isOwnerPreview
+      ? // Read the table directly: her own authenticated policy (business_hours_select,
+        // tenant_id = current_tenant_id()) grants this regardless of published_at, unlike
+        // the RPC below (security definer, hardcodes the published-only check for every
+        // caller — NEX-166/0038 — so it can't tell the owner apart from a stranger).
+        supabase
+          .from('business_hours')
+          .select('day_of_week, is_open, opens_at, closes_at')
+          .eq('tenant_id', tenant.id)
+      : // business_hours has no anon policy of its own by design (docs/04_DATA_MODEL.md)
+        // — this narrow security-definer RPC (0030_business_public_profile.sql) is the
+        // only public window into it for a genuine visitor, same minimal-surface pattern
+        // as the availability engine's own RPC.
+        supabase.rpc('get_public_business_hours', { p_tenant_id: tenant.id }),
+    supabase
+      .from('services')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true),
+    supabase
+      .from('packages')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true),
+    // A taste of the catalogue before the visitor even taps "Fazer marcação" — same
+    // services/is_active RLS policy the full catalogue page already relies on
+    // (NEX-035), just capped to a handful and ordered the same way services are
+    // managed (sort_order).
+    supabase
+      .from('services')
+      .select('id, name, price_cents, duration_minutes')
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true)
+      .order('sort_order')
+      .limit(4),
+  ]);
 
   const logoUrl = settings.logo_path
     ? supabase.storage.from('business-logos').getPublicUrl(settings.logo_path).data.publicUrl
@@ -112,6 +131,12 @@ async function loadPublicProfile(slug: string) {
     // a single row, and rejects the array shape at the type level either way.
     hoursRows: (hoursRows ?? []) as PublicBusinessHourRow[],
     hasActiveCatalog: (activeServicesCount ?? 0) + (activePackagesCount ?? 0) > 0,
+    featuredServices: (featuredServiceRows ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      priceCents: row.price_cents,
+      durationMinutes: row.duration_minutes,
+    })) satisfies FeaturedService[],
     isOwnerPreview,
     logoUrl,
     coverUrl,
@@ -136,12 +161,14 @@ export default async function PublicBusinessPage({
     settings,
     hoursRows,
     hasActiveCatalog,
+    featuredServices,
     isOwnerPreview,
     logoUrl,
     coverUrl,
     nowMs,
   } = profile;
   const isUnpublishedPreview = isOwnerPreview && !settings.published_at;
+  const publicUrl = publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, slug);
   const timezone = settings.timezone ?? 'Europe/Lisbon';
   const hoursSummary = resolveTodayHoursSummary(
     hoursRows.map((row) => ({
@@ -176,7 +203,11 @@ export default async function PublicBusinessPage({
   const localityLine = [settings.postal_code, settings.locality].filter(Boolean).join(' ');
 
   return (
-    <div className="public-profile-page">
+    // A <main> landmark, not a generic <div> — this is the primary content of the
+    // page (there's no shell/nav around it to justify a plain div here), and axe
+    // flagged its absence (landmark-one-main/region) when the a11y test was rerun for
+    // the featured-services addition below.
+    <main className="public-profile-page">
       {isUnpublishedPreview ? (
         <p className="public-preview-banner">
           Pré-visualização — esta página ainda não está publicada. As clientes não conseguem vê-la.
@@ -316,11 +347,14 @@ export default async function PublicBusinessPage({
               <span className="public-quick-action-label">Como chegar</span>
             </a>
           ) : null}
+          <PublicShareButton businessName={tenant.name} url={publicUrl} />
         </div>
 
         {settings.about_description ? (
           <PublicAboutSection description={settings.about_description} />
         ) : null}
+
+        <PublicFeaturedServices services={featuredServices} slug={slug} />
 
         {/* "A NEXORA é a plataforma. O destaque da página pública deve ser o negócio da
             profissional" — discreet footer credit, not the platform's own branding
@@ -354,6 +388,6 @@ export default async function PublicBusinessPage({
           </Link>
         )}
       </div>
-    </div>
+    </main>
   );
 }
