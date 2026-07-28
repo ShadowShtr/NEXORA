@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
+import { formatInTimeZone } from 'date-fns-tz';
 import {
   canUseSupabase,
   cleanupProvisionedTestUser,
@@ -83,11 +84,15 @@ test.describe('appointment detail page (NEX-084)', () => {
     await expect(page.getByText('Ana Cliente')).toBeVisible();
     await expect(page.getByText('Verniz Gel')).toBeVisible();
 
+    // Danger zone is collapsed by default (details/summary) — open it first.
+    await page.getByText('Ações delicadas').click();
     await page.getByRole('button', { name: 'Cancelar marcação' }).click();
     // First click only reveals the confirmation, does not cancel yet.
-    await expect(page.getByText('Tem a certeza que quer cancelar esta marcação?')).toBeVisible();
+    await expect(page.getByText('Cancelar esta marcação?')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Sim, cancelar' }).click();
+    // The confirm button reuses the same label as the trigger (spec), but the trigger
+    // has already unmounted by now — this resolves to the one real button on screen.
+    await page.getByRole('button', { name: 'Cancelar marcação' }).click();
     await expect(page.getByText('Marcação cancelada.')).toBeVisible();
 
     const { data: appointment } = await user.admin
@@ -121,10 +126,12 @@ test.describe('appointment detail page (NEX-084)', () => {
     await page.getByRole('button', { name: 'Reagendar' }).click();
 
     const newStart = new Date(Date.now() + 72 * 60 * 60_000);
-    const localValue = new Date(newStart.getTime() - newStart.getTimezoneOffset() * 60_000)
-      .toISOString()
-      .slice(0, 16);
-    await page.locator('input[name="newStartAtIso"]').fill(localValue);
+    // Filled as the tenant's own business timezone would show it (Europe/Lisbon,
+    // business_settings' default) — not the test runner machine's own OS timezone,
+    // which the input's conversion (fromZonedTime, AppointmentPrimaryActions.tsx) never
+    // sees or cares about either.
+    const localValue = formatInTimeZone(newStart, 'Europe/Lisbon', "yyyy-MM-dd'T'HH:mm");
+    await page.getByLabel('Novo horário').fill(localValue);
     await page.getByRole('button', { name: 'Confirmar novo horário' }).click();
 
     await expect(page.getByText('Marcação reagendada.')).toBeVisible();
@@ -163,12 +170,14 @@ test.describe('appointment detail page (NEX-084)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
 
     await page.goto(`/dashboard/agenda/${appointmentId}`);
+    // Danger zone is collapsed by default (details/summary) — open it first.
+    await page.getByText('Ações delicadas').click();
     await page.getByRole('button', { name: 'Marcar falta' }).click();
-    await expect(
-      page.getByText('Confirma que a cliente não compareceu a esta marcação?'),
-    ).toBeVisible();
+    await expect(page.getByText('Marcar esta cliente como falta?')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Sim, marcar falta' }).click();
+    // The confirm button reuses the same label as the trigger (spec), but the trigger
+    // has already unmounted by now — this resolves to the one real button on screen.
+    await page.getByRole('button', { name: 'Marcar falta' }).click();
     await expect(page.getByText('Falta registada.')).toBeVisible();
 
     const { data: appointment } = await user.admin
