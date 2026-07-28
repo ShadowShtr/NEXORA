@@ -32,7 +32,9 @@ export function PublicShareButton({ businessName, url }: { businessName: string;
       <span className="public-quick-action-icon" aria-hidden="true">
         {copied ? <Check size={19} /> : <Share2 size={19} />}
       </span>
-      <span className="public-quick-action-label">{copied ? 'Copiado!' : 'Partilhar'}</span>
+      <span className="public-quick-action-label" aria-live="polite">
+        {copied ? 'Ligação copiada' : 'Partilhar'}
+      </span>
     </button>
   );
 }
