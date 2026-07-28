@@ -46,6 +46,10 @@ async function publishTenantWithService(user: ProvisionedTestUser) {
   return tenant!.id as string;
 }
 
+// NEX-051. Visual refinement mid-2026 moved this step to its own page (/b/{slug}/dados,
+// docs/UI_SCREEN_SPECIFICATIONS.md #07) reached only after a service and a slot are
+// both picked, instead of gating a single scrolling page — reaching it now takes a real
+// navigation through /servicos and /horario first.
 test.describe('public pre-registration step (NEX-051)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
@@ -54,9 +58,7 @@ test.describe('public pre-registration step (NEX-051)', () => {
   test.beforeEach(async ({ page }) => {
     user = await createProvisionedTestUser('nex051');
     await publishTenantWithService(user);
-    await page.goto(`/b/${user.slug}`);
-    // Reach Passo 3 — the registration form only renders once a service and slot are
-    // both picked, since that step now comes after them in the flow.
+    await page.goto(`/b/${user.slug}/servicos`);
     await selectFirstService(page);
     await selectFirstSlot(page);
   });
@@ -102,13 +104,12 @@ test.describe('public pre-registration step (NEX-051)', () => {
 
   test('proceeds with just name and phone, email left empty', async ({ page }) => {
     await completeRegistration(page, 'Ana Cliente', '911111111');
-    await expect(page.getByText('Ana Cliente · +351911111111')).toBeVisible();
-    await expect(page.getByText('Passo 4 · Confirmar')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
   });
 
-  test('"Alterar dados" returns to the registration form', async ({ page }) => {
+  test('the back link on /resumo returns to the registration form', async ({ page }) => {
     await completeRegistration(page, 'Ana Cliente', '911111111');
-    await page.getByRole('button', { name: 'Alterar dados' }).click();
+    await page.getByRole('link', { name: 'Voltar' }).click();
     await expect(page.getByLabel('O seu nome')).toBeVisible();
   });
 
@@ -119,9 +120,9 @@ test.describe('public pre-registration step (NEX-051)', () => {
       .eq('slug', user.slug)
       .single();
     await completeRegistration(page, 'Ana Cliente', '911111111');
-    await expect(page.getByText('Passo 4 · Confirmar')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
 
-    // "Abandon" — navigate away without ever reaching "Confirmar por WhatsApp".
+    // "Abandon" — navigate away without ever clicking "Confirmar marcação".
     await page.goto('about:blank');
 
     const { data: clients, error } = await user.admin

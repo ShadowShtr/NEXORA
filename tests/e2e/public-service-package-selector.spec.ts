@@ -55,9 +55,12 @@ async function seedServicesAndPackage(user: ProvisionedTestUser) {
     .insert({ tenant_id: tenant!.id, package_id: pkg!.id, service_id: verniz!.id });
 }
 
-// NEX-053: services grouped by category (checkboxes), a single-choice package selector,
-// and "extras" — services not already covered by the chosen package can still be added,
-// but the total/summary never double-counts a service the package already includes.
+// NEX-053: services grouped by category (checkboxes) and a single-choice package
+// selector — "extras" (services not already covered by the chosen package) can still
+// be added, but the total never double-counts a service the package already includes.
+// Visual refinement mid-2026 split them into two tabs of the same /servicos step
+// ("Serviços" / "Pacotes") instead of showing both lists at once — switching tabs is
+// required before interacting with whichever list is currently hidden.
 test.describe('public services/packages selector (NEX-053)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
@@ -71,8 +74,14 @@ test.describe('public services/packages selector (NEX-053)', () => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
+    await page.getByRole('tab', { name: 'Pacotes' }).click();
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
+
+    // Back on Serviços: this is where the package selection actually changes the
+    // markup (disabled checkbox, "Incluído no pacote" note) — the more meaningful
+    // surface to scan.
+    await page.getByRole('tab', { name: 'Serviços' }).click();
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
@@ -84,8 +93,11 @@ test.describe('public services/packages selector (NEX-053)', () => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
+    await page.getByRole('tab', { name: 'Pacotes' }).click();
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
+
+    await page.getByRole('tab', { name: 'Serviços' }).click();
 
     // Verniz gel is covered by the package: shown as included, disabled, and not
     // separately billed.
@@ -93,11 +105,14 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await expect(vernizCheckbox).toBeChecked();
     await expect(vernizCheckbox).toBeDisabled();
     await expect(page.getByText('Incluído no pacote')).toBeVisible();
-    await expect(page.getByText('Total: 22,00 € · 60 min')).toBeVisible();
+    const bar = page.locator('.public-cart-bar');
+    await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
+    await expect(bar.getByText('22,00 €')).toBeVisible();
 
     // Massagem is a genuine extra: adding it on top increases the total normally.
     await page.getByRole('checkbox', { name: 'Massagem' }).check();
-    await expect(page.getByText('Total: 52,00 € · 105 min')).toBeVisible();
+    await expect(bar.getByText('Total 2 Serviços')).toBeVisible();
+    await expect(bar.getByText('52,00 €')).toBeVisible();
   });
 
   test('checking a service first, then choosing a package that covers it, drops the duplicate automatically', async ({
@@ -106,15 +121,21 @@ test.describe('public services/packages selector (NEX-053)', () => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
 
+    const bar = page.locator('.public-cart-bar');
     await page.getByRole('checkbox', { name: /Verniz gel/ }).check();
-    await expect(page.getByText('Total: 25,00 € · 60 min')).toBeVisible();
+    await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
+    await expect(bar.getByText('25,00 €')).toBeVisible();
 
+    await page.getByRole('tab', { name: 'Pacotes' }).click();
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
 
     // The standalone selection is dropped, not added on top of the package.
-    await expect(page.getByText('Total: 22,00 € · 60 min')).toBeVisible();
+    await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
+    await expect(bar.getByText('22,00 €')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Serviços' }).click();
     await expect(page.getByRole('checkbox', { name: /Verniz gel/ })).toBeDisabled();
   });
 
@@ -122,32 +143,46 @@ test.describe('public services/packages selector (NEX-053)', () => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
+    await page.getByRole('tab', { name: 'Pacotes' }).click();
     await page.getByRole('radio', { name: /Combo verniz/ }).check();
+
+    await page.getByRole('tab', { name: 'Serviços' }).click();
     await expect(page.getByRole('checkbox', { name: /Verniz gel/ })).toBeDisabled();
 
+    await page.getByRole('tab', { name: 'Pacotes' }).click();
     await page.getByRole('radio', { name: 'Nenhum pacote' }).check();
 
+    await page.getByRole('tab', { name: 'Serviços' }).click();
     const vernizCheckbox = page.getByRole('checkbox', { name: /Verniz gel/ });
     await expect(vernizCheckbox).toBeEnabled();
     await expect(vernizCheckbox).not.toBeChecked();
-    await expect(page.getByText('Escolha pelo menos um serviço ou pacote acima.')).toBeVisible();
+    await expect(
+      page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }),
+    ).toBeDisabled();
   });
 
   test('is fully operable by keyboard alone', async ({ page }) => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
 
-    await page.getByRole('checkbox', { name: 'Massagem' }).focus();
+    const massagemCheckbox = page.getByRole('checkbox', { name: 'Massagem' });
+    await massagemCheckbox.focus();
+    await expect(massagemCheckbox).toBeFocused();
     await page.keyboard.press('Space');
-    await expect(page.getByRole('checkbox', { name: 'Massagem' })).toBeChecked();
+    await expect(massagemCheckbox).toBeChecked();
 
-    await page.getByRole('radio', { name: /Combo verniz/ }).focus();
+    await page.getByRole('tab', { name: 'Pacotes' }).click();
+    const comboRadio = page.getByRole('radio', { name: /Combo verniz/ });
+    await comboRadio.focus();
+    await expect(comboRadio).toBeFocused();
     await page.keyboard.press('Space');
-    await expect(page.getByRole('radio', { name: /Combo verniz/ })).toBeChecked();
+    await expect(comboRadio).toBeChecked();
 
-    await expect(page.getByText('Total: 52,00 € · 105 min')).toBeVisible();
+    const bar = page.locator('.public-cart-bar');
+    await expect(bar.getByText('Total 2 Serviços')).toBeVisible();
+    await expect(bar.getByText('52,00 €')).toBeVisible();
   });
 });

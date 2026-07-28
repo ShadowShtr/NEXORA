@@ -62,6 +62,11 @@ async function seedManyServices(user: ProvisionedTestUser) {
 }
 
 // NEX-054: PRD 01 §3.6 — "Barra fixa mostra quantidade, duração e valor do carrinho."
+// Visual refinement mid-2026 moved selection from the single scrolling page to
+// /b/{slug}/servicos and, in the process, dropped the duration figure from the bar's
+// own text (ServicosClient only renders count + price) — these tests cover what the
+// bar actually shows today; the missing duration is flagged in the PR, not invented
+// back in here.
 test.describe('public fixed cart bar (NEX-054)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
@@ -75,37 +80,38 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
     await expect(page.locator('.public-cart-bar')).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
   });
 
-  test('shows quantity, duration and total live, and disables "Continuar" when empty', async ({
-    page,
-  }) => {
+  test('shows quantity and total live, and disables "Continuar" when empty', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
 
     const bar = page.locator('.public-cart-bar');
-    await expect(bar.getByText('0 itens · 0 min · 0,00 €')).toBeVisible();
+    await expect(bar.getByText('Total 0 Serviços')).toBeVisible();
+    await expect(bar.getByText('0,00 €')).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Continuar' })).toBeDisabled();
 
     await page.getByRole('checkbox', { name: 'Serviço 0' }).check();
-    await expect(bar.getByText('1 item · 20 min · 10,00 €')).toBeVisible();
+    await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
+    await expect(bar.getByText('10,00 €')).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Continuar' })).toBeEnabled();
 
     await page.getByRole('checkbox', { name: 'Serviço 1' }).check();
-    await expect(bar.getByText('2 itens · 40 min · 21,00 €')).toBeVisible();
+    await expect(bar.getByText('Total 2 Serviços')).toBeVisible();
+    await expect(bar.getByText('21,00 €')).toBeVisible();
   });
 
   test('stays fixed at the same viewport position while the page scrolls', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
 
     const bar = page.locator('.public-cart-bar');
     const before = await bar.boundingBox();
@@ -121,36 +127,20 @@ test.describe('public fixed cart bar (NEX-054)', () => {
     expect(after!.y).toBeCloseTo(before!.y, 0);
   });
 
-  test('"Continuar" scrolls to whichever step is next in the flow', async ({ page }) => {
+  test('"Continuar" advances through servicos -> horario -> dados -> resumo', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
 
-    await page.goto(`/b/${user.slug}`);
+    await page.goto(`/b/${user.slug}/servicos`);
     await page.getByRole('checkbox', { name: 'Serviço 0' }).check();
-    const cartBarContinue = page.locator('.public-cart-bar').getByRole('button', {
-      name: 'Continuar',
-    });
-
-    // No slot picked yet — scrolls to Passo 2.
-    await cartBarContinue.click();
-    await expect(page.locator('#horario')).toBeInViewport();
+    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
+    await expect(page).toHaveURL(/\/horario$/);
 
     await page.locator('.public-slot-picker .public-slot-button').first().click();
-
-    // Slot picked, not registered yet — scrolls to Passo 3.
-    await cartBarContinue.click();
-    await expect(page.locator('#dados')).toBeInViewport();
+    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
+    await expect(page).toHaveURL(/\/dados$/);
 
     await completeRegistration(page, 'Ana Cliente', '911111111');
-
-    // Registered — scrolls to Passo 4.
-    await cartBarContinue.click();
-    await expect(page.locator('#confirmar')).toBeInViewport();
-    // WhatsApp is now an alternative contact, not the booking mechanism (NEX-065
-    // replaced it with a real slot picker + createPublicBooking) — the confirmation
-    // card is still what "Continuar" scrolls to.
-    await expect(
-      page.getByRole('link', { name: 'Prefere combinar por WhatsApp?' }),
-    ).toBeInViewport();
+    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
   });
 });

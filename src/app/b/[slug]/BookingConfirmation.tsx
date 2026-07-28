@@ -83,115 +83,120 @@ export function BookingConfirmation({
   }
 
   return (
-    <Card className="public-confirmation">
-      <div className="public-confirmation-icon" aria-hidden="true">
-        <Check size={40} strokeWidth={3} />
-      </div>
-      <h2 className="text-title">Marcação confirmada com sucesso!</h2>
-      <p className="text-support public-confirmation-lead">
-        Enviámos os detalhes para o seu WhatsApp e email.
-      </p>
-
-      <div className="public-confirmation-details">
-        <div className="card">
-          <div className="public-info-row">
-            <span className="public-info-icon" aria-hidden="true">
-              <Calendar size={18} />
-            </span>
-            <span>
-              <span className="public-info-primary">
-                {capitalize(
-                  formatInTimeZone(startAtIso, timezone, "EEEE, dd 'de' MMMM", { locale: pt }),
-                )}
-              </span>
-              <span className="public-info-secondary">
-                {formatInTimeZone(startAtIso, timezone, 'HH:mm')}
-              </span>
-            </span>
-          </div>
+    // A <main> landmark — this screen replaces ResumoClient's own <main> entirely once
+    // the booking is confirmed (see the confirmedBooking branch in ResumoClient.tsx), so
+    // it needs to carry the landmark itself rather than relying on a parent element.
+    <main>
+      <Card className="public-confirmation">
+        <div className="public-confirmation-icon" aria-hidden="true">
+          <Check size={40} strokeWidth={3} />
         </div>
-
-        <div className="card">
-          <div className="public-info-row">
-            <span className="public-info-icon" aria-hidden="true">
-              <MapPin size={18} />
-            </span>
-            <span>
-              <span className="public-info-primary">{businessName}</span>
-              {addressLine ? <span className="public-info-secondary">{addressLine}</span> : null}
-              {postalCode || locality ? (
-                <span className="public-info-secondary">
-                  {postalCode} {locality}
-                </span>
-              ) : null}
-            </span>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="public-info-row">
-            <span className="public-info-icon" aria-hidden="true">
-              <Coins size={18} />
-            </span>
-            <span>
-              <span className="public-info-primary">{formatEuros(totalCents)}</span>
-              <span className="public-info-secondary">Valor estimado</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <a
-        className="button link-button public-confirmation-primary"
-        href={`/marcacao/${bookingToken}`}
-      >
-        Ver marcação
-      </a>
-      <a
-        className="button button-secondary link-button public-confirmation-secondary"
-        href={`/api/bookings/${bookingToken}/calendar.ics`}
-      >
-        Adicionar ao calendário
-      </a>
-      {locationUrl ? (
-        <a
-          className="button button-secondary link-button public-confirmation-secondary"
-          href={locationUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Abrir localização
-        </a>
-      ) : null}
-      {phoneE164 ? (
-        <a
-          className="button button-secondary link-button public-confirmation-secondary"
-          href={whatsappLink(phoneE164, businessName)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Contactar por WhatsApp
-        </a>
-      ) : null}
-
-      <div className="public-lookup-code">
-        <p className="text-meta">Guarde este código para consultar a marcação mais tarde:</p>
-        <div className="public-lookup-code-row">
-          <p className="public-lookup-code-value">{lookupCode}</p>
-          <button
-            type="button"
-            className="public-lookup-code-copy"
-            onClick={() => void copyLookupCode()}
-            aria-label="Copiar código"
-          >
-            <Copy size={16} aria-hidden="true" />
-            {copied ? 'Copiado!' : 'Copiar'}
-          </button>
-        </div>
-        <p className="text-support">
-          Em <Link href="/marcacao">nexora.app/marcacao</Link>, sem precisar deste link.
+        <h2 className="text-title">Marcação confirmada com sucesso!</h2>
+        <p className="text-support public-confirmation-lead">
+          Enviámos os detalhes para o seu WhatsApp e email.
         </p>
-      </div>
-    </Card>
+
+        <div className="public-confirmation-details">
+          <div className="card">
+            <div className="public-info-row">
+              <span className="public-info-icon" aria-hidden="true">
+                <Calendar size={18} />
+              </span>
+              <span>
+                <span className="public-info-primary">
+                  {capitalize(
+                    formatInTimeZone(startAtIso, timezone, "EEEE, dd 'de' MMMM", { locale: pt }),
+                  )}
+                </span>
+                <span className="public-info-secondary">
+                  {formatInTimeZone(startAtIso, timezone, 'HH:mm')}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="public-info-row">
+              <span className="public-info-icon" aria-hidden="true">
+                <MapPin size={18} />
+              </span>
+              <span>
+                <span className="public-info-primary">{businessName}</span>
+                {addressLine ? <span className="public-info-secondary">{addressLine}</span> : null}
+                {postalCode || locality ? (
+                  <span className="public-info-secondary">
+                    {postalCode} {locality}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="public-info-row">
+              <span className="public-info-icon" aria-hidden="true">
+                <Coins size={18} />
+              </span>
+              <span>
+                <span className="public-info-primary">{formatEuros(totalCents)}</span>
+                <span className="public-info-secondary">Valor estimado</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <a
+          className="button link-button public-confirmation-primary"
+          href={`/marcacao/${bookingToken}`}
+        >
+          Ver marcação
+        </a>
+        <a
+          className="button button-secondary link-button public-confirmation-secondary"
+          href={`/api/bookings/${bookingToken}/calendar.ics`}
+        >
+          Adicionar ao calendário
+        </a>
+        {locationUrl ? (
+          <a
+            className="button button-secondary link-button public-confirmation-secondary"
+            href={locationUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Abrir localização
+          </a>
+        ) : null}
+        {phoneE164 ? (
+          <a
+            className="button button-secondary link-button public-confirmation-secondary"
+            href={whatsappLink(phoneE164, businessName)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Contactar por WhatsApp
+          </a>
+        ) : null}
+
+        <div className="public-lookup-code">
+          <p className="text-meta">Guarde este código para consultar a marcação mais tarde:</p>
+          <div className="public-lookup-code-row">
+            <p className="public-lookup-code-value">{lookupCode}</p>
+            <button
+              type="button"
+              className="public-lookup-code-copy"
+              onClick={() => void copyLookupCode()}
+              aria-label="Copiar código"
+            >
+              <Copy size={16} aria-hidden="true" />
+              {copied ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
+          <p className="text-support">
+            Em <Link href="/marcacao">nexora.app/marcacao</Link>, sem precisar deste link.
+          </p>
+        </div>
+      </Card>
+    </main>
   );
 }
