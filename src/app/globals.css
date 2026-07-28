@@ -186,6 +186,16 @@ a:focus-visible {
   gap: 0.5rem;
   text-decoration: none;
   margin-top: 1rem;
+  /* Reset native <button> chrome (border/background/padding) — every prior use of this
+     class was on an <a>, which has none of that by default, so this is a no-op there.
+     The Nova marcação wizard is the first place this class landed on a real <button>
+     (ConfirmStep's "Editar", RecurrenceReview's "Remover"/"Readicionar"), which
+     rendered with the browser's default button styling without this. */
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
 }
 .stack {
   display: grid;
@@ -5480,6 +5490,12 @@ body[data-sheet-open='true'] .services-fab {
   gap: 10px;
   font-weight: 600;
   color: #211d23;
+}
+.recurrence-occurrence-row .link-button {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pink-600);
 }
 
 /* Confirmar (passo 4) */
