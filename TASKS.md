@@ -170,6 +170,7 @@
 - [x] **NEX-175** — Load/concurrency test _(depende: NEX-064,NEX-155)_
 - [ ] **NEX-176** — Checklist beta privado _(depende: NEX-154,NEX-167,NEX-175)_
 - [ ] **NEX-177** — Lançamento e monitorização inicial _(depende: NEX-176)_
+- [!] **NEX-178** — Corrigir concorrência do cliente em `/resumo` e adicionar E2E ao CI _(depende: NEX-065,NEX-175)_ — bloqueada: bug aberto P0 em produção (`docs/evidence/BUG_2026-07-28_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md`); duas confirmações simultâneas para a mesma vaga nunca concluem o estado no cliente React, apesar de o servidor responder corretamente (200/409) em <200ms; `tests/e2e/**` não corre em CI, por isso passou despercebido pelo merge do PR #135
 
 ## Regras de atualização
 
