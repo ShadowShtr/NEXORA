@@ -112,19 +112,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     is_replay: boolean;
   };
 
-  const { data, error } = await admin
-    .rpc('create_public_booking', {
-      p_tenant_id: tenant.id,
-      p_client_name: registration.name,
-      p_client_phone_e164: registration.phone,
-      p_client_email: registration.email ?? null,
-      p_selected_service_ids: selectedServiceIds,
-      p_selected_package_id: selectedPackageId,
-      p_start_at: startAtIso,
-      p_idempotency_key: idempotencyKey,
-      p_client_observation: observation || null,
-    })
-    .single<CreatePublicBookingRow>();
+  const callCreatePublicBooking = () =>
+    admin
+      .rpc('create_public_booking', {
+        p_tenant_id: tenant.id,
+        p_client_name: registration.name,
+        p_client_phone_e164: registration.phone,
+        p_client_email: registration.email ?? null,
+        p_selected_service_ids: selectedServiceIds,
+        p_selected_package_id: selectedPackageId,
+        p_start_at: startAtIso,
+        p_idempotency_key: idempotencyKey,
+        p_client_observation: observation || null,
+      })
+      .single<CreatePublicBookingRow>();
+
+  const firstAttempt = await callCreatePublicBooking();
+
+  // 40P01 (deadlock_detected): under real concurrent load, Postgres can pick this
+  // transaction as the deadlock victim even though it isn't the one that should lose the
+  // slot — the other transaction (whichever holds the lock the arbiter favors) proceeds
+  // normally. A single retry is the standard remedy: by the time it re-runs, the
+  // conflicting transaction has already committed or rolled back, so this resolves to
+  // either a real booking or a real 23P01 SLOT_TAKEN, not another deadlock. Confirmed via
+  // repeated 8-worker Playwright runs (tests/e2e/public-booking-race.spec.ts) — this is
+  // the one failure mode idempotency alone doesn't cover, since it isn't a duplicate
+  // request, it's Postgres aborting a legitimate first attempt.
+  const shouldRetry = firstAttempt.error?.code === '40P01';
+  if (shouldRetry) {
+    logEvent('warn', 'booking.public.deadlock_retry', { tenantId: tenant.id }, requestId);
+  }
+  const { data, error } = shouldRetry ? await callCreatePublicBooking() : firstAttempt;
 
   if (error) {
     // NEX-171: "Métricas e alertas" — slot_conflict is the "conflict rate" metric,

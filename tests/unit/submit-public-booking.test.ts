@@ -53,12 +53,14 @@ describe('submitPublicBooking', () => {
   it('returns a SLOT_TAKEN result for HTTP 409, not a thrown error', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          { ok: false, code: 'SLOT_TAKEN', message: 'Este horário acabou de ser reservado.' },
-          409,
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(
+            { ok: false, code: 'SLOT_TAKEN', message: 'Este horário acabou de ser reservado.' },
+            409,
+          ),
         ),
-      ),
     );
 
     const result = await submitPublicBooking('acme', input);
@@ -89,7 +91,9 @@ describe('submitPublicBooking', () => {
   it('rejects a JSON body that does not match the discriminated contract', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ unexpected: true }, 200)));
 
-    await expect(submitPublicBooking('acme', input)).rejects.toThrow(/Unrecognized booking response/);
+    await expect(submitPublicBooking('acme', input)).rejects.toThrow(
+      /Unrecognized booking response/,
+    );
   });
 
   it('propagates an AbortError when the signal is aborted', async () => {
@@ -110,10 +114,7 @@ describe('submitPublicBooking', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
-        jsonResponse(
-          { ok: false, code: 'NOT_FOUND', message: 'Negócio não encontrado.' },
-          404,
-        ),
+        jsonResponse({ ok: false, code: 'NOT_FOUND', message: 'Negócio não encontrado.' }, 404),
       );
     vi.stubGlobal('fetch', fetchMock);
 

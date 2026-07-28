@@ -1,6 +1,47 @@
-# Bug (não resolvido) — cliente React nunca conclui o estado após confirmação concorrente
+# Bug (resolvido) — cliente React nunca conclui o estado após confirmação concorrente
 
-**Estado: aberto, P0.** Não corrigir às cegas — ver "Regras para quem retomar" no fim.
+**Estado: resolvido em `fix/public-booking-concurrency`.** Ver "Resolução" logo abaixo.
+O resto deste documento é preservado como registo da investigação original — não editado,
+para não perder o histórico de hipóteses descartadas.
+
+## Resolução
+
+Causa raiz: `ResumoClient.tsx` tratava o resultado da confirmação com um `fetch()` inline
+e vários `useState` booleanos independentes (`isBooking`/`bookingError`/`confirmedBooking`),
+sem `AbortController`, sem `finally` garantido, e sem um contrato de resposta único —
+uma combinação que podia deixar o componente sem nunca transicionar para um estado final
+sob certas ordens de resolução da promise em confirmação concorrente.
+
+Corrigido substituindo por: um tipo `PublicBookingResult` discriminado (compartilhado
+entre o Route Handler e o cliente, `src/app/b/[slug]/domain/public-booking-result.ts`),
+um cliente HTTP isolado e testável sem React (`submitPublicBooking`, lê o corpo com
+`response.text()` antes de `JSON.parse` para nunca ficar pendurado num corpo inesperado),
+e uma máquina de estados via `useReducer` (`idle/submitting/success/conflict/error`,
+`src/app/b/[slug]/domain/confirmation-state.ts`) com `AbortController` (timeout de 10s) e
+limpeza garantida em `finally`.
+
+No processo de validação (20/10/5 execuções com 2/3/5 confirmações concorrentes, contra o
+Supabase de dev/preview real), foi descoberta uma segunda causa de falha intermitente,
+não relacionada ao React: sob contenção real alta, o Postgres ocasionalmente escolhe
+esta transação como vítima de deadlock (`40P01`), que o route handler tratava como
+`INTERNAL_ERROR` genérico em vez de um caso recuperável. Corrigido com um retry único da
+RPC `create_public_booking` especificamente para `40P01` (deadlocks do Postgres resolvem
+por retry — por definição, uma das duas transações em impasse é sempre abortada pelo
+próprio Postgres, a outra sempre prossegue). Confirmado a funcionar: em execuções
+sucessivas capturou-se o evento `booking.public.deadlock_retry` a disparar e o teste a
+continuar a passar (zero eventos `error` no log correspondentes).
+
+Gate de aceitação cumprido: 20/20 (2 concorrentes, incluindo um lote de 40 execuções que
+capturou o deadlock ocorrendo 2× e o retry a resolvê-lo), 10/10 (3 concorrentes), 5/5 (5
+concorrentes) — exatamente uma reserva vencedora e exatamente 1 `appointments` por rodada
+em todas as execuções.
+
+Não resolvido nesta sessão (fora de escopo, ver "CI não cobre isto" abaixo): o job
+`e2e-critical` no CI. `tests/e2e/**` continua a não correr automaticamente — uma
+regressão futura neste fluxo pode voltar a passar despercebida como aconteceu com o PR
+#135 original.
+
+---
 
 ## Contexto
 

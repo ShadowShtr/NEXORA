@@ -58,7 +58,10 @@ describe('confirmationReducer', () => {
 
   it('submitting -> error on any other error code', () => {
     const submitting: ConfirmationState = { status: 'submitting' };
-    const next = confirmationReducer(submitting, { type: 'RESULT_RECEIVED', result: internalError });
+    const next = confirmationReducer(submitting, {
+      type: 'RESULT_RECEIVED',
+      result: internalError,
+    });
     expect(next).toEqual({ status: 'error', message: internalError.message });
   });
 
