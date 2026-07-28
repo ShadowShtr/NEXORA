@@ -1,19 +1,13 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { useEffect, useState } from 'react';
+import { AuthShell } from '@/features/auth/AuthShell';
+import { DefinirPasswordForm } from '@/features/auth/DefinirPasswordForm';
 import { createClient } from '@/lib/supabase/client';
-import { updatePassword } from '@/features/auth/actions';
-import type { Result } from '@/lib/result';
 
 type SessionState = 'checking' | 'ready' | 'invalid';
 
 export default function UpdatePasswordPage() {
-  const [state, formAction, pending] = useActionState<Result<null> | null, FormData>(
-    updatePassword,
-    null,
-  );
   const [session, setSession] = useState<SessionState>('checking');
 
   useEffect(() => {
@@ -52,55 +46,31 @@ export default function UpdatePasswordPage() {
 
   if (session === 'checking') {
     return (
-      <main className="shell centered">
-        <Card className="auth-card">
-          <p>A validar o link de recuperação…</p>
-        </Card>
-      </main>
+      <AuthShell>
+        <p className="login-subtitle" aria-live="polite">
+          A validar o link de recuperação…
+        </p>
+      </AuthShell>
     );
   }
 
   if (session === 'invalid') {
     return (
-      <main className="shell centered">
-        <Card className="auth-card">
-          <p className="eyebrow">Área da profissional</p>
-          <h1>Link inválido ou expirado</h1>
-          <p>Peça um novo link de recuperação.</p>
-          <a className="link-button" href="/recuperar-password">
+      <AuthShell>
+        <h1 className="login-title">Link inválido ou expirado</h1>
+        <p className="login-subtitle">Peça um novo link de recuperação.</p>
+        <footer className="login-footer">
+          <a className="login-forgot-link" href="/recuperar-password">
             Pedir novo link
           </a>
-        </Card>
-      </main>
+        </footer>
+      </AuthShell>
     );
   }
 
   return (
-    <main className="shell centered">
-      <Card className="auth-card">
-        <p className="eyebrow">Área da profissional</p>
-        <h1>Definir nova palavra-passe</h1>
-        <form className="stack" aria-label="Definir nova palavra-passe" action={formAction}>
-          <label>
-            Nova palavra-passe
-            <input
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </label>
-          {state && !state.ok ? (
-            <p role="alert" className="form-error">
-              {state.error.message}
-            </p>
-          ) : null}
-          <Button type="submit" disabled={pending}>
-            {pending ? 'A guardar…' : 'Guardar palavra-passe'}
-          </Button>
-        </form>
-      </Card>
-    </main>
+    <AuthShell>
+      <DefinirPasswordForm />
+    </AuthShell>
   );
 }

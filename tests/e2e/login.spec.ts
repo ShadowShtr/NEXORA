@@ -33,6 +33,32 @@ test.describe('login / logout (NEX-020)', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test('reveals the password when the show/hide toggle is clicked', async ({ page }) => {
+    await page.goto('/login');
+    const passwordInput = page.getByLabel('Palavra-passe');
+    await passwordInput.fill('some-password');
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+
+    await page.getByRole('button', { name: 'Mostrar palavra-passe' }).click();
+    await expect(passwordInput).toHaveAttribute('type', 'text');
+
+    await page.getByRole('button', { name: 'Ocultar palavra-passe' }).click();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  test('redirects an already-authenticated visitor away from /login, back to /dashboard', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.getByLabel('E-mail').fill(user.email);
+    await page.getByLabel('Palavra-passe').fill(user.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
   test('logs in successfully and can log out', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('E-mail').fill(user.email);
