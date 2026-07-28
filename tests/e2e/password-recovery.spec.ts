@@ -22,8 +22,37 @@ test.describe('password recovery (NEX-021)', () => {
   test('does not reveal whether an e-mail exists', async ({ page }) => {
     await page.goto('/recuperar-password');
     await page.getByLabel('E-mail').fill(`does-not-exist-${Date.now()}@example.test`);
-    await page.getByRole('button', { name: 'Enviar link de recuperação' }).click();
+    await page.getByRole('button', { name: 'Enviar ligação de recuperação' }).click();
     await expect(page.getByRole('heading', { name: 'Verifique o seu e-mail' })).toBeVisible();
+  });
+
+  test('blocks submission on a weak password or a mismatched confirmation', async ({ page }) => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://127.0.0.1:3000';
+    const { data, error } = await user.admin.auth.admin.generateLink({
+      type: 'recovery',
+      email: user.email,
+      options: { redirectTo: `${appUrl}/definir-password` },
+    });
+    if (error) throw error;
+
+    await page.goto(data.properties.action_link);
+    await expect(page.getByRole('heading', { name: 'Definir nova palavra-passe' })).toBeVisible();
+    const submitButton = page.getByRole('button', { name: 'Guardar palavra-passe' });
+
+    // Missing uppercase/digit: the live checklist keeps the button disabled.
+    await page.getByLabel('Nova palavra-passe', { exact: true }).fill('onlylowercase');
+    await expect(submitButton).toBeDisabled();
+
+    // A strong password that doesn't match its confirmation is also blocked, with an
+    // inline message — not a silent no-op.
+    await page.getByLabel('Nova palavra-passe', { exact: true }).fill('NovaPass1');
+    await page.getByLabel('Confirmar palavra-passe').fill('NovaPass2');
+    await expect(page.getByText('As palavras-passe não coincidem.')).toBeVisible();
+    await expect(submitButton).toBeDisabled();
+
+    // Making them match re-enables it.
+    await page.getByLabel('Confirmar palavra-passe').fill('NovaPass1');
+    await expect(submitButton).toBeEnabled();
   });
 
   test('completes the recovery flow with a real link, enforces single use, and logs in with the new password', async ({
@@ -42,6 +71,7 @@ test.describe('password recovery (NEX-021)', () => {
 
     const newPassword = `NovaPass-${Date.now()}!`;
     await page.getByLabel('Nova palavra-passe', { exact: true }).fill(newPassword);
+    await page.getByLabel('Confirmar palavra-passe').fill(newPassword);
     await page.getByRole('button', { name: 'Guardar palavra-passe' }).click();
     await expect(page).toHaveURL(/\/dashboard/);
 

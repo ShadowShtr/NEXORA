@@ -1,55 +1,30 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { getOptionalProfile } from '@/lib/auth/require-profile';
+import { AuthShell } from '@/features/auth/AuthShell';
+import { LoginForm } from '@/features/auth/LoginForm';
 
-import { Suspense, useActionState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { login } from '@/features/auth/actions';
-import type { Result } from '@/lib/result';
+// A signed-in visitor landing on /login (an old bookmark, browser back button) used
+// to just see the form again — harmless, but not what a "porta de entrada" should
+// do. Checked server-side, before anything renders, so there's no flash of the form
+// first.
+//
+// Deliberately reuses getOptionalProfile() (claims *and* a profile row) rather than a
+// bare supabase.auth.getClaims() check — confirmed live that the bare-claims version
+// deadlocks into a redirect loop for the "authenticated, no profile" case
+// (protected-routes.spec.ts): requireProfile() signs the session out before bouncing
+// here with ?error=no_profile, but that sign-out happens mid-render in a plain Server
+// Component, and the still-valid JWT can outlive it long enough for a bare claims
+// check to see a "logged in" session and bounce straight back to /dashboard, which
+// signs out and bounces here again, forever. Gating on profile existence instead
+// breaks the cycle regardless of that timing: a profile-less session is never one
+// this page should redirect away on, since /dashboard would just reject it again.
+export default async function LoginPage() {
+  const profile = await getOptionalProfile();
+  if (profile) redirect('/dashboard');
 
-function NoProfileNotice() {
-  const searchParams = useSearchParams();
-  if (searchParams.get('error') !== 'no_profile') return null;
   return (
-    <p role="alert" className="form-error">
-      Esta conta ainda não está configurada. Contacte o suporte.
-    </p>
-  );
-}
-
-export default function LoginPage() {
-  const [state, formAction, pending] = useActionState<Result<null> | null, FormData>(login, null);
-
-  return (
-    <main className="shell centered">
-      <Card className="auth-card">
-        <p className="eyebrow">Área da profissional</p>
-        <h1>Entrar</h1>
-        <form className="stack" aria-label="Iniciar sessão" action={formAction}>
-          <label>
-            E-mail
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-          <label>
-            Palavra-passe
-            <input name="password" type="password" autoComplete="current-password" required />
-          </label>
-          <Suspense fallback={null}>
-            <NoProfileNotice />
-          </Suspense>
-          {state && !state.ok ? (
-            <p role="alert" className="form-error">
-              {state.error.message}
-            </p>
-          ) : null}
-          <Button type="submit" disabled={pending}>
-            {pending ? 'A entrar…' : 'Entrar'}
-          </Button>
-          <a className="link-button" href="/recuperar-password">
-            Esqueceu-se da palavra-passe?
-          </a>
-        </form>
-      </Card>
-    </main>
+    <AuthShell>
+      <LoginForm />
+    </AuthShell>
   );
 }
