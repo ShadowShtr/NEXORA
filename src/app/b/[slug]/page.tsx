@@ -1,5 +1,7 @@
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { AtSign, Calendar, ChevronRight, MapPin, MessageCircle, Phone, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { getOptionalProfile } from '@/lib/auth/require-profile';
@@ -32,7 +34,20 @@ type PublicBusinessHourRow = {
 // below relies on the anon RLS policies already proven since NEX-012/NEX-035
 // (tenants.status='active', business_settings.published_at is not null,
 // services/packages.is_active, service_categories.is_visible).
-async function loadPublicProfile(slug: string) {
+//
+// NEX-PUBLIC-404-001: wrapped in React's cache() so generateMetadata() below and the
+// page component share one execution per request instead of querying twice — the
+// reason generateMetadata calls this at all (rather than just the page component,
+// like before) is that this route has a sibling loading.tsx (perceived-performance
+// fix for the "Continuar" gap between steps). A loading.tsx makes Next start
+// streaming the fallback shell — status 200 — immediately; notFound() called from
+// deeper inside the page component after that point can still swap in the 404 UI,
+// but the response's status line was already sent, so it stays 200 (confirmed live:
+// curl against a slug that was never created returned 200, and disabling
+// loading.tsx as a one-off experiment made it correctly return 404). generateMetadata
+// runs and resolves *before* that shell streams, so notFound() called there — not
+// just in the page component — is what actually fixes the status code.
+async function loadPublicProfileUncached(slug: string) {
   const supabase = await createClient();
 
   const { data: tenant, error: tenantError } = await supabase
@@ -145,6 +160,20 @@ async function loadPublicProfile(slug: string) {
     // convention as dashboard/page.tsx's loadDashboardData).
     nowMs: Date.now(),
   };
+}
+// Deduped per request: generateMetadata() and the page component below both need
+// this, and without cache() that would mean two full round-trips instead of one.
+const loadPublicProfile = cache(loadPublicProfileUncached);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const profile = await loadPublicProfile(slug);
+  if (!profile) notFound();
+  return { title: profile.tenant.name };
 }
 
 export default async function PublicBusinessPage({
