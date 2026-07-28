@@ -5,7 +5,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // NEX-065 acceptance criteria: "E2E corrida de reservas" — two visitors racing for the
 // same slot must not both succeed. appointments_no_overlap (NEX-063) is what actually
@@ -75,43 +75,48 @@ test.describe('public booking race (NEX-065)', () => {
     const contextB = await browser.newContext();
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
+    const flowA = new PublicBookingFlow(pageA);
+    const flowB = new PublicBookingFlow(pageB);
 
-    await pageA.goto(`/b/${user.slug}`);
-    await pageB.goto(`/b/${user.slug}`);
+    await flowA.startBooking(user.slug);
+    await flowB.startBooking(user.slug);
 
-    await pageA.getByRole('checkbox', { name: 'Verniz gel' }).check();
-    await pageB.getByRole('checkbox', { name: 'Verniz gel' }).check();
-
-    await pageA.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-    await pageB.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-
-    const firstSlotButtonA = pageA.locator('.public-slot-picker .public-slot-button').first();
-    const firstSlotButtonB = pageB.locator('.public-slot-picker .public-slot-button').first();
-    await expect(firstSlotButtonA).toBeVisible();
-    await expect(firstSlotButtonB).toBeVisible();
+    await flowA.selectService('Verniz gel');
+    await flowB.selectService('Verniz gel');
+    await flowA.continueFromServices();
+    await flowB.continueFromServices();
 
     // Both visitors see the same computed availability (identical tenant, identical
     // cart duration), so each one's first slot button is the same real-world instant —
     // picking "the first slot" on each page is picking the same slot.
-    await firstSlotButtonA.click();
-    await firstSlotButtonB.click();
+    await flowA.selectFirstAvailableTime();
+    await flowB.selectFirstAvailableTime();
+    await flowA.continueFromHorario();
+    await flowB.continueFromHorario();
 
-    await completeRegistration(pageA, 'Cliente A', '911111111');
-    await completeRegistration(pageB, 'Cliente B', '922222222');
+    await flowA.fillClientData({ name: 'Cliente A', phone: '911111111' });
+    await flowB.fillClientData({ name: 'Cliente B', phone: '922222222' });
 
-    const confirmA = pageA.getByRole('button', { name: 'Confirmar marcação' });
-    const confirmB = pageB.getByRole('button', { name: 'Confirmar marcação' });
+    const confirmA = pageA.locator('.public-resumo-confirm');
+    const confirmB = pageB.locator('.public-resumo-confirm');
 
     // Fire both confirmations as close to simultaneously as Playwright allows.
     await Promise.all([confirmA.click(), confirmB.click()]);
 
-    const successLocatorA = pageA.getByText('A sua marcação foi confirmada com sucesso.');
-    const successLocatorB = pageB.getByText('A sua marcação foi confirmada com sucesso.');
+    const successLocatorA = pageA.getByRole('heading', {
+      name: 'Marcação confirmada com sucesso!',
+    });
+    const successLocatorB = pageB.getByRole('heading', {
+      name: 'Marcação confirmada com sucesso!',
+    });
     const errorLocatorA = pageA.getByRole('alert');
     const errorLocatorB = pageB.getByRole('alert');
 
-    await expect(successLocatorA.or(errorLocatorA)).toBeVisible({ timeout: 15_000 });
-    await expect(successLocatorB.or(errorLocatorB)).toBeVisible({ timeout: 15_000 });
+    // Generous margin: both requests hit createPublicBooking at once, and the loser's
+    // path additionally waits on a redirect + a fresh /horario page load before its
+    // alert renders — slower than a single confirm under any normal load.
+    await expect(successLocatorA.or(errorLocatorA)).toBeVisible({ timeout: 30_000 });
+    await expect(successLocatorB.or(errorLocatorB)).toBeVisible({ timeout: 30_000 });
 
     const aSucceeded = await successLocatorA.isVisible();
     const bSucceeded = await successLocatorB.isVisible();
@@ -123,9 +128,10 @@ test.describe('public booking race (NEX-065)', () => {
     const loserError = aSucceeded ? errorLocatorB : errorLocatorA;
 
     await expect(loserError).toHaveText(/reservado por outra pessoa/);
-    // Cart survives: the loser's registration and selected service are still present,
-    // so they see the (refreshed) slot list rather than starting the whole flow over.
-    await expect(loserPage.getByRole('checkbox', { name: 'Verniz gel' })).toBeChecked();
+    // The loser is bounced back to /horario (see ResumoClient's SLOT_TAKEN handling) —
+    // their registration and selected service still survive in the draft, so they see
+    // the (refreshed) slot list rather than starting the whole flow over.
+    await expect(loserPage).toHaveURL(/\/horario\?slotTaken=1$/);
 
     const { count } = await user.admin
       .from('appointments')

@@ -6,7 +6,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration, selectFirstService, selectFirstSlot } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 async function publishTenantWithService(user: ProvisionedTestUser) {
   const { data: tenant } = await user.admin
@@ -54,13 +54,17 @@ test.describe('public pre-registration step (NEX-051)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
   let user: ProvisionedTestUser;
+  let flow: PublicBookingFlow;
 
   test.beforeEach(async ({ page }) => {
     user = await createProvisionedTestUser('nex051');
     await publishTenantWithService(user);
-    await page.goto(`/b/${user.slug}/servicos`);
-    await selectFirstService(page);
-    await selectFirstSlot(page);
+    flow = new PublicBookingFlow(page);
+    await flow.startBooking(user.slug);
+    await flow.selectService('Manicure');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
   });
 
   test.afterEach(async () => {
@@ -102,13 +106,13 @@ test.describe('public pre-registration step (NEX-051)', () => {
     await expect(page.locator('[role="alert"].form-error')).toContainText('e-mail');
   });
 
-  test('proceeds with just name and phone, email left empty', async ({ page }) => {
-    await completeRegistration(page, 'Ana Cliente', '911111111');
-    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
+  test('proceeds with just name and phone, email left empty', async () => {
+    await flow.fillClientData({ name: 'Ana Cliente', phone: '911111111' });
+    await flow.reviewBooking();
   });
 
   test('the back link on /resumo returns to the registration form', async ({ page }) => {
-    await completeRegistration(page, 'Ana Cliente', '911111111');
+    await flow.fillClientData({ name: 'Ana Cliente', phone: '911111111' });
     await page.getByRole('link', { name: 'Voltar' }).click();
     await expect(page.getByLabel('O seu nome')).toBeVisible();
   });
@@ -119,8 +123,8 @@ test.describe('public pre-registration step (NEX-051)', () => {
       .select('id')
       .eq('slug', user.slug)
       .single();
-    await completeRegistration(page, 'Ana Cliente', '911111111');
-    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
+    await flow.fillClientData({ name: 'Ana Cliente', phone: '911111111' });
+    await flow.reviewBooking();
 
     // "Abandon" — navigate away without ever clicking "Confirmar marcação".
     await page.goto('about:blank');

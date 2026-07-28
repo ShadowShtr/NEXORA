@@ -6,6 +6,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // Seeds two individual services (Verniz gel, Massagem) and one package that only
 // covers Verniz gel — Massagem stays a genuine "extra" the client can add on top,
@@ -73,15 +74,15 @@ test.describe('public services/packages selector (NEX-053)', () => {
   test('has no automatic accessibility violations with a package selected', async ({ page }) => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
-    await page.getByRole('tab', { name: 'Pacotes' }).click();
-    await page.getByRole('radio', { name: /Combo verniz/ }).check();
+    await flow.startBooking(user.slug);
+    await flow.selectPackage('Combo verniz');
 
     // Back on Serviços: this is where the package selection actually changes the
     // markup (disabled checkbox, "Incluído no pacote" note) — the more meaningful
     // surface to scan.
-    await page.getByRole('tab', { name: 'Serviços' }).click();
+    await flow.goToServicesTab();
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
@@ -92,12 +93,11 @@ test.describe('public services/packages selector (NEX-053)', () => {
   }) => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
-    await page.getByRole('tab', { name: 'Pacotes' }).click();
-    await page.getByRole('radio', { name: /Combo verniz/ }).check();
-
-    await page.getByRole('tab', { name: 'Serviços' }).click();
+    await flow.startBooking(user.slug);
+    await flow.selectPackage('Combo verniz');
+    await flow.goToServicesTab();
 
     // Verniz gel is covered by the package: shown as included, disabled, and not
     // separately billed.
@@ -105,12 +105,12 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await expect(vernizCheckbox).toBeChecked();
     await expect(vernizCheckbox).toBeDisabled();
     await expect(page.getByText('Incluído no pacote')).toBeVisible();
-    const bar = page.locator('.public-cart-bar');
+    const bar = flow.cartBar;
     await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
     await expect(bar.getByText('22,00 €')).toBeVisible();
 
     // Massagem is a genuine extra: adding it on top increases the total normally.
-    await page.getByRole('checkbox', { name: 'Massagem' }).check();
+    await flow.selectService('Massagem');
     await expect(bar.getByText('Total 2 Serviços')).toBeVisible();
     await expect(bar.getByText('52,00 €')).toBeVisible();
   });
@@ -120,53 +120,51 @@ test.describe('public services/packages selector (NEX-053)', () => {
   }) => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
+    await flow.startBooking(user.slug);
 
-    const bar = page.locator('.public-cart-bar');
-    await page.getByRole('checkbox', { name: /Verniz gel/ }).check();
+    const bar = flow.cartBar;
+    await flow.selectService('Verniz gel');
     await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
     await expect(bar.getByText('25,00 €')).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Pacotes' }).click();
-    await page.getByRole('radio', { name: /Combo verniz/ }).check();
+    await flow.selectPackage('Combo verniz');
 
     // The standalone selection is dropped, not added on top of the package.
     await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
     await expect(bar.getByText('22,00 €')).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Serviços' }).click();
+    await flow.goToServicesTab();
     await expect(page.getByRole('checkbox', { name: /Verniz gel/ })).toBeDisabled();
   });
 
   test('"Nenhum pacote" clears the package and restores normal selection', async ({ page }) => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
-    await page.getByRole('tab', { name: 'Pacotes' }).click();
-    await page.getByRole('radio', { name: /Combo verniz/ }).check();
+    await flow.startBooking(user.slug);
+    await flow.selectPackage('Combo verniz');
 
-    await page.getByRole('tab', { name: 'Serviços' }).click();
+    await flow.goToServicesTab();
     await expect(page.getByRole('checkbox', { name: /Verniz gel/ })).toBeDisabled();
 
-    await page.getByRole('tab', { name: 'Pacotes' }).click();
-    await page.getByRole('radio', { name: 'Nenhum pacote' }).check();
+    await flow.clearPackage();
 
-    await page.getByRole('tab', { name: 'Serviços' }).click();
+    await flow.goToServicesTab();
     const vernizCheckbox = page.getByRole('checkbox', { name: /Verniz gel/ });
     await expect(vernizCheckbox).toBeEnabled();
     await expect(vernizCheckbox).not.toBeChecked();
-    await expect(
-      page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }),
-    ).toBeDisabled();
+    await expect(flow.cartBar.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 
   test('is fully operable by keyboard alone', async ({ page }) => {
     user = await createProvisionedTestUser('nex053');
     await seedServicesAndPackage(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
+    await flow.startBooking(user.slug);
 
     const massagemCheckbox = page.getByRole('checkbox', { name: 'Massagem' });
     await massagemCheckbox.focus();
@@ -181,7 +179,7 @@ test.describe('public services/packages selector (NEX-053)', () => {
     await page.keyboard.press('Space');
     await expect(comboRadio).toBeChecked();
 
-    const bar = page.locator('.public-cart-bar');
+    const bar = flow.cartBar;
     await expect(bar.getByText('Total 2 Serviços')).toBeVisible();
     await expect(bar.getByText('52,00 €')).toBeVisible();
   });

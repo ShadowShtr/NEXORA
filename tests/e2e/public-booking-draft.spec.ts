@@ -6,7 +6,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration, selectFirstService, selectFirstSlot } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // Mirrors src/lib/booking-draft-crypto.ts#hashResumeToken exactly (SHA-256 hex) — kept
 // local instead of importing the `@/lib` alias, matching the other e2e specs, which
@@ -105,11 +105,14 @@ test.describe('public booking draft recovery (NEX-052)', () => {
     user = await createProvisionedTestUser('nex052');
     await publishTenantWithOneService(user);
 
+    const flow = new PublicBookingFlow(page);
     const key = draftStorageKey(user.slug);
-    await page.goto(`/b/${user.slug}/servicos`);
-    await selectFirstService(page);
-    await selectFirstSlot(page);
-    await completeRegistration(page, 'Ana Cliente', '911111111');
+    await flow.startBooking(user.slug);
+    await flow.selectService('Verniz gel');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
+    await flow.fillClientData({ name: 'Ana Cliente', phone: '911111111' });
     await waitForDraftToken(page, key);
 
     const tokenBeforeReload = await page.evaluate((k) => window.localStorage.getItem(k), key);
@@ -120,17 +123,17 @@ test.describe('public booking draft recovery (NEX-052)', () => {
     // Still on /resumo after reload — the draft carried selection, slot and
     // registration through, so the summary renders straight away instead of bouncing
     // back through /servicos -> /horario -> /dados again.
-    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
+    await flow.reviewBooking();
     await expect(page.getByText('Verniz gel')).toBeVisible();
     await expect(page.locator('.public-resumo-total-value')).toHaveText('25,00 €');
 
     // A fresh visit back to /servicos also resumes the same selection.
-    await page.goto(`/b/${user.slug}/servicos`);
+    await flow.startBooking(user.slug);
     await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).toBeChecked();
 
     // Continuing again reuses the same draft row/token instead of creating a new one
     // (saveBookingDraft's existingToken parameter) — no orphaned rows left behind.
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
+    await flow.cartBar.getByRole('button', { name: 'Continuar' }).click();
     await settleDraftSave(page);
     expect(await page.evaluate((k) => window.localStorage.getItem(k), key)).toBe(tokenBeforeReload);
   });
@@ -140,6 +143,7 @@ test.describe('public booking draft recovery (NEX-052)', () => {
   }) => {
     user = await createProvisionedTestUser('nex052');
     await publishTenantWithOneService(user);
+    const flow = new PublicBookingFlow(page);
     const key = draftStorageKey(user.slug);
 
     await page.addInitScript(({ k, bogus }) => window.localStorage.setItem(k, bogus), {
@@ -147,7 +151,7 @@ test.describe('public booking draft recovery (NEX-052)', () => {
       bogus: 'a'.repeat(64),
     });
 
-    const response = await page.goto(`/b/${user.slug}/servicos`);
+    const response = await flow.startBooking(user.slug);
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).not.toBeChecked();
 
@@ -160,12 +164,15 @@ test.describe('public booking draft recovery (NEX-052)', () => {
   }) => {
     user = await createProvisionedTestUser('nex052');
     const tenantId = await publishTenantWithOneService(user);
+    const flow = new PublicBookingFlow(page);
 
     const key = draftStorageKey(user.slug);
-    await page.goto(`/b/${user.slug}/servicos`);
-    await selectFirstService(page);
-    await selectFirstSlot(page);
-    await completeRegistration(page, 'Beatriz Cliente', '922222222');
+    await flow.startBooking(user.slug);
+    await flow.selectService('Verniz gel');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
+    await flow.fillClientData({ name: 'Beatriz Cliente', phone: '922222222' });
     await waitForDraftToken(page, key);
     const token = await page.evaluate((k) => window.localStorage.getItem(k), key);
 

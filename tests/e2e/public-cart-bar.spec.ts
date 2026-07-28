@@ -5,7 +5,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // Same overflow guard used for NEX-044 (catalog-mobile-layout.spec.ts) — the fixed cart
 // bar is exactly the kind of element (position: fixed, full width) that can silently
@@ -79,9 +79,10 @@ test.describe('public fixed cart bar (NEX-054)', () => {
   test('no horizontal overflow on a narrow viewport with the bar visible', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
-    await expect(page.locator('.public-cart-bar')).toBeVisible();
+    await flow.startBooking(user.slug);
+    await expect(flow.cartBar).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
   });
@@ -89,20 +90,21 @@ test.describe('public fixed cart bar (NEX-054)', () => {
   test('shows quantity and total live, and disables "Continuar" when empty', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
+    await flow.startBooking(user.slug);
 
-    const bar = page.locator('.public-cart-bar');
+    const bar = flow.cartBar;
     await expect(bar.getByText('Total 0 Serviços')).toBeVisible();
     await expect(bar.getByText('0,00 €')).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Continuar' })).toBeDisabled();
 
-    await page.getByRole('checkbox', { name: 'Serviço 0' }).check();
+    await flow.selectService('Serviço 0');
     await expect(bar.getByText('Total 1 Serviço')).toBeVisible();
     await expect(bar.getByText('10,00 €')).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Continuar' })).toBeEnabled();
 
-    await page.getByRole('checkbox', { name: 'Serviço 1' }).check();
+    await flow.selectService('Serviço 1');
     await expect(bar.getByText('Total 2 Serviços')).toBeVisible();
     await expect(bar.getByText('21,00 €')).toBeVisible();
   });
@@ -110,10 +112,11 @@ test.describe('public fixed cart bar (NEX-054)', () => {
   test('stays fixed at the same viewport position while the page scrolls', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
+    await flow.startBooking(user.slug);
 
-    const bar = page.locator('.public-cart-bar');
+    const bar = flow.cartBar;
     const before = await bar.boundingBox();
     expect(before).not.toBeNull();
 
@@ -130,17 +133,16 @@ test.describe('public fixed cart bar (NEX-054)', () => {
   test('"Continuar" advances through servicos -> horario -> dados -> resumo', async ({ page }) => {
     user = await createProvisionedTestUser('nex054');
     await seedManyServices(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}/servicos`);
-    await page.getByRole('checkbox', { name: 'Serviço 0' }).check();
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-    await expect(page).toHaveURL(/\/horario$/);
+    await flow.startBooking(user.slug);
+    await flow.selectService('Serviço 0');
+    await flow.continueFromServices();
 
-    await page.locator('.public-slot-picker .public-slot-button').first().click();
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-    await expect(page).toHaveURL(/\/dados$/);
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
 
-    await completeRegistration(page, 'Ana Cliente', '911111111');
-    await expect(page.getByRole('heading', { name: 'Resumo da marcação' })).toBeVisible();
+    await flow.fillClientData({ name: 'Ana Cliente', phone: '911111111' });
+    await flow.reviewBooking();
   });
 });

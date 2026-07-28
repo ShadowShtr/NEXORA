@@ -5,7 +5,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // "Consultar marcação por código" — end to end from a completed booking through the
 // confirmation screen's lookup code down to /marcacao resolving it back to the booking.
@@ -63,17 +63,17 @@ test.describe('booking lookup by code', () => {
   }) => {
     user = await createProvisionedTestUser('nexlookup');
     await seedOpenTenant(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}`);
-    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-    await page.locator('.public-slot-picker .public-slot-button').first().click();
-    await completeRegistration(page, 'Cliente Lookup', '911111111');
-    await page.getByRole('button', { name: 'Confirmar marcação' }).click();
-
-    await expect(page.getByText('A sua marcação foi confirmada com sucesso.')).toBeVisible({
-      timeout: 15_000,
-    });
+    await flow.startBooking(user.slug);
+    await flow.selectService('Verniz gel');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
+    await flow.fillClientData({ name: 'Cliente Lookup', phone: '911111111' });
+    await flow.reviewBooking();
+    await flow.confirmBooking();
+    await flow.expectConfirmation();
 
     const codeText = await page.locator('.public-lookup-code-value').textContent();
     const code = codeText!.trim();
