@@ -112,8 +112,13 @@ test.describe('public booking race (NEX-065)', () => {
     const successLocatorB = pageB.getByRole('heading', {
       name: 'Marcação confirmada com sucesso!',
     });
-    const errorLocatorA = pageA.getByRole('alert');
-    const errorLocatorB = pageB.getByRole('alert');
+    // Scoped to .form-error, not a bare getByRole('alert') — Next.js's App Router ships
+    // its own route-announcer div with role="alert" on every page (for a11y route-change
+    // announcements), which is present and "visible" before the confirm click even
+    // resolves. A bare getByRole('alert') matches that announcer too and resolves
+    // immediately, without ever waiting for the real SLOT_TAKEN error to render.
+    const errorLocatorA = pageA.locator('.form-error[role="alert"]');
+    const errorLocatorB = pageB.locator('.form-error[role="alert"]');
 
     // Generous margin: both requests hit createPublicBooking at once, and the loser's
     // path additionally waits on a redirect + a fresh /horario page load before its
