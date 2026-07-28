@@ -3070,6 +3070,36 @@ body[data-sheet-open='true'] .agenda-fab,
   font-weight: 600;
 }
 
+/* A sheet pinned to the viewport's bottom edge, full width, is a mobile affordance —
+   on a tablet or desktop window it just reads as an oversized bar (reported: "no
+   desktop essa aba fica enorme"). Tablet turns it into a centered dialog; desktop
+   widens it further rather than reusing the same size ("desktop deve ampliar, não
+   duplicar", CLAUDE.md). Scoped to .bottom-sheet specifically (not the bare
+   .sheet-handle/.sheet-header classes) so the agenda's own .completion-sheet — under
+   its own mobile-fidelity rules — is untouched. */
+@media (min-width: 761px) {
+  .bottom-sheet {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(520px, calc(100% - 48px));
+    max-height: 85vh;
+    padding: 1.25rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 1.75rem;
+  }
+  .bottom-sheet .sheet-handle {
+    display: none;
+  }
+}
+@media (min-width: 1024px) {
+  .bottom-sheet {
+    width: min(640px, calc(100% - 64px));
+    padding: 1.5rem 2rem calc(1.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Generic form field styling — service/package editor sheets */
 .service-editor-form {
   /* flex column, not the scrolling element itself: .service-editor-fields below is the
