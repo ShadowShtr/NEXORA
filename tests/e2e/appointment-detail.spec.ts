@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { formatInTimeZone } from 'date-fns-tz';
 import {
   canUseSupabase,
   cleanupProvisionedTestUser,
@@ -103,18 +102,27 @@ test.describe('appointment detail page (NEX-084)', () => {
     expect(appointment?.status).toBe('cancelled');
   });
 
-  test('rescheduling to a new time updates start_at', async ({ page }) => {
+  test('rescheduling picks a real available slot and updates start_at', async ({ page }) => {
     user = await createProvisionedTestUser('nex084-reschedule');
     const { data: tenant } = await user.admin
       .from('tenants')
       .select('id')
       .eq('slug', user.slug)
       .single();
-    const appointmentId = await seedAppointment(
-      user,
-      tenant!.id,
-      new Date(Date.now() + 24 * 60 * 60_000),
+    // Reagendar now picks from real computed availability (AvailabilityCalendar) instead
+    // of a blind date/time input — needs actual open business_hours to have anything to
+    // offer (provision_tenant_owner doesn't create any by default).
+    await user.admin.from('business_hours').insert(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        tenant_id: tenant!.id,
+        day_of_week: dayOfWeek,
+        is_open: true,
+        opens_at: '00:00',
+        closes_at: '23:30',
+      })),
     );
+    const originalStart = new Date(Date.now() + 24 * 60 * 60_000);
+    const appointmentId = await seedAppointment(user, tenant!.id, originalStart);
 
     await page.goto('/login');
     await page.getByLabel('E-mail').fill(user.email);
@@ -125,13 +133,9 @@ test.describe('appointment detail page (NEX-084)', () => {
     await page.goto(`/dashboard/agenda/${appointmentId}`);
     await page.getByRole('button', { name: 'Reagendar' }).click();
 
-    const newStart = new Date(Date.now() + 72 * 60 * 60_000);
-    // Filled as the tenant's own business timezone would show it (Europe/Lisbon,
-    // business_settings' default) — not the test runner machine's own OS timezone,
-    // which the input's conversion (fromZonedTime, AppointmentPrimaryActions.tsx) never
-    // sees or cares about either.
-    const localValue = formatInTimeZone(newStart, 'Europe/Lisbon', "yyyy-MM-dd'T'HH:mm");
-    await page.getByLabel('Novo horário').fill(localValue);
+    const firstSlot = page.locator('.public-slot-list .public-slot-button').first();
+    await firstSlot.waitFor({ state: 'visible', timeout: 15_000 });
+    await firstSlot.click();
     await page.getByRole('button', { name: 'Confirmar novo horário' }).click();
 
     await expect(page.getByText('Marcação reagendada.')).toBeVisible();
@@ -141,10 +145,10 @@ test.describe('appointment detail page (NEX-084)', () => {
       .select('start_at')
       .eq('id', appointmentId)
       .single();
-    // Allow a small tolerance for the datetime-local minute-level precision.
-    expect(Math.abs(new Date(appointment!.start_at).getTime() - newStart.getTime())).toBeLessThan(
-      60_000,
-    );
+    // The picked slot came from the server's own availability computation, not test-side
+    // date arithmetic — the only thing worth asserting here is that start_at genuinely
+    // moved away from the original seeded instant.
+    expect(new Date(appointment!.start_at).getTime()).not.toBe(originalStart.getTime());
   });
 
   // NEX-095: "Registar" falta — mirrors the cancel test's two-step confirm pattern.

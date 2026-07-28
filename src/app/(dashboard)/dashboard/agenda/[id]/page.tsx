@@ -207,6 +207,7 @@ export default async function AppointmentDetailPage({
           <AppointmentPrimaryActions
             appointmentId={appointment.id}
             timezone={timezone}
+            totalMinutes={totalMinutes}
             canReschedule={isActive}
             whatsappHref={whatsappHref}
           />
