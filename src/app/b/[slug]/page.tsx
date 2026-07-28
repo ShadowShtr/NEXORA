@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AtSign, Calendar, ChevronRight, MapPin, MessageCircle, Phone, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { getOptionalProfile } from '@/lib/auth/require-profile';
 import { resolveLocationUrl } from '@/lib/open-location';
 import { initials } from '@/lib/initials';
 import { buildWhatsappDeepLink } from '@/features/appointments/domain/appointment-card';
@@ -46,7 +47,7 @@ async function loadPublicProfile(slug: string) {
   const { data: settings, error: settingsError } = await supabase
     .from('business_settings')
     .select(
-      'professional_name, phone_e164, address_line, postal_code, locality, maps_url, timezone, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled',
+      'professional_name, phone_e164, address_line, postal_code, locality, maps_url, timezone, specialty, about_description, instagram_handle, logo_path, cover_image_path, booking_enabled, published_at',
     )
     .eq('tenant_id', tenant.id)
     .maybeSingle();
@@ -54,16 +55,35 @@ async function loadPublicProfile(slug: string) {
     throw new Error(`loadPublicProfile: business_settings query failed: ${settingsError.message}`);
   }
   // No `published_at` (business_settings) means the public policies (status='active',
-  // published_at is not null) never matched in the first place — settings will be null.
+  // published_at is not null) never matched in the first place — settings will be null
+  // for a genuine anonymous visitor. It won't be null here for the tenant's own owner,
+  // even pre-publish: her own authenticated tenant-scoped policy (business_settings_select,
+  // 0001_initial.sql) grants access regardless of published_at, same as every other
+  // table below except business_hours (see isOwnerPreview below).
   if (!settings) return null;
+
+  // NEX-142: "Mudanças visuais sem publicar acidentalmente" — the owner must be able to
+  // preview her own still-unpublished page. getOptionalProfile() never redirects (unlike
+  // requireProfile()), so this stays safe for a genuine anonymous visitor.
+  const viewerProfile = await getOptionalProfile();
+  const isOwnerPreview = viewerProfile?.tenantId === tenant.id;
 
   const [{ data: hoursRows }, { count: activeServicesCount }, { count: activePackagesCount }] =
     await Promise.all([
-      // business_hours has no anon policy of its own by design (docs/04_DATA_MODEL.md)
-      // — this narrow security-definer RPC (0030_business_public_profile.sql) is the
-      // only public window into it, same minimal-surface pattern as the availability
-      // engine's own RPC.
-      supabase.rpc('get_public_business_hours', { p_tenant_id: tenant.id }),
+      isOwnerPreview
+        ? // Read the table directly: her own authenticated policy (business_hours_select,
+          // tenant_id = current_tenant_id()) grants this regardless of published_at, unlike
+          // the RPC below (security definer, hardcodes the published-only check for every
+          // caller — NEX-166/0038 — so it can't tell the owner apart from a stranger).
+          supabase
+            .from('business_hours')
+            .select('day_of_week, is_open, opens_at, closes_at')
+            .eq('tenant_id', tenant.id)
+        : // business_hours has no anon policy of its own by design (docs/04_DATA_MODEL.md)
+          // — this narrow security-definer RPC (0030_business_public_profile.sql) is the
+          // only public window into it for a genuine visitor, same minimal-surface pattern
+          // as the availability engine's own RPC.
+          supabase.rpc('get_public_business_hours', { p_tenant_id: tenant.id }),
       supabase
         .from('services')
         .select('id', { count: 'exact', head: true })
@@ -92,6 +112,7 @@ async function loadPublicProfile(slug: string) {
     // a single row, and rejects the array shape at the type level either way.
     hoursRows: (hoursRows ?? []) as PublicBusinessHourRow[],
     hasActiveCatalog: (activeServicesCount ?? 0) + (activePackagesCount ?? 0) > 0,
+    isOwnerPreview,
     logoUrl,
     coverUrl,
     // Read here, inside a plain async function the component calls once — not in the
@@ -110,7 +131,17 @@ export default async function PublicBusinessPage({
   const profile = await loadPublicProfile(slug);
   if (!profile) notFound();
 
-  const { tenant, settings, hoursRows, hasActiveCatalog, logoUrl, coverUrl, nowMs } = profile;
+  const {
+    tenant,
+    settings,
+    hoursRows,
+    hasActiveCatalog,
+    isOwnerPreview,
+    logoUrl,
+    coverUrl,
+    nowMs,
+  } = profile;
+  const isUnpublishedPreview = isOwnerPreview && !settings.published_at;
   const timezone = settings.timezone ?? 'Europe/Lisbon';
   const hoursSummary = resolveTodayHoursSummary(
     hoursRows.map((row) => ({
@@ -146,6 +177,11 @@ export default async function PublicBusinessPage({
 
   return (
     <div className="public-profile-page">
+      {isUnpublishedPreview ? (
+        <p className="public-preview-banner">
+          Pré-visualização — esta página ainda não está publicada. As clientes não conseguem vê-la.
+        </p>
+      ) : null}
       <div className="public-cover">
         {coverUrl ? (
           // Public bucket URL, not an asset next/image needs to sign or refresh.
