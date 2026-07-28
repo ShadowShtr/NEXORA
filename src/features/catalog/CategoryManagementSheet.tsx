@@ -174,10 +174,11 @@ export function CategoryManagementSheet({
             required
             maxLength={80}
             placeholder="Nova categoria"
+            aria-label="Nova categoria"
             className="form-input"
           />
           <Button type="submit" disabled={createPending}>
-            {createPending ? 'A criar…' : '+ Adicionar categoria'}
+            {createPending ? 'A criar…' : 'Criar categoria'}
           </Button>
         </form>
         {createState && !createState.ok ? (

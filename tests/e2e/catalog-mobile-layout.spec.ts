@@ -43,26 +43,40 @@ test.describe('catalog mobile layout (NEX-044)', () => {
   });
 
   test('no horizontal overflow once a category, service and package exist', async ({ page }) => {
-    await page.getByRole('textbox', { name: 'Nova categoria' }).fill('Manicure');
-    await page.getByRole('button', { name: 'Criar categoria' }).click();
-    await page.getByLabel('Nome da categoria Manicure').waitFor();
+    // exact:true: a category-less tenant also shows a "Gerir categorias" empty-state
+    // button (same effect, different trigger) — a plain substring match would catch
+    // both.
+    await page.getByRole('button', { name: 'Gerir', exact: true }).click();
+    const categorySheet = page.getByRole('dialog', { name: 'Gerir categorias' });
+    await categorySheet.getByRole('textbox', { name: 'Nova categoria' }).fill('Manicure');
+    await categorySheet.getByRole('button', { name: 'Criar categoria' }).click();
+    await categorySheet.getByRole('button', { name: 'Manicure', exact: true }).waitFor();
+    await categorySheet.getByRole('button', { name: 'Fechar' }).click();
 
-    const serviceForm = page.locator('form[aria-label="Novo serviço"]');
-    await serviceForm.locator('input[name="name"]').fill('Verniz gel');
-    await serviceForm.locator('input[name="priceEuros"]').fill('25,00');
-    await serviceForm.locator('input[name="durationMinutes"]').fill('60');
-    await serviceForm.getByRole('button', { name: 'Criar serviço' }).click();
-    await page.locator('section[aria-label="Serviços"] .catalog-row').first().waitFor();
+    // The header's "Novo serviço" and the floating action button share the same
+    // accessible name outside the Pacotes tab (ServicesFab) — scoped to the header
+    // trigger's own class to disambiguate.
+    await page.locator('.services-header button.new-service-button').click();
+    const serviceSheet = page.getByRole('dialog', { name: 'Novo serviço' });
+    await serviceSheet.locator('#service-name').fill('Verniz gel');
+    await serviceSheet.locator('#service-price').fill('25,00');
+    await serviceSheet.getByRole('button', { name: '60 min' }).click();
+    await serviceSheet.getByRole('button', { name: 'Criar serviço' }).click();
+    await page.locator('.service-card-name', { hasText: 'Verniz gel' }).waitFor();
 
-    const packageForm = page.locator('form[aria-label="Novo pacote"]');
-    await packageForm.locator('input[name="name"]').fill('Combo longo para testar overflow');
-    await packageForm.locator('input[name="priceEuros"]').fill('45,00');
-    await packageForm.getByLabel('Escolher serviço para adicionar').selectOption({
+    await page.getByRole('link', { name: 'Pacotes', exact: true }).click();
+    await page.getByRole('button', { name: 'Novo pacote' }).click();
+    const packageSheet = page.getByRole('dialog', { name: 'Novo pacote' });
+    await packageSheet.locator('input[name="name"]').fill('Combo longo para testar overflow');
+    await packageSheet.locator('input[name="priceEuros"]').fill('45,00');
+    await packageSheet.getByLabel('Escolher serviço para adicionar').selectOption({
       label: 'Verniz gel · 60 min',
     });
-    await packageForm.getByRole('button', { name: 'Adicionar' }).click();
-    await packageForm.getByRole('button', { name: 'Criar pacote' }).click();
-    await page.locator('section[aria-label="Pacotes"] .catalog-row').first().waitFor();
+    await packageSheet.getByRole('button', { name: 'Adicionar' }).click();
+    await packageSheet.getByRole('button', { name: 'Criar pacote' }).click();
+    await page
+      .locator('.service-card-name', { hasText: 'Combo longo para testar overflow' })
+      .waitFor();
 
     await expectNoHorizontalOverflow(page);
   });

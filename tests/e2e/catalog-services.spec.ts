@@ -7,16 +7,24 @@ import {
   type ProvisionedTestUser,
 } from './support/provisioned-user';
 
+// Categories and services now live behind dedicated sheets (CategoryManagementSheet,
+// ServiceEditorSheet) instead of inline forms in the main list — "a lista serve para
+// consultar e gerir rapidamente; os formulários pertencem a telas separadas" (Serviços
+// reference, src/app/(dashboard)/dashboard/servicos/page.tsx). These helpers open the
+// relevant sheet, act, and (for categories) close it again so the next helper can open
+// a different one — only one sheet can be open at a time (CatalogSheetProvider).
 async function createCategory(page: Page, name: string) {
-  await page.getByRole('textbox', { name: 'Nova categoria' }).fill(name);
-  await page.getByRole('button', { name: 'Criar categoria' }).click();
-  await expect(page.getByLabel(`Nome da categoria ${name}`)).toBeVisible();
-}
-
-// Row forms and the "Novo serviço" create form share field names/labels — scope every
-// locator to one or the other explicitly instead of guessing DOM order or index.
-function createServiceForm(page: Page) {
-  return page.locator('form[aria-label="Novo serviço"]');
+  // exact:true: a category-less tenant also shows a "Gerir categorias" empty-state
+  // button (same effect, different trigger) — a plain substring match would catch
+  // both.
+  await page.getByRole('button', { name: 'Gerir', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Gerir categorias' });
+  await sheet.getByRole('textbox', { name: 'Nova categoria' }).fill(name);
+  await sheet.getByRole('button', { name: 'Criar categoria' }).click();
+  // The name renders as a click-to-edit button (.category-management-name) — its
+  // "Nome da categoria X" aria-label only exists on the swapped-in rename input.
+  await expect(sheet.getByRole('button', { name, exact: true })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Fechar' }).click();
 }
 
 async function createService(
@@ -25,13 +33,18 @@ async function createService(
     name,
     priceEuros,
     durationMinutes,
-  }: { name: string; priceEuros: string; durationMinutes?: string },
+  }: { name: string; priceEuros: string; durationMinutes?: number },
 ) {
-  const form = createServiceForm(page);
-  await form.locator('input[name="name"]').fill(name);
-  await form.locator('input[name="priceEuros"]').fill(priceEuros);
-  if (durationMinutes) await form.locator('input[name="durationMinutes"]').fill(durationMinutes);
-  await form.getByRole('button', { name: 'Criar serviço' }).click();
+  // The header's "Novo serviço" and the floating action button share the same
+  // accessible name once a category exists (ServicesFab is also labelled "Novo
+  // serviço" outside the Pacotes tab) — scoped to the header trigger's own class to
+  // disambiguate.
+  await page.locator('.services-header button.new-service-button').click();
+  const sheet = page.getByRole('dialog', { name: 'Novo serviço' });
+  await sheet.locator('#service-name').fill(name);
+  await sheet.locator('#service-price').fill(priceEuros);
+  if (durationMinutes) await sheet.getByRole('button', { name: `${durationMinutes} min` }).click();
+  await sheet.getByRole('button', { name: 'Criar serviço' }).click();
 }
 
 test.describe('catalog services CRUD (NEX-041)', () => {
@@ -66,10 +79,9 @@ test.describe('catalog services CRUD (NEX-041)', () => {
 
   test('creates a service, storing the price as integer cents', async ({ page }) => {
     await createCategory(page, 'Manicure');
-    await createService(page, { name: 'Verniz gel', priceEuros: '25,50', durationMinutes: '45' });
+    await createService(page, { name: 'Verniz gel', priceEuros: '25,50', durationMinutes: 45 });
 
-    const row = page.locator('section[aria-label="Serviços"] .catalog-row').first();
-    await expect(row.locator('input[name="name"]')).toHaveValue('Verniz gel');
+    await expect(page.locator('.service-card-name').first()).toHaveText('Verniz gel');
 
     const { data: tenant } = await user.admin
       .from('tenants')
@@ -88,34 +100,34 @@ test.describe('catalog services CRUD (NEX-041)', () => {
   test('rejects a duplicate service name with a friendly error', async ({ page }) => {
     await createCategory(page, 'Manicure');
     await createService(page, { name: 'Verniz gel', priceEuros: '25,00' });
-    await expect(
-      page
-        .locator('section[aria-label="Serviços"] .catalog-row')
-        .first()
-        .locator('input[name="name"]'),
-    ).toHaveValue('Verniz gel');
+    await expect(page.locator('.service-card-name').first()).toHaveText('Verniz gel');
 
-    await createService(page, { name: 'Verniz gel', priceEuros: '30,00' });
-    await expect(createServiceForm(page).locator('[role="alert"].form-error')).toContainText(
-      'Já existe',
-    );
-    // Still only the one row — the duplicate attempt was rejected, not persisted.
-    await expect(page.locator('section[aria-label="Serviços"] .catalog-row')).toHaveCount(1);
+    await page.locator('.services-header button.new-service-button').click();
+    const sheet = page.getByRole('dialog', { name: 'Novo serviço' });
+    await sheet.locator('#service-name').fill('Verniz gel');
+    await sheet.locator('#service-price').fill('30,00');
+    await sheet.getByRole('button', { name: 'Criar serviço' }).click();
+    await expect(sheet.locator('[role="alert"].form-error')).toContainText('Já existe');
+
+    await sheet.getByRole('button', { name: 'Fechar' }).click();
+    // Still only the one card — the duplicate attempt was rejected, not persisted.
+    await expect(page.locator('.service-card-item')).toHaveCount(1);
   });
 
   test('edits a service (name, price, duration, category)', async ({ page }) => {
     await createCategory(page, 'Manicure');
     await createCategory(page, 'Pedicure');
     await createService(page, { name: 'Verniz gel', priceEuros: '25,00' });
+    await expect(page.locator('.service-card-name').first()).toHaveText('Verniz gel');
 
-    const row = page.locator('section[aria-label="Serviços"] .catalog-row').first();
-    await expect(row.locator('input[name="name"]')).toHaveValue('Verniz gel');
+    await page.locator('.service-card-open', { hasText: 'Verniz gel' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Editar serviço' });
+    await sheet.locator('#service-name').fill('Verniz gel premium');
+    await sheet.locator('#service-price').fill('35,00');
+    await sheet.locator('#service-category').selectOption({ label: 'Pedicure' });
+    await sheet.getByRole('button', { name: 'Guardar' }).click();
 
-    await row.locator('input[name="name"]').fill('Verniz gel premium');
-    await row.locator('input[name="priceEuros"]').fill('35,00');
-    await row.locator('select[name="categoryId"]').selectOption({ label: 'Pedicure' });
-    await row.getByRole('button', { name: 'Guardar' }).click();
-    await expect(row.locator('input[name="name"]')).toHaveValue('Verniz gel premium');
+    await expect(page.locator('.service-card-name').first()).toHaveText('Verniz gel premium');
 
     const { data: tenant } = await user.admin
       .from('tenants')
@@ -133,13 +145,15 @@ test.describe('catalog services CRUD (NEX-041)', () => {
     await createCategory(page, 'Manicure');
     await createService(page, { name: 'Verniz gel', priceEuros: '25,00' });
 
-    const row = page.locator('section[aria-label="Serviços"] .catalog-row').first();
-    await expect(row.locator('input[name="name"]')).toHaveValue('Verniz gel');
+    const card = page.locator('.service-card-item').first();
+    await expect(card.locator('.service-card-name')).toHaveText('Verniz gel');
 
-    await row.getByRole('button', { name: 'Desativar' }).click();
-    await expect(page.getByText('Inativo — não é oferecido')).toBeVisible();
+    // role="switch" (ServiceCard's active toggle) overrides the element's native
+    // <button> role for accessibility purposes.
+    await card.getByRole('switch', { name: 'Desativar' }).click();
+    await expect(card.getByText('Inativo — não é oferecido')).toBeVisible();
 
-    await row.getByRole('button', { name: 'Ativar' }).click();
-    await expect(page.getByText('Inativo — não é oferecido')).toHaveCount(0);
+    await card.getByRole('switch', { name: 'Ativar' }).click();
+    await expect(card.getByText('Inativo — não é oferecido')).toHaveCount(0);
   });
 });

@@ -66,6 +66,11 @@ export function PackageCard({
                 </>
               ) : null}
             </span>
+            {!isActive ? (
+              <span className="text-support service-card-inactive-note">
+                Inativo — não é oferecido
+              </span>
+            ) : null}
           </span>
         </button>
 

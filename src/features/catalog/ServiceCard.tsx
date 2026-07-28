@@ -59,6 +59,11 @@ export function ServiceCard({
               {service.durationMinutes} min{category ? ` · ${category.name}` : ''}
             </span>
             <span className="service-card-price">{formatEuros(service.priceCents)}</span>
+            {!isActive ? (
+              <span className="text-support service-card-inactive-note">
+                Inativo — não é oferecido
+              </span>
+            ) : null}
           </span>
         </button>
 
