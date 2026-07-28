@@ -4428,6 +4428,18 @@ body[data-sheet-open='true'] .services-fab {
     radial-gradient(circle at 82% 6%, rgba(255, 217, 229, 0.18), transparent 32%),
     linear-gradient(180deg, #fffdfd 0%, #fff9fb 60%, #fff7fa 100%);
 }
+/* NEX-142: shown only to the tenant's own owner, previewing her still-unpublished
+   public page — a real visitor never sees this (isOwnerPreview is false for them). */
+.public-preview-banner {
+  margin: 0;
+  padding: 10px 20px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--warning);
+  background: #fdead0;
+}
 .public-cover {
   position: relative;
   width: 100%;

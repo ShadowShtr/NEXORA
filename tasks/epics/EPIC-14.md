@@ -117,17 +117,17 @@ Implementar pré-visualização da página pública sem expandir o escopo para f
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Nova função `getOptionalProfile()` (`src/lib/auth/require-profile.ts`) — variante de `requireProfile()` que devolve `null` em vez de redirecionar, necessária porque `/b/[slug]` é a única página pensada para uma visitante sem sessão nenhuma. Não cria privilégio novo: só permite que a página pública reconheça quando quem está a visitar é a própria dona do tenant.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. A pré-visualização de horários lê `business_hours` diretamente (não via `get_public_business_hours`) só quando `isOwnerPreview` é verdadeiro — a política RLS autenticada (`business_hours_select`, `tenant_id = current_tenant_id()`) já garante que isto só devolve dados do próprio tenant da sessão, nunca de outro. Testado com dois tenants/donas diferentes (`tests/integration/public-profile-owner-preview.test.ts`): a dona do tenant A nunca vê horários do tenant B, e uma visitante anónima continua a ver "página não disponível" para um tenant não publicado, exatamente como antes.
+- Registar risco residual ou decisão temporária. A pré-visualização cobre a página pública inicial (`/b/[slug]`) e o `get_public_business_hours`, que era a lacuna concreta encontrada (a dona não conseguia pré-visualizar os horários antes de publicar, só o resto da página). O fluxo completo de marcação (`/b/[slug]/servicos` → `horario` → `dados` → `resumo`) não foi estendido com o mesmo tratamento — services/packages já funcionam para a dona via a sua própria política autenticada (não dependem de `published_at`), mas uma tentativa real de confirmar uma marcação de teste falharia no fim (`create_public_booking` continua a exigir publicação), por desenho e sem alteração aqui. Ver `docs/evidence/NEX-142_PRE_VISUALIZACAO_PAGINA_PUBLICA.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-143 — Confirmações e desfazer
 
