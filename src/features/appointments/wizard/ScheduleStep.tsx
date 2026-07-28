@@ -1,17 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatInTimeZone } from 'date-fns-tz';
-import { buildCalendarMonth, shiftMonthKey } from '@/app/b/[slug]/domain/month-calendar';
-import { groupSlotsByDay } from '@/app/b/[slug]/domain/slot-formatting';
+import { AvailabilityCalendar } from '../AvailabilityCalendar';
 import type { RecurrenceFrequency } from '../domain/recurrence';
-
-const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-function weekdayLabel(dateKey: string): string {
-  const [year, month, day] = dateKey.split('-').map(Number) as [number, number, number];
-  return WEEKDAY_SHORT[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]!;
-}
 
 const FREQUENCY_LABELS: Record<RecurrenceFrequency, string> = {
   weekly: 'Semanal',
@@ -21,13 +11,14 @@ const FREQUENCY_LABELS: Record<RecurrenceFrequency, string> = {
   custom: 'Personalizado',
 };
 
-// Step 3 — "Quando será a marcação?" The calendar + time-of-day list reuses the exact
-// domain modules the public booking flow already ships (buildCalendarMonth/
-// shiftMonthKey/groupSlotsByDay, src/app/b/[slug]/domain) and the same calendar CSS
-// language (.calendar/.calendar-day/.public-slot-*) — same widget the owner already
-// sees in her own public booking page preview, not a second calendar implementation
-// with its own quirks. Availability itself still comes from the authenticated
-// getManualBookingAvailability (NEX-085), fetched by the parent wizard.
+// Step 3 — "Quando será a marcação?" The calendar + time-of-day list itself
+// (AvailabilityCalendar.tsx) reuses the exact domain modules the public booking flow
+// already ships and the same calendar CSS language — same widget the owner already
+// sees in her own public booking page preview, now also shared with the appointment
+// detail page's reschedule form (AppointmentPrimaryActions.tsx), the other place a slot
+// needs picking from real availability instead of a blind date/time input.
+// Availability itself still comes from the authenticated getManualBookingAvailability
+// (NEX-085), fetched by the parent wizard.
 export function ScheduleStep({
   totalMinutes,
   timezone,
@@ -65,36 +56,6 @@ export function ScheduleStep({
   observation: string;
   onObservationChange: (value: string) => void;
 }) {
-  const [todayKey] = useState(() => formatInTimeZone(Date.now(), timezone, 'yyyy-MM-dd'));
-  const [monthKey, setMonthKey] = useState(todayKey.slice(0, 7));
-  const [pickedDateKey, setPickedDateKey] = useState<string | null>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
-
-  const groups = useMemo(
-    () => (slots ? groupSlotsByDay(slots, timezone, totalMinutes) : []),
-    [slots, timezone, totalMinutes],
-  );
-  const groupsByDateKey = useMemo(() => {
-    const map = new Map<string, (typeof groups)[number]>();
-    for (const group of groups) map.set(group.dateKey, group);
-    return map;
-  }, [groups]);
-
-  const selectedDateKey =
-    pickedDateKey && groupsByDateKey.has(pickedDateKey)
-      ? pickedDateKey
-      : (groups[0]?.dateKey ?? null);
-  const selectedGroup = selectedDateKey ? groupsByDateKey.get(selectedDateKey) : undefined;
-
-  // The strip only shows one screen's worth of days — without this, the default/picked
-  // day (never the 1st of the month, since past days are disabled) would land scrolled
-  // out of view with no hint it's even there. Matches SlotPicker.tsx (public booking).
-  useEffect(() => {
-    if (!selectedDateKey || !stripRef.current) return;
-    const el = stripRef.current.querySelector<HTMLElement>(`[data-date-key="${selectedDateKey}"]`);
-    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [selectedDateKey, monthKey]);
-
   if (totalMinutes <= 0) {
     return (
       <div className="step-heading">
@@ -119,89 +80,14 @@ export function ScheduleStep({
         Os horários são calculados com base na duração selecionada.
       </p>
 
-      {slotsError ? (
-        <p role="alert" className="form-error">
-          {slotsError}
-        </p>
-      ) : slots === null ? (
-        <p aria-live="polite" className="text-support">
-          A carregar horários…
-        </p>
-      ) : groups.length === 0 ? (
-        <p className="text-support">Sem horários disponíveis nos próximos dias.</p>
-      ) : (
-        <>
-          <div className="calendar">
-            <div className="calendar-header">
-              <button
-                type="button"
-                className="calendar-nav"
-                aria-label="Mês anterior"
-                onClick={() => setMonthKey((key) => shiftMonthKey(key, -1))}
-              >
-                ‹
-              </button>
-              <p className="calendar-month-label">
-                {buildCalendarMonth(monthKey, new Set(groupsByDateKey.keys()), todayKey).label}
-              </p>
-              <button
-                type="button"
-                className="calendar-nav"
-                aria-label="Mês seguinte"
-                onClick={() => setMonthKey((key) => shiftMonthKey(key, 1))}
-              >
-                ›
-              </button>
-            </div>
-
-            <div className="calendar-strip" role="grid" ref={stripRef}>
-              {buildCalendarMonth(monthKey, new Set(groupsByDateKey.keys()), todayKey)
-                .days.filter((day) => day.inCurrentMonth)
-                .map((day) => {
-                  const disabled = day.isPast || !day.hasSlots;
-                  const selected = selectedDateKey === day.dateKey;
-                  return (
-                    <button
-                      key={day.dateKey}
-                      type="button"
-                      role="gridcell"
-                      className="calendar-day"
-                      data-date-key={day.dateKey}
-                      data-has-slots={day.hasSlots}
-                      aria-selected={selected}
-                      aria-label={day.dateKey}
-                      disabled={disabled}
-                      onClick={() => setPickedDateKey(day.dateKey)}
-                    >
-                      <span className="calendar-day-weekday">{weekdayLabel(day.dateKey)}</span>
-                      <span className="calendar-day-number">{day.dayOfMonth}</span>
-                    </button>
-                  );
-                })}
-            </div>
-          </div>
-
-          {selectedGroup ? (
-            <div className="calendar-times">
-              <p className="calendar-times-label">Horários disponíveis</p>
-              <ul className="public-slot-list">
-                {selectedGroup.slots.map((slot) => (
-                  <li key={slot.iso}>
-                    <button
-                      type="button"
-                      className="public-slot-button"
-                      aria-pressed={selectedSlotIso === slot.iso}
-                      onClick={() => onSelectSlot(slot.iso)}
-                    >
-                      {slot.timeLabel}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </>
-      )}
+      <AvailabilityCalendar
+        totalMinutes={totalMinutes}
+        timezone={timezone}
+        slots={slots}
+        slotsError={slotsError}
+        selectedSlotIso={selectedSlotIso}
+        onSelectSlot={onSelectSlot}
+      />
 
       <div className="recurrence-toggle-card">
         <span className="recurrence-toggle-text">
