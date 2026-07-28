@@ -5635,7 +5635,8 @@ body[data-sheet-open='true'] .services-fab {
   }
   .appointment-form-footer {
     position: static;
-    margin-top: 24px;
+    width: min(1180px, calc(100% - 64px));
+    margin: 24px auto 0;
     padding: 0;
     border-top: 0;
     background: none;
