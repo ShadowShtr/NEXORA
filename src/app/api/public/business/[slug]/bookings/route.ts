@@ -11,6 +11,7 @@ import { resolveBookingByToken } from '@/lib/booking-token-lookup';
 import { logEvent } from '@/lib/logger';
 import { severityForErrorCode } from '@/lib/metrics';
 import { getRequestId } from '@/lib/request-id';
+import type { PublicBookingResult } from '@/app/b/[slug]/domain/public-booking-result';
 
 const requestSchema = z.object({
   registration: clientContactSchema,
@@ -37,11 +38,14 @@ const ERROR_STATUS: Record<string, number> = {
   INTERNAL_ERROR: 500,
 };
 
-function errorResponse(code: string, message: string) {
-  return NextResponse.json(
-    { error: { code, message } },
-    { status: ERROR_STATUS[code] ?? 500, headers: { 'Cache-Control': 'no-store' } },
-  );
+function errorResponse(
+  code: Exclude<PublicBookingResult['code'], 'BOOKING_CREATED'>,
+  message: string,
+) {
+  return NextResponse.json({ ok: false, code, message } satisfies PublicBookingResult, {
+    status: ERROR_STATUS[code] ?? 500,
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }
 
 // docs/06_API_CONTRACTS.md: "POST /api/public/business/{slug}/bookings" — a Route
@@ -186,13 +190,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   return NextResponse.json(
     {
-      data: {
-        appointmentId: data.appointment_id,
-        bookingToken: data.booking_token,
-        lookupCode: data.lookup_code,
-        isReplay: data.is_replay,
-      },
-    },
+      ok: true,
+      code: 'BOOKING_CREATED',
+      appointmentId: data.appointment_id,
+      bookingToken: data.booking_token,
+      lookupCode: data.lookup_code,
+      isReplay: data.is_replay,
+    } satisfies PublicBookingResult,
     { headers: { 'Cache-Control': 'no-store' } },
   );
 }

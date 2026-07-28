@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -19,6 +19,20 @@ import {
   type PackageOption,
   type ServiceLine,
 } from '../domain/booking-selection';
+import { submitPublicBooking } from '../domain/submit-public-booking';
+import { confirmationReducer, INITIAL_CONFIRMATION_STATE } from '../domain/confirmation-state';
+
+const SUBMIT_TIMEOUT_MS = 10_000;
+
+// Temporary diagnostic trail for NEX-BOOKING-RACE-001: numbered markers so a failing
+// Playwright run (page.on('console')) pinpoints exactly which step the confirm handler
+// reached. Gated behind NEXT_PUBLIC_BOOKING_DEBUG (read directly, not added to the
+// zod-validated env schema — this flag is temporary and gets deleted with this block
+// once the race is confirmed fixed across 20/20 concurrent runs).
+const DEBUG = process.env.NEXT_PUBLIC_BOOKING_DEBUG === '1';
+function debugLog(step: string, requestId: string, ...rest: unknown[]) {
+  if (DEBUG) console.info(`[booking:${step}]`, requestId, ...rest);
+}
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -63,14 +77,14 @@ export function ResumoClient({
   const { state, ready, persist, clear } = useBookingSession(tenantId, tenantSlug);
   const [observation, setObservation] = useState('');
   const [idempotencyKey] = useState(() => generateIdempotencyKey());
-  const [isBooking, setIsBooking] = useState(false);
-  const [bookingError, setBookingError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileSiteKey = publicEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-  const [confirmedBooking, setConfirmedBooking] = useState<{
-    bookingToken: string;
-    lookupCode: string;
-  } | null>(null);
+  const [confirmation, dispatch] = useReducer(confirmationReducer, INITIAL_CONFIRMATION_STATE);
+  // Guards against a second overlapping submission from this same tab (double-click,
+  // Enter+click) — separate from `confirmation.status` because it must be readable
+  // synchronously inside the same handler invocation, before React commits the next
+  // render.
+  const submittingRef = useRef(false);
 
   const servicesById = new Map(services.map((service) => [service.id, service]));
   const lines = cartLines(
@@ -96,24 +110,32 @@ export function ResumoClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // A plain HTTP POST (docs/06_API_CONTRACTS.md) via submitPublicBooking, not a Server
+  // Action — Next.js Server Actions are processed sequentially per server instance and
+  // don't reliably deliver a response back to the client under genuine concurrent
+  // invocations (NEX-BOOKING-RACE-001: two simultaneous confirms for the same slot both
+  // completed server-side within ~100ms — one success, one the expected conflict — but
+  // neither browser ever received its response while this called createPublicBooking as
+  // an action). See src/app/api/public/business/[slug]/bookings/route.ts. Deliberately
+  // not wrapped in startTransition: this is a network request with a real outcome the
+  // user is waiting on, not a deferrable visual update.
   async function handleConfirm() {
     if (!state.registration || !state.selectedSlotIso) return;
-    setIsBooking(true);
-    setBookingError(null);
+    if (submittingRef.current) return;
 
-    // A plain HTTP POST (docs/06_API_CONTRACTS.md), not a Server Action — Next.js
-    // Server Actions are processed sequentially per server instance and don't reliably
-    // deliver a response back to the client under genuine concurrent invocations
-    // (NEX-BOOKING-RACE-001: two simultaneous confirms for the same slot both completed
-    // server-side within ~100ms — one success, one the expected conflict — but neither
-    // browser ever received its response while this called createPublicBooking as an
-    // action). See src/app/api/public/business/[slug]/bookings/route.ts.
-    let response: Response;
+    const requestId = idempotencyKey.slice(0, 8);
+    submittingRef.current = true;
+    debugLog('01:submit-started', requestId);
+    dispatch({ type: 'SUBMIT_STARTED' });
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
+
     try {
-      response = await fetch(`/api/public/business/${tenantSlug}/bookings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      debugLog('02:fetch-started', requestId);
+      const result = await submitPublicBooking(
+        tenantSlug,
+        {
           registration: state.registration,
           selectedServiceIds: state.selectedServiceIds,
           selectedPackageId: state.selectedPackageId,
@@ -121,46 +143,49 @@ export function ResumoClient({
           idempotencyKey,
           observation: observation.trim() || undefined,
           turnstileToken: turnstileToken ?? undefined,
-        }),
-      });
-    } catch {
-      setIsBooking(false);
-      setBookingError('Não foi possível concluir a marcação. Tente novamente.');
-      return;
-    }
+        },
+        controller.signal,
+      );
+      debugLog('03:result-received', requestId, result.ok, result.code);
 
-    const payload = (await response.json()) as {
-      data?: { bookingToken: string | null; lookupCode: string | null };
-      error?: { code: string; message: string };
-    };
-    setIsBooking(false);
+      dispatch({ type: 'RESULT_RECEIVED', result });
 
-    if (!response.ok || !payload.data) {
-      if (payload.error?.code === 'SLOT_TAKEN') {
-        persist({ ...state, selectedSlotIso: null });
-        router.push(`/b/${tenantSlug}/horario?slotTaken=1`);
+      if (result.ok) {
+        clear();
+        debugLog('04:success-no-navigation', requestId);
         return;
       }
-      setBookingError(payload.error?.message ?? 'Não foi possível concluir a marcação.');
-      return;
-    }
 
-    clear();
-    if (payload.data.bookingToken && payload.data.lookupCode) {
-      setConfirmedBooking({
-        bookingToken: payload.data.bookingToken,
-        lookupCode: payload.data.lookupCode,
+      if (result.code === 'SLOT_TAKEN') {
+        persist({ ...state, selectedSlotIso: null });
+        debugLog('04:conflict-navigating', requestId);
+        router.push(`/b/${tenantSlug}/horario?slotTaken=1`);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        debugLog('05:timed-out', requestId);
+        dispatch({ type: 'TIMED_OUT' });
+        return;
+      }
+      debugLog('05:request-failed', requestId, error);
+      dispatch({
+        type: 'REQUEST_FAILED',
+        message: error instanceof Error ? error.message : 'Não foi possível concluir a marcação.',
       });
+    } finally {
+      window.clearTimeout(timeoutId);
+      submittingRef.current = false;
+      debugLog('06:handler-finally', requestId);
     }
   }
 
   if (!ready || lines.length === 0 || !state.selectedSlotIso || !state.registration) return null;
 
-  if (confirmedBooking) {
+  if (confirmation.status === 'success') {
     return (
       <BookingConfirmation
-        bookingToken={confirmedBooking.bookingToken}
-        lookupCode={confirmedBooking.lookupCode}
+        bookingToken={confirmation.bookingToken}
+        lookupCode={confirmation.lookupCode}
         locationUrl={locationUrl}
         phoneE164={phoneE164}
         businessName={businessName}
@@ -252,18 +277,21 @@ export function ResumoClient({
         {turnstileSiteKey ? (
           <TurnstileWidget siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
         ) : null}
-        {bookingError ? (
+        {confirmation.status === 'error' ? (
           <p role="alert" className="form-error">
-            {bookingError}
+            {confirmation.message}
           </p>
         ) : null}
         <Button
           type="button"
-          disabled={isBooking || (turnstileSiteKey !== undefined && !turnstileToken)}
+          disabled={
+            confirmation.status === 'submitting' ||
+            (turnstileSiteKey !== undefined && !turnstileToken)
+          }
           onClick={() => void handleConfirm()}
           className="public-resumo-confirm"
         >
-          {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
+          {confirmation.status === 'submitting' ? 'A confirmar…' : 'Confirmar marcação'}
         </Button>
       </div>
     </main>
