@@ -111,7 +111,10 @@ export function ServicosClient({
   }
 
   return (
-    <>
+    // A <main> landmark, not a Fragment — same axe finding (landmark-one-main/region)
+    // already fixed once for the root public page (src/app/b/[slug]/page.tsx) applies
+    // to every step of the paginated flow, not just the profile page.
+    <main>
       <div className="public-booking-content">
         <header className="public-step-header">
           <Link href={`/b/${tenantSlug}`} className="nx-icon-button" aria-label="Voltar">
@@ -335,6 +338,6 @@ export function ServicosClient({
           {pending ? 'A continuar…' : 'Continuar'}
         </Button>
       </div>
-    </>
+    </main>
   );
 }

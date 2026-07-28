@@ -5,7 +5,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // NEX-070 acceptance criteria: "Confirmação curta com três ações" — end to end from a
 // completed booking through the confirmation screen's three links: ver marcação
@@ -70,23 +70,22 @@ test.describe('public booking confirmation screen (NEX-070)', () => {
     test.skip(!canUseSupabase(), 'Requires Supabase credentials');
     user = await createProvisionedTestUser('nex070');
     await seedOpenTenant(user);
+    const flow = new PublicBookingFlow(page);
 
-    await page.goto(`/b/${user.slug}`);
-    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-
-    await page.locator('.public-slot-picker .public-slot-button').first().click();
-    await completeRegistration(page, 'Cliente Confirmação', '911111111');
-    await page.getByRole('button', { name: 'Confirmar marcação' }).click();
-
-    await expect(page.getByText('A sua marcação foi confirmada com sucesso.')).toBeVisible({
-      timeout: 15_000,
-    });
+    await flow.startBooking(user.slug);
+    await flow.selectService('Verniz gel');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
+    await flow.fillClientData({ name: 'Cliente Confirmação', phone: '911111111' });
+    await flow.reviewBooking();
+    await flow.confirmBooking();
+    await flow.expectConfirmation();
 
     const viewBookingLink = page.getByRole('link', { name: 'Ver marcação' });
     const calendarLink = page.getByRole('link', { name: 'Adicionar ao calendário' });
-    const mapLink = page.getByRole('link', { name: 'Ver no mapa' });
-    const whatsappLink = page.getByRole('link', { name: 'Contactar WhatsApp' });
+    const mapLink = page.getByRole('link', { name: 'Abrir localização' });
+    const whatsappLink = page.getByRole('link', { name: 'Contactar por WhatsApp' });
 
     await expect(viewBookingLink).toBeVisible();
     await expect(calendarLink).toBeVisible();
@@ -109,7 +108,7 @@ test.describe('public booking confirmation screen (NEX-070)', () => {
     const bookingPage = await page.context().newPage();
     await bookingPage.goto(viewBookingHref!);
     await expect(bookingPage.getByText('Verniz gel')).toBeVisible();
-    await expect(bookingPage.getByText('25,00 €')).toBeVisible();
+    await expect(bookingPage.getByText('Total: 25,00 €')).toBeVisible();
     await bookingPage.close();
 
     // The .ics download itself is a real, well-formed calendar file (structural

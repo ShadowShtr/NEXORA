@@ -6,7 +6,7 @@ import {
   createProvisionedTestUser,
   type ProvisionedTestUser,
 } from './support/provisioned-user';
-import { completeRegistration } from './support/public-page';
+import { PublicBookingFlow } from './support/public-booking-flow';
 
 // Mirrors src/lib/booking-draft-crypto.ts#hashResumeToken exactly (SHA-256 hex) — kept
 // local instead of importing the `@/lib` alias, matching the other e2e specs, which
@@ -17,6 +17,16 @@ function hashResumeToken(token: string) {
 
 function draftStorageKey(slug: string) {
   return `nexora-draft-${slug}`;
+}
+
+// useBookingSession's same-tab sessionStorage cache (src/app/b/[slug]/useBookingSession.ts)
+// is checked *before* the DB-backed resume token, and short-circuits it entirely when
+// present — so a plain page.reload() in the same tab never exercises the DB draft path
+// at all. Clearing this key is how a test forces a real trip through resumeBookingDraft,
+// simulating what a new tab/session (empty sessionStorage, token still in localStorage)
+// would do.
+function sessionStateKey(slug: string) {
+  return `nexora-draft-state-${slug}`;
 }
 
 // PublicBookingCart debounces autosave by 600ms after the last change (registration or
@@ -76,7 +86,10 @@ async function publishTenantWithOneService(user: ProvisionedTestUser) {
 // NEX-052: same-device draft recovery via a resume token kept only in this browser's
 // localStorage — no e-mail step, no session. Covers the task's required criteria:
 // resume restores state, an unrecognized token is ignored without crashing, and an
-// expired draft is both rejected and deleted from booking_drafts ("limpeza").
+// expired draft is both rejected and deleted from booking_drafts ("limpeza"). Visual
+// refinement mid-2026 spread the flow across /servicos -> /horario -> /dados -> /resumo
+// (docs/UI_SCREEN_SPECIFICATIONS.md), so "resume" is now exercised at whichever page a
+// visitor lands back on, not by reloading a single scrolling page.
 test.describe('public booking draft recovery (NEX-052)', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
@@ -86,18 +99,20 @@ test.describe('public booking draft recovery (NEX-052)', () => {
     await cleanupProvisionedTestUser(user);
   });
 
-  test('resumes registration and selection on reload, on the same device, with no e-mail step', async ({
+  test('resumes selection and registration on reload, on the same device, with no e-mail step', async ({
     page,
   }) => {
     user = await createProvisionedTestUser('nex052');
     await publishTenantWithOneService(user);
 
+    const flow = new PublicBookingFlow(page);
     const key = draftStorageKey(user.slug);
-    await page.goto(`/b/${user.slug}`);
-    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-    await page.locator('.public-slot-picker .public-slot-button').first().click();
-    await completeRegistration(page, 'Ana Cliente', '911111111');
+    await flow.startBooking(user.slug);
+    await flow.selectService('Verniz gel');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
+    await flow.fillClientData({ name: 'Ana Cliente', phone: '911111111' });
     await waitForDraftToken(page, key);
 
     const tokenBeforeReload = await page.evaluate((k) => window.localStorage.getItem(k), key);
@@ -105,17 +120,20 @@ test.describe('public booking draft recovery (NEX-052)', () => {
 
     await page.reload();
 
-    // Straight back to the selection, registration already resumed — the
-    // pre-registration form doesn't gate anything anymore, but its resumed state
-    // (name/phone) shows immediately once the service+slot selection is redone.
-    await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).toBeChecked();
-    await expect(page.getByText('Total: 25,00 € · 60 min')).toBeVisible();
-    await page.locator('.public-slot-picker .public-slot-button').first().click();
-    await expect(page.getByText('Ana Cliente · +351911111111')).toBeVisible();
+    // Still on /resumo after reload — the draft carried selection, slot and
+    // registration through, so the summary renders straight away instead of bouncing
+    // back through /servicos -> /horario -> /dados again.
+    await flow.reviewBooking();
+    await expect(page.getByText('Verniz gel')).toBeVisible();
+    await expect(page.locator('.public-resumo-total-value')).toHaveText('25,00 €');
 
-    // Editing the resumed draft reuses the same row/token instead of creating a new
-    // one (saveBookingDraft's existingToken parameter) — no orphaned rows left behind.
-    await page.getByRole('checkbox', { name: 'Verniz gel' }).uncheck();
+    // A fresh visit back to /servicos also resumes the same selection.
+    await flow.startBooking(user.slug);
+    await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).toBeChecked();
+
+    // Continuing again reuses the same draft row/token instead of creating a new one
+    // (saveBookingDraft's existingToken parameter) — no orphaned rows left behind.
+    await flow.cartBar.getByRole('button', { name: 'Continuar' }).click();
     await settleDraftSave(page);
     expect(await page.evaluate((k) => window.localStorage.getItem(k), key)).toBe(tokenBeforeReload);
   });
@@ -125,6 +143,7 @@ test.describe('public booking draft recovery (NEX-052)', () => {
   }) => {
     user = await createProvisionedTestUser('nex052');
     await publishTenantWithOneService(user);
+    const flow = new PublicBookingFlow(page);
     const key = draftStorageKey(user.slug);
 
     await page.addInitScript(({ k, bogus }) => window.localStorage.setItem(k, bogus), {
@@ -132,7 +151,7 @@ test.describe('public booking draft recovery (NEX-052)', () => {
       bogus: 'a'.repeat(64),
     });
 
-    const response = await page.goto(`/b/${user.slug}`);
+    const response = await flow.startBooking(user.slug);
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).not.toBeChecked();
 
@@ -145,13 +164,15 @@ test.describe('public booking draft recovery (NEX-052)', () => {
   }) => {
     user = await createProvisionedTestUser('nex052');
     const tenantId = await publishTenantWithOneService(user);
+    const flow = new PublicBookingFlow(page);
 
     const key = draftStorageKey(user.slug);
-    await page.goto(`/b/${user.slug}`);
-    await page.getByRole('checkbox', { name: 'Verniz gel' }).check();
-    await page.locator('.public-cart-bar').getByRole('button', { name: 'Continuar' }).click();
-    await page.locator('.public-slot-picker .public-slot-button').first().click();
-    await completeRegistration(page, 'Beatriz Cliente', '922222222');
+    await flow.startBooking(user.slug);
+    await flow.selectService('Verniz gel');
+    await flow.continueFromServices();
+    await flow.selectFirstAvailableTime();
+    await flow.continueFromHorario();
+    await flow.fillClientData({ name: 'Beatriz Cliente', phone: '922222222' });
     await waitForDraftToken(page, key);
     const token = await page.evaluate((k) => window.localStorage.getItem(k), key);
 
@@ -171,10 +192,14 @@ test.describe('public booking draft recovery (NEX-052)', () => {
       .update({ expires_at: new Date(Date.now() - 60_000).toISOString() })
       .eq('id', draftBefore!.id);
 
+    // Drop the same-tab cache so the reload actually falls through to the DB-backed
+    // resume token instead of trusting sessionStorage — see sessionStateKey above.
+    await page.evaluate((k) => window.sessionStorage.removeItem(k), sessionStateKey(user.slug));
     await page.reload();
 
-    // The expired draft is rejected on resume, so the cart starts empty again — no
-    // service pre-checked, unlike a valid resume.
+    // The expired draft is rejected on resume: with no selection left to show, /resumo
+    // sends the visitor back to a fresh /servicos instead of the confirm screen.
+    await expect(page).toHaveURL(new RegExp(`/b/${user.slug}/servicos$`));
     await expect(page.getByRole('checkbox', { name: 'Verniz gel' })).not.toBeChecked();
 
     const { data: draftAfter } = await user.admin

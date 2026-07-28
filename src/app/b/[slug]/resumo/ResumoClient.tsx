@@ -175,7 +175,10 @@ export function ResumoClient({
   }
 
   return (
-    <div className="public-booking-content">
+    // A <main> landmark, not a plain <div> — same axe finding (landmark-one-main/region)
+    // already fixed once for the root public page (src/app/b/[slug]/page.tsx) applies
+    // to every step of the paginated flow, not just the profile page.
+    <main className="public-booking-content">
       <header className="public-step-header">
         <Link href={`/b/${tenantSlug}/dados`} className="nx-icon-button" aria-label="Voltar">
           <ArrowLeft aria-hidden="true" />
@@ -263,6 +266,6 @@ export function ResumoClient({
           {isBooking ? 'A confirmar…' : 'Confirmar marcação'}
         </Button>
       </div>
-    </div>
+    </main>
   );
 }
