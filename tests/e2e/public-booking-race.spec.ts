@@ -57,7 +57,15 @@ async function seedOpenTenant(user: ProvisionedTestUser) {
   return tenant!.id;
 }
 
-test.describe('public booking race (NEX-065)', () => {
+test.describe('public booking race (NEX-065) @critical', () => {
+  // NEX-178: a flaky-looking failure here is never noise to retry away — it's either
+  // the exact concurrency regression this test exists to catch, or a real transient
+  // Postgres deadlock (40P01) that the route handler already retries once server-side
+  // (src/app/api/public/business/[slug]/bookings/route.ts). CI's default `retries: 2`
+  // (playwright.config.ts) would silently paper over either case, exactly what let PR
+  // #135 merge with this test failing. See BUG_2026-07-28_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md.
+  test.describe.configure({ retries: 0 });
+
   let user: ProvisionedTestUser;
 
   test.afterEach(async () => {

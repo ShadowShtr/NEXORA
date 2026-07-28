@@ -171,19 +171,64 @@ testes unitários, 0 regressões) passam.
 - `docs/adr/ADR-005-booking-concurrency.md` — referência a este documento
   adicionada.
 
+## Job `e2e-critical` adicionado ao CI
+
+Implementado o plano desenhado em
+`docs/evidence/BUG_2026-07-28_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md`
+("Plano acordado para o job `e2e-critical`"): `.github/workflows/ci.yml`
+ganhou um terceiro job, condicionado a `verify`+`integration` passarem
+primeiro, que builda produção real (`npm run build` + `start:test`, não
+`next dev`) e corre `playwright test --grep @critical` (só `chromium`)
+contra um Supabase local fresco (mesmo padrão do job `integration`,
+`supabase start`+`supabase db reset`, nunca o projeto cloud partilhado).
+
+Seis specs marcados `@critical` (login, reserva pública completa, corrida de
+reserva — este bug —, criação manual de marcação, conclusão/pagamento,
+isolamento entre tenants), 28 testes, validados localmente 14/14 (chromium)
+em duas execuções consecutivas. `public-booking-race.spec.ts` recebeu
+`test.describe.configure({ retries: 0 })` explícito — o `retries: 2` por
+omissão do CI (`playwright.config.ts`) esconderia silenciosamente tanto uma
+regressão real de concorrência quanto um deadlock `40P01` genuíno, exatamente
+o tipo de mascaramento que permitiu o PR #135 original passar com o bug
+ainda aberto.
+
+### Achado ao longo da implementação: `appointment-completion.spec.ts` estava completamente desatualizado
+
+Ao marcar este spec como `@critical` e correr pela primeira vez de facto
+(nunca tinha corrido em CI), falhou por dois motivos não relacionados à
+concorrência:
+
+1. **Fragilidade de fuso horário na fixture de teste.** `seedAppointment`
+   ancorava o `start_at` em `Date.now() - 60min` — falha sempre que o teste
+   corre na janela ~23:00–24:00 UTC (meia-noite em `Europe/Lisboa`, WEST
+   UTC+1), porque a marcação cai no dia UTC anterior enquanto a página da
+   agenda já filtra por "hoje" em Lisboa. Corrigido ancorando ao início do
+   dia _em Lisboa_, convertido para UTC (`fromZonedTime`), garantindo o
+   mesmo dia civil que a agenda vai filtrar, a qualquer hora do dia.
+2. **Seletores e fluxo completamente desatualizados de um redesign posterior
+   da agenda** (`#59`-`#62`, "linha do tempo" + bottom sheet). O teste
+   assumia uma classe `.appointment-card` inexistente (a real é
+   `.appointment-timeline-card`), um botão com nome exato `'Concluir'`
+   (o `aria-label` real é `"Concluir atendimento de {nome}"`), o formulário
+   de conclusão inline dentro do card (hoje é um `role="dialog"` — o
+   `CompletionSheet`, um overlay partilhado, fora da árvore do card), e uma
+   mensagem de sucesso `"Atendimento concluído."` que já não existe em
+   lugar nenhum do código-fonte (o sinal de sucesso real é o próprio
+   diálogo desmontar). Reescrito por completo, validado 5/5.
+
+Isto é o mesmo padrão já visto em `fix/public-flow-stale-tests` (#134):
+testes que nunca correm em CI ficam invisivelmente desatualizados a cada
+redesign, e só são descobertos quebrados quando alguém tenta corrê-los à
+mão — exatamente o problema que o job `e2e-critical` existe para eliminar.
+
 ## Risco residual (não resolvido nesta tarefa)
 
-`tests/e2e/**` (Playwright) continua sem correr em CI (`.github/workflows/ci.yml`
-só tem `verify` e `integration`). É exactamente por isso que o PR #135 (com o
-Bug 1 ainda por resolver) passou verde e foi mesclado em `main` antes de
-estar corrigido — o teste que prova a regressão nunca chegou a executar
-automaticamente. O job `e2e-critical` (build de produção real +
-`supabase start` + `playwright test --grep @critical`) está desenhado em
-detalhe em `docs/evidence/BUG_2026-07-28_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md`
-("Plano acordado para o job `e2e-critical`"), mas não foi implementado nesta
-sessão. Sem ele, uma regressão futura neste fluxo específico (ou em
-qualquer outro fluxo crítico coberto só por Playwright) pode voltar a passar
-despercebida da mesma forma.
+A proteção de branch do `main` ainda não exige `verify`, `integration` e
+`e2e-critical` como checks obrigatórios — isso é configuração do GitHub
+(Settings → Branches), fora do alcance do Claude Code (`ADR-006`). Sem essa
+exigência ativada manualmente pela dona, um PR ainda pode ser mesclado com
+`e2e-critical` a falhar, do mesmo modo que o #135 original foi mesclado
+antes deste job existir.
 
 ## Lição para reaplicar noutros projetos
 
@@ -210,3 +255,19 @@ real) revelou:
    Só aparece sob paralelismo real suficiente — testes com pouca
    concorrência (2-3 execuções manuais) tipicamente não o revelam; um lote
    de dezenas de execuções concorrentes é o que o expõe de forma fiável.
+3. **Uma suite E2E que existe mas nunca corre em CI não é uma rede de
+   segurança — é uma dívida técnica silenciosa.** Cada redesign de UI que
+   não atualiza os testes correspondentes deixa-os quebrados sem que
+   ninguém saiba, até alguém tentar correr à mão (como aconteceu aqui com
+   `appointment-completion.spec.ts`). O custo de descobrir isto cresce com
+   o tempo sem execução — quanto mais specs acumularem esta dívida, maior o
+   trabalho de "destrancar" o CI de uma vez. Vale mais introduzir a suite em
+   CI cedo, mesmo com poucos testes marcados como críticos, do que esperar
+   a suite estar "completa" para automatizar — a automatização é o que a
+   mantém correta, não o inverso. Fixtures de teste com tempo relativo
+   (`Date.now() ± X`) que alimentam páginas que filtram por "hoje" num fuso
+   horário específico são um ponto cego clássico: só falham numa janela
+   estreita perto da meia-noite local, por isso passam meses sem nunca
+   falhar — até falharem, de forma aparentemente aleatória. Ancorar sempre
+   ao início do dia civil relevante, nunca a um deslocamento fixo a partir
+   de "agora".

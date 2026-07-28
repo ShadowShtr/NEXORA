@@ -17,7 +17,11 @@ export default defineConfig({
     { name: 'webkit-mobile', use: { ...devices['iPhone 15'] } },
   ],
   webServer: {
-    command: 'npm run dev',
+    // NEX-178: the e2e-critical CI job runs against a production build (`npm run build`
+    // + `start:test`), not `next dev` — this is what caught the original public booking
+    // concurrency bug being masked by dev-only Fast Refresh noise, and it matches what
+    // Vercel actually serves. Local runs keep `next dev` for fast iteration.
+    command: process.env.CI ? 'npm run start:test' : 'npm run dev',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
   },

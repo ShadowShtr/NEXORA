@@ -6,7 +6,7 @@ import {
   type ProvisionedTestUser,
 } from './support/provisioned-user';
 
-test.describe('login / logout (NEX-020)', () => {
+test.describe('login / logout (NEX-020) @critical', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
   let user: ProvisionedTestUser;

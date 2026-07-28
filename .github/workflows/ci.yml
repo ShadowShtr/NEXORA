@@ -72,3 +72,53 @@ jobs:
             --override-name db.url=TEST_DATABASE_URL)"
           set +a
           npm run test:integration
+
+  e2e-critical:
+    # NEX-178: catches exactly the class of regression that let PR #135 merge with
+    # public-booking-race.spec.ts failing — tests/e2e/** never ran in CI before this job,
+    # so a real concurrency bug in the client shipped to production undetected. Runs
+    # against a real production build (`npm run build` + `start:test`, not `next dev`)
+    # to match what Vercel actually serves, and a fresh local Supabase (same pattern as
+    # `integration`, never the shared cloud dev project).
+    name: E2E crítico
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [verify, integration]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase db reset
+      - name: Build and run @critical E2E against local Supabase
+        env:
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          # Test-only key (NEX-052) — not a secret, generated fresh per run, never
+          # rotates real data since the local Supabase DB is torn down with the runner.
+          BOOKING_DRAFT_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+        run: |
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.secret_key=SUPABASE_SERVICE_ROLE_KEY)"
+          set +a
+          npm run build
+          CI=true npm run test:e2e:critical
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
