@@ -4666,7 +4666,9 @@ body[data-sheet-open='true'] .services-fab {
 .public-quick-actions {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* WhatsApp/Instagram/Como chegar are each conditional on real data — "Partilhar" is
+     the one entry always present, so this can't assume a fixed count anymore. */
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
   gap: 10px;
 }
 .public-quick-action {
@@ -4738,6 +4740,63 @@ body[data-sheet-open='true'] .services-fab {
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
+}
+
+.public-featured-services {
+  margin-top: 22px;
+}
+.public-featured-service-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid #f0e6ea;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(42, 27, 35, 0.05);
+}
+.public-featured-service-row {
+  min-height: 62px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #f3eaee;
+}
+.public-featured-service-list > :last-child {
+  border-bottom: 0;
+}
+.public-featured-service-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.public-featured-service-name {
+  font-size: 15px;
+  font-weight: 650;
+  color: #211d23;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.public-featured-service-meta {
+  font-size: 12px;
+  color: #827c85;
+}
+.public-featured-service-price {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pink-600);
+}
+.public-featured-services-link {
+  margin-top: 10px;
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--pink-600);
 }
 
 .public-platform-credit {

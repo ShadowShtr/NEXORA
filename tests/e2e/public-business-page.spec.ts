@@ -76,7 +76,9 @@ test.describe('public business page /b/{slug} (NEX-050)', () => {
     await expect(page.getByText('Sofia', { exact: true })).toBeVisible();
     await expect(page.getByText('Rua Exemplo, 10', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /\+351912345678/ })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'WhatsApp' })).toBeVisible();
+    // exact:true: the phone row's own secondary label ("Telefone e WhatsApp") also
+    // contains this substring — pre-existing, unrelated to this test's own change.
+    await expect(page.getByRole('link', { name: 'WhatsApp', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Instagram' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Ver horário completo/ })).toBeVisible();
     await expect(
