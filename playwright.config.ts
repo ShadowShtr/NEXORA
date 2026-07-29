@@ -17,7 +17,10 @@ export default defineConfig({
     { name: 'webkit-mobile', use: { ...devices['iPhone 15'] } },
   ],
   webServer: {
-    command: 'npm run dev',
+    // CI runs against a real production build (`next start`), not `next dev` — closes
+    // the gap between what CI validates and what Vercel actually serves, and rules out
+    // dev-only artifacts (e.g. Fast Refresh) as a red herring when debugging failures.
+    command: process.env.CI ? 'npm run start:test' : 'npm run dev',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
   },

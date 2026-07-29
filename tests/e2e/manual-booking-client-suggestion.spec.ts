@@ -12,7 +12,7 @@ import {
 // format, and must never surface another tenant's client. Updated for the Nova marcação
 // wizard redesign (mid-2026): the plain "Cliente existente"/"Nova cliente" radios are
 // gone — this now goes through the wizard's "Criar nova cliente" sub-form instead.
-test.describe('manual booking client suggestion (NEX-092)', () => {
+test.describe('manual booking client suggestion (NEX-092) @critical', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
   let user: ProvisionedTestUser;

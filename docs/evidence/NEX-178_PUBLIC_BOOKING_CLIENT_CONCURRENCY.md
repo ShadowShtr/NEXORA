@@ -171,19 +171,67 @@ testes unitários, 0 regressões) passam.
 - `docs/adr/ADR-005-booking-concurrency.md` — referência a este documento
   adicionada.
 
-## Risco residual (não resolvido nesta tarefa)
+## Atualização — job `e2e-critical` implementado (2026-07-29)
 
-`tests/e2e/**` (Playwright) continua sem correr em CI (`.github/workflows/ci.yml`
-só tem `verify` e `integration`). É exactamente por isso que o PR #135 (com o
-Bug 1 ainda por resolver) passou verde e foi mesclado em `main` antes de
-estar corrigido — o teste que prova a regressão nunca chegou a executar
-automaticamente. O job `e2e-critical` (build de produção real +
-`supabase start` + `playwright test --grep @critical`) está desenhado em
-detalhe em `docs/evidence/BUG_2026-07-28_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md`
-("Plano acordado para o job `e2e-critical`"), mas não foi implementado nesta
-sessão. Sem ele, uma regressão futura neste fluxo específico (ou em
-qualquer outro fluxo crítico coberto só por Playwright) pode voltar a passar
-despercebida da mesma forma.
+Branch `task/NEX-178-e2e-critical-ci`, seguindo exatamente o plano acordado em
+`docs/evidence/BUG_2026-07-28_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md`
+("Plano acordado para o job `e2e-critical`"):
+
+- Novo job `e2e-critical` em `.github/workflows/ci.yml`, `needs: [verify, integration]`,
+  contra `supabase start` (Postgres local, não o projeto remoto partilhado) e uma build
+  de produção real (`next build` + `next start`, não `next dev` — `playwright.config.ts`
+  agora usa `command: process.env.CI ? 'npm run start:test' : 'npm run dev'`).
+- Seis specs marcadas `@critical` (mínimo acordado): `login.spec.ts` (NEX-020),
+  `public-booking-confirmation.spec.ts` (NEX-070, fluxo público completo),
+  `public-booking-race.spec.ts` (NEX-065, este bug), `appointment-completion.spec.ts`
+  (NEX-110, conclusão/pagamento), `pentest-cross-tenant-write-tamper.spec.ts` (NEX-167,
+  isolamento entre tenants), `manual-booking-client-suggestion.spec.ts` (NEX-092).
+- `public-booking-race.spec.ts` ganhou `test.describe.configure({ retries: 0 })`
+  explícito — os retries globais do CI (2, `playwright.config.ts`) não se aplicam a
+  este teste especificamente, para que uma regressão real nunca seja mascarada por uma
+  segunda tentativa a passar, tal como pedido no plano ("nunca usar retries que
+  escondam a falha do teste de corrida especificamente").
+- Scripts novos em `package.json`: `test:e2e:critical` (`playwright test --grep
+@critical --project=chromium` — só chromium no CI, mesmo alcance do
+  `playwright install --with-deps chromium` do job), `test:e2e:race` (atalho para
+  reproduzir só este teste) e `start:test` (`next start -p 3000`).
+- `docs-only` gap encontrado e assumido, não escondido: não existe hoje nenhuma spec
+  E2E que complete o wizard de "Nova marcação" (NEX-085) até criar mesmo a marcação —
+  `manual-booking-client-suggestion.spec.ts` (NEX-092) é a única que toca o wizard, e
+  para no passo de sugestão de cliente. Foi essa a spec marcada `@critical` por ser a
+  mais próxima; escrever a spec completa de NEX-085 ficou fora do âmbito desta tarefa
+  (só "ligar o CI", não "aumentar cobertura") e fica como seguimento sugerido.
+
+### Validado nesta máquina (sem Docker — ver `ADR-007`)
+
+`npm run verify` completo (format/lint/typecheck/534 testes unitários/build/budget)
+passa. `npx playwright test --list --grep @critical --project=chromium` confirma
+exatamente os 6 ficheiros/14 testes esperados. `npm run build` + `npm run start:test`
+com as mesmas env vars do job novo arrancam e servem `/login` (200) e `/api/health`
+normalmente. `.github/workflows/ci.yml` validado sintaticamente (`yaml.safe_load`).
+
+**Não validado localmente** (Docker Desktop indisponível nesta máquina — mesma
+limitação de `ADR-007` que já afeta `tests/integration/`): a execução real do job
+`e2e-critical` contra `supabase start`, incluindo se o teste de corrida
+(`public-booking-race.spec.ts`) passa de facto contra Postgres local. Só se prova
+quando o GitHub Actions correr este PR — é o próximo passo depois do push.
+
+## Risco residual (parcialmente resolvido nesta sessão)
+
+O job `e2e-critical` está implementado e a aguardar a primeira execução real no CI
+(GitHub Actions tem Docker; esta máquina não). Até essa execução confirmar verde:
+
+1. Não está provado que o teste de corrida passa de forma estável contra Postgres
+   local em CI (só foi validado antes contra o Supabase de dev/preview remoto, gate
+   de aceitação acima).
+2. A proteção de branch do `main` ainda não exige `e2e-critical` como check
+   obrigatório — configuração do GitHub, fora do alcance do Claude Code, a pedir à
+   dona depois de o job passar de forma estável algumas vezes (conforme o plano
+   original).
+3. Falta a spec E2E completa de NEX-085 (criação manual de marcação) mencionada acima.
+
+Sem os pontos 1-2, uma regressão futura ainda pode ser mesclada com o `e2e-critical` a
+falhar (tal como aconteceu com #135 quando não existia nenhum job).
 
 ## Lição para reaplicar noutros projetos
 

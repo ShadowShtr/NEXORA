@@ -45,7 +45,7 @@ async function seedAppointment(
   return appointmentId;
 }
 
-test.describe('appointment completion panel (NEX-110)', () => {
+test.describe('appointment completion panel (NEX-110) @critical', () => {
   test.skip(!canUseSupabase(), 'Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
 
   let user: ProvisionedTestUser;

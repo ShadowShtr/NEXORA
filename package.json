@@ -10,6 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:test": "next start -p 3000",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "format": "prettier --check .",
@@ -19,6 +20,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
+    "test:e2e:critical": "playwright test --grep @critical --project=chromium",
+    "test:e2e:race": "playwright test tests/e2e/public-booking-race.spec.ts",
     "budget": "node scripts/check-bundle-budget.mjs",
     "verify": "npm run format && npm run lint && npm run typecheck && npm test && npm run build && npm run budget"
   },
