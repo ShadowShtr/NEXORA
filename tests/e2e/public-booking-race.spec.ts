@@ -57,7 +57,13 @@ async function seedOpenTenant(user: ProvisionedTestUser) {
   return tenant!.id;
 }
 
-test.describe('public booking race (NEX-065)', () => {
+test.describe('public booking race (NEX-065) @critical', () => {
+  // This is the exact test that caught NEX-178: a real, non-flaky race bug that CI's
+  // default retries (2, see playwright.config.ts) would silently paper over by passing
+  // on a later attempt. Zero retries here so a regression fails loudly instead of
+  // slipping through the way it did in PR #135.
+  test.describe.configure({ retries: 0 });
+
   let user: ProvisionedTestUser;
 
   test.afterEach(async () => {

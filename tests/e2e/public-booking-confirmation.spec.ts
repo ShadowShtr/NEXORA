@@ -57,7 +57,7 @@ async function seedOpenTenant(user: ProvisionedTestUser) {
   });
 }
 
-test.describe('public booking confirmation screen (NEX-070)', () => {
+test.describe('public booking confirmation screen (NEX-070) @critical', () => {
   let user: ProvisionedTestUser;
 
   test.afterEach(async () => {

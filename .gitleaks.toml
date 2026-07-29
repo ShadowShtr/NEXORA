@@ -1,0 +1,16 @@
+title = "NEXORA gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known false positives, kept narrow by exact commit SHA so real leaks in other commits still fail the scan"
+commits = [
+  # BOOKING_DRAFT_ENCRYPTION_KEY in this commit's diff of .github/workflows/ci.yml was
+  # a randomly generated test-only value for the e2e-critical CI job, never a real
+  # secret and never used outside that job's own ephemeral run — replaced by a
+  # runtime-generated one (`openssl rand -hex 32`) in a later commit on the same PR
+  # (task/NEX-178-e2e-critical-ci), but gitleaks scans historical diffs, so removing it
+  # going forward doesn't clear this finding.
+  "c9818c324db40e98bb7604bf363a1b5b9c8f4b5a",
+]

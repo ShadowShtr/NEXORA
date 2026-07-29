@@ -72,3 +72,59 @@ jobs:
             --override-name db.url=TEST_DATABASE_URL)"
           set +a
           npm run test:integration
+
+  e2e-critical:
+    name: E2E crítico
+    # NEX-178: tests/e2e/** (Playwright) never ran in CI before this job — verify/
+    # integration only cover lint/types/build/unit and vitest-against-local-Supabase, so
+    # a real client-side bug in the public booking flow merged straight to main via
+    # #135 with a green check. Gated on verify+integration passing first since it's the
+    # slowest job (real build + browser + local Supabase).
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [verify, integration]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: supabase start
+      - name: Build production bundle and run @critical E2E suite against local Supabase
+        # Same `supabase status -o env` eval pattern as the integration job above. Build
+        # runs against a real production bundle (`next build` + `next start`, see
+        # playwright.config.ts webServer) rather than `next dev`, to match what Vercel
+        # actually serves instead of a dev-only code path.
+        env:
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          CI: 'true'
+        run: |
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.secret_key=SUPABASE_SERVICE_ROLE_KEY)"
+          # Generated fresh per run, thrown away after — this job's booking_drafts rows
+          # don't survive the runner, so there's nothing to decrypt later. Randomly
+          # generated instead of a fixed value so nothing resembling a secret ever sits
+          # in the diff (gitleaks flags any hardcoded 64-char hex next to a *_KEY name,
+          # real or not).
+          export BOOKING_DRAFT_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+          set +a
+          npm run build
+          npm run test:e2e:critical
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
