@@ -264,12 +264,26 @@ Postgres local via `supabase start`:
   (`retries: 0` explícito nessa spec).
 - `.github/workflows/ci.yml` validado sintaticamente (`yaml.safe_load`).
 
-**Ainda não provado**: a execução real do job contra Postgres **local** via
-`supabase start` (o que o CI do GitHub Actions efetivamente usa) — só validado contra
-o projeto remoto de dev/preview. Os dois ambientes correm as mesmas migrations/RLS,
-mas só a própria execução do CI neste PR prova que `supabase start` (Docker,
-disponível no runner do GitHub, não nesta máquina) funciona de ponta a ponta com este
-job.
+### Prova final — job `e2e-critical` correu no GitHub Actions (PR #139)
+
+Depois do push, o próprio job correu pela primeira vez contra Postgres **local** via
+`supabase start` no runner do GitHub (Docker, indisponível nesta máquina) — **passou**,
+3m47s, sem falhas, sem retries necessários. Todos os checks do PR #139 verdes:
+`verify`, `integration`, `analyze`, `gitleaks`, `E2E crítico`. Duas correções
+adicionais foram necessárias neste processo, ambas já commitadas no PR:
+
+- `gitleaks` falhou na primeira tentativa: o valor de `BOOKING_DRAFT_ENCRYPTION_KEY`
+  hardcoded no workflow (só para este job, nunca um segredo de produção) tem a forma
+  de uma chave genérica (64 hex chars junto a um nome `*_KEY`) e disparou a regra
+  `generic-api-key`. Corrigido gerando a chave em runtime (`openssl rand -hex 32`) em
+  vez de fixa no ficheiro — nada parecido com um segredo fica no diff. Como o
+  gitleaks-action verifica o histórico de commits do PR (não só o HEAD), a versão já
+  removida ainda aparecia no diff do commit que a introduziu; resolvido com
+  `.gitleaks.toml` (`[allowlist] commits = [...]`, só esse SHA específico) em vez de
+  reescrever histórico.
+
+Com isto, o residual da secção anterior está fechado: o job está provado a funcionar
+de ponta a ponta, no ambiente que o CI real usa.
 
 ## Risco residual (parcialmente resolvido nesta sessão)
 
