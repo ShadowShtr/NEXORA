@@ -104,9 +104,6 @@ jobs:
         # actually serves instead of a dev-only code path.
         env:
           NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
-          # 32 bytes hex, generated for this job only — not a production secret, see
-          # BOOKING_DRAFT_ENCRYPTION_KEY in src/lib/env.ts / .env.example.
-          BOOKING_DRAFT_ENCRYPTION_KEY: bf6e8cc7482ccc0ca0885e56a8a242e8a55d41980dc95544b3664ed961c37339
           CI: 'true'
         run: |
           set -a
@@ -114,6 +111,12 @@ jobs:
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
             --override-name auth.secret_key=SUPABASE_SERVICE_ROLE_KEY)"
+          # Generated fresh per run, thrown away after — this job's booking_drafts rows
+          # don't survive the runner, so there's nothing to decrypt later. Randomly
+          # generated instead of a fixed value so nothing resembling a secret ever sits
+          # in the diff (gitleaks flags any hardcoded 64-char hex next to a *_KEY name,
+          # real or not).
+          export BOOKING_DRAFT_ENCRYPTION_KEY="$(openssl rand -hex 32)"
           set +a
           npm run build
           npm run test:e2e:critical
