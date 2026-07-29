@@ -202,19 +202,74 @@ Branch `task/NEX-178-e2e-critical-ci`, seguindo exatamente o plano acordado em
   mais próxima; escrever a spec completa de NEX-085 ficou fora do âmbito desta tarefa
   (só "ligar o CI", não "aumentar cobertura") e fica como seguimento sugerido.
 
-### Validado nesta máquina (sem Docker — ver `ADR-007`)
+### Achado sério — `appointment-completion.spec.ts` estava genuinamente partido
 
-`npm run verify` completo (format/lint/typecheck/534 testes unitários/build/budget)
-passa. `npx playwright test --list --grep @critical --project=chromium` confirma
-exatamente os 6 ficheiros/14 testes esperados. `npm run build` + `npm run start:test`
-com as mesmas env vars do job novo arrancam e servem `/login` (200) e `/api/health`
-normalmente. `.github/workflows/ci.yml` validado sintaticamente (`yaml.safe_load`).
+Ao validar a suite `@critical` pela primeira vez (ver secção seguinte), as 5 specs de
+`appointment-completion.spec.ts` (NEX-110) falhavam de forma 100% determinística —
+confirmado repetindo com paralelismo diferente e depois em modo fiel ao CI (1 worker,
+`CI=true`, os retries normais do Playwright: mesmo com 2 tentativas extra por teste,
+falhava sempre da mesma forma). Não era ambiente, era um bug real e antigo do próprio
+teste, nunca detectado porque `tests/e2e/**` nunca correu em CI — exatamente o
+problema que esta tarefa existe para fechar.
 
-**Não validado localmente** (Docker Desktop indisponível nesta máquina — mesma
-limitação de `ADR-007` que já afeta `tests/integration/`): a execução real do job
-`e2e-critical` contra `supabase start`, incluindo se o teste de corrida
-(`public-booking-race.spec.ts`) passa de facto contra Postgres local. Só se prova
-quando o GitHub Actions correr este PR — é o próximo passo depois do push.
+Causa raiz: o redesign da agenda (comentário em
+`src/features/appointments/AppointmentCard.tsx`, "Visual refinement mid-2026")
+mudou duas coisas que o teste antigo assumia:
+
+1. A classe raiz do cartão passou de `.appointment-card` para
+   `.appointment-timeline-card appointment-card-{status}` — `.appointment-card` como
+   seletor CSS exato já não existe na página `/dashboard/agenda` (a classe
+   `.appointment-card` continua a existir noutras páginas, só não nesta).
+2. O formulário de conclusão deixou de expandir dentro do próprio cartão — CLAUDE.md
+   proíbe isso explicitamente ("A página de agenda não pode expandir uma marcação
+   para exibir o formulário de conclusão") — e passou a abrir num bottom sheet
+   separado (`CompletionSheet.tsx`, `role="dialog"`, fora da subárvore DOM do cartão).
+   O texto de sucesso "Atendimento concluído." também foi removido nesse processo — a
+   sheet simplesmente fecha (`onCompleted`/`onCancel` chamam o mesmo `onClose`).
+
+Corrigido em `appointment-completion.spec.ts` (a única destas specs marcada
+`@critical`): seletor do cartão para `.appointment-timeline-card`, interações do
+formulário escopadas a `page.getByRole('dialog', { name: 'Concluir atendimento' })`
+em vez de dentro do cartão, e a prova de sucesso trocada de um texto que já não
+existe para `await expect(sheet).toBeHidden()` (a sheet desmontar é o sinal real de
+sucesso agora) — mantendo as verificações mais fortes já existentes contra
+`appointments`/`payments` via `user.admin`, que não mudaram.
+
+**Não corrigido nesta tarefa, encontrado e não escondido**: o mesmo padrão desatualizado
+(`.appointment-card`, formulário assumido inline, "Atendimento concluído.") existe em
+`appointment-completion-discount.spec.ts` (4 ocorrências), `appointment-completion-extras.spec.ts`
+(3 ocorrências) e `appointment-card.spec.ts` (2 ocorrências, e este último também assume
+"os dois botões de ação rápida visíveis ao mesmo tempo" e preço/estado no próprio
+cartão — coisas que o redesign removeu deliberadamente, "só UMA ação rápida por linha").
+Nenhuma destas três está marcada `@critical`, por isso não bloqueiam o gate novo, mas
+estão hoje partidas se alguém as correr — ficam para uma tarefa de seguimento dedicada
+a reescrevê-las para a arquitetura atual (bottom sheet + só uma ação por cartão), não
+coberta aqui porque o âmbito desta tarefa era "ligar o CI", e alargar para reescrever
+specs não-`@critical` teria sido expandir silenciosamente o escopo.
+
+### Validado nesta máquina
+
+Por indicação da dona, sem usar Docker local — validado contra o **Supabase de
+dev/preview real** (`znakuwpmapkhzuntzorj`, o mesmo já usado como "Local" por
+`ADR-007`, o mesmo projeto usado para validar o Bug 1/Bug 2 acima), não contra
+Postgres local via `supabase start`:
+
+- `npm run verify` completo (format/lint/typecheck/534 testes unitários/build/budget) passa.
+- `npm run build` + `npm run start:test` com `.env.local` (projeto real) arrancam e
+  servem `/login` (200) e `/api/health` normalmente.
+- **A suite `@critical` completa (14 testes, 6 ficheiros) passa integralmente**,
+  confirmado duas vezes: primeiro em paralelo (6 workers), depois em modo fiel ao CI
+  (`CI=true`, 1 worker, `start:test` gerido pelo próprio Playwright, retries normais
+  do Playwright ativos) — incluindo `public-booking-race.spec.ts` sem retries
+  (`retries: 0` explícito nessa spec).
+- `.github/workflows/ci.yml` validado sintaticamente (`yaml.safe_load`).
+
+**Ainda não provado**: a execução real do job contra Postgres **local** via
+`supabase start` (o que o CI do GitHub Actions efetivamente usa) — só validado contra
+o projeto remoto de dev/preview. Os dois ambientes correm as mesmas migrations/RLS,
+mas só a própria execução do CI neste PR prova que `supabase start` (Docker,
+disponível no runner do GitHub, não nesta máquina) funciona de ponta a ponta com este
+job.
 
 ## Risco residual (parcialmente resolvido nesta sessão)
 

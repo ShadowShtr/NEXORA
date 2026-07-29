@@ -70,13 +70,20 @@ test.describe('appointment completion panel (NEX-110) @critical', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    // The completion form opens in a separate bottom sheet (CompletionSheet.tsx), not
+    // inline inside the timeline card — CLAUDE.md's agenda redesign explicitly forbids
+    // the card itself growing to show the form, so the trigger and the form live in two
+    // different DOM subtrees.
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('25.00');
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('25.00');
 
-    await card.getByRole('button', { name: 'Dinheiro' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Dinheiro' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    // On success the panel returns null and the sheet's onCompleted closes it — there's
+    // no inline "concluded" text anymore, the sheet disappearing is the success signal.
+    await expect(sheet).toBeHidden();
 
     const { data: appointment } = await user.admin
       .from('appointments')
@@ -110,12 +117,13 @@ test.describe('appointment completion panel (NEX-110) @critical', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByLabel('Valor final (€)').fill('32.50');
-    await card.getByRole('button', { name: 'MB WAY' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByLabel('Valor final (€)').fill('32.50');
+    await sheet.getByRole('button', { name: 'MB WAY' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    await expect(sheet).toBeHidden();
 
     const { data: appointment } = await user.admin
       .from('appointments')
@@ -142,11 +150,12 @@ test.describe('appointment completion panel (NEX-110) @critical', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Pendente' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Pendente' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    await expect(sheet).toBeHidden();
 
     const { data: payment } = await user.admin
       .from('payments')
@@ -172,14 +181,16 @@ test.describe('appointment completion panel (NEX-110) @critical', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await expect(card.getByRole('button', { name: 'Confirmar conclusão' })).toBeDisabled();
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await expect(sheet.getByRole('button', { name: 'Confirmar conclusão' })).toBeDisabled();
 
-    await card.getByRole('button', { name: 'Dinheiro' }).click();
-    await expect(card.getByRole('button', { name: 'Confirmar conclusão' })).toBeEnabled();
+    await sheet.getByRole('button', { name: 'Dinheiro' }).click();
+    await expect(sheet.getByRole('button', { name: 'Confirmar conclusão' })).toBeEnabled();
 
-    await card.getByRole('button', { name: 'Voltar' }).click();
+    await sheet.getByRole('button', { name: 'Voltar' }).click();
+    await expect(sheet).toBeHidden();
     await expect(card.getByRole('button', { name: 'Concluir' })).toBeVisible();
   });
 
@@ -199,9 +210,10 @@ test.describe('appointment completion panel (NEX-110) @critical', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Dinheiro' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Dinheiro' }).click();
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
