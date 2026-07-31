@@ -108,8 +108,11 @@ test.describe('agenda free slots summary (NEX-083)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda?view=day');
 
+    // The summary special-cases zero into "Agenda completa..." rather than literally
+    // "0 horários livres..." (src/app/(dashboard)/dashboard/agenda/page.tsx) — this
+    // assertion never matched that, so it could never have passed for real.
     await expect(page.locator('.agenda-free-slots-summary')).toHaveText(
-      '0 horários livres neste período',
+      'Agenda completa neste período',
     );
   });
 });

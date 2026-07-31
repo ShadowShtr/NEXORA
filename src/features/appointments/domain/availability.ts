@@ -107,7 +107,24 @@ export function generateTimezoneAwareSlots(input: GenerateTimezoneAwareSlotsInpu
     const openIntervals = dayHoursToOpenIntervals(dateKey, dayHours, timeZone);
 
     for (const interval of openIntervals) {
-      const windowStartMs = Math.max(interval.startMs, earliestMs);
+      // Bug found while writing NEX-205's E2E coverage (docs/10_RISK_REGISTER.md, R13):
+      // when `earliestMs` (now + aviso mínimo), not the business's opening time, decides
+      // where a day's window starts — the normal case for "today", whenever there are
+      // still open hours left — the very first slot used to sit at the exact millisecond
+      // `Date.now()` happened to be called, not rounded to `slotStepMinutes`. Two separate
+      // calls a few seconds apart (e.g. fetching availability, then re-checking a
+      // recurring series' conflicts) would almost never agree on that exact instant, so
+      // "today"'s slot(s) constantly looked like false conflicts against themselves, and
+      // an owner's UI could show an odd time like "16:43" instead of "16:30"/"17:00".
+      // Anchoring the grid at `interval.startMs` (the same reference every other day's
+      // window already uses) and rounding *up* to the next mark on it keeps every slot on
+      // the same grid regardless of which day decided the window's start — a no-op when
+      // `interval.startMs` is already binding (unchanged for every day beyond the notice
+      // window), and a real fix only for the day(s) still inside it.
+      const stepMs = slotStepMinutes * 60_000;
+      const rawStartMs = Math.max(interval.startMs, earliestMs);
+      const stepsFromIntervalStart = Math.ceil((rawStartMs - interval.startMs) / stepMs);
+      const windowStartMs = interval.startMs + stepsFromIntervalStart * stepMs;
       const windowEndMs = Math.min(interval.endMs, horizonMs);
       if (windowEndMs <= windowStartMs) continue;
 

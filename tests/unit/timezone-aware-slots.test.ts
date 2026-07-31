@@ -101,6 +101,31 @@ describe('generateTimezoneAwareSlots', () => {
     expect(lastMorning + 75 * 60_000).toBeLessThanOrEqual(Date.UTC(2026, 0, 5, 13));
   });
 
+  it('R13 (docs/10_RISK_REGISTER.md): rounds an off-grid notice boundary up to the same slot grid the day would otherwise use, not the exact millisecond of `now`', () => {
+    // nowMs 08:07 UTC + minNoticeHours 3 = earliestMs 11:07 UTC — deliberately not a
+    // multiple of 30min from the 09:00 UTC opening anchor (2h07 = 127min, not a step of
+    // 30), unlike every other test's round-hour nowMs.
+    const oddNowMs = Date.UTC(2026, 0, 5, 8, 7, 0);
+    const slots = generateTimezoneAwareSlots(
+      baseInput({ nowMs: oddNowMs, minNoticeHours: 3, bookingWindowDays: 1 }),
+    );
+    // 09:00 UTC + k*30min grid: the next mark at/after 11:07 UTC is 11:30 UTC, not 11:07.
+    expect(new Date(slots[0]!).toISOString()).toBe('2026-01-05T11:30:00.000Z');
+  });
+
+  it("R13: the same day's earliest slot stays identical across two calls a few seconds apart, as long as `now` does not cross a slot-interval boundary", () => {
+    const baseNowMs = Date.UTC(2026, 0, 5, 8, 7, 0); // earliestMs lands at 11:07 UTC
+    const firstCall = generateTimezoneAwareSlots(
+      baseInput({ nowMs: baseNowMs, minNoticeHours: 3, bookingWindowDays: 1 }),
+    );
+    // A recurrence conflict re-check, moments later — earliestMs shifts to 11:07:45 UTC,
+    // still short of the next grid mark (11:30), so the chosen slot must not move.
+    const secondCall = generateTimezoneAwareSlots(
+      baseInput({ nowMs: baseNowMs + 45_000, minNoticeHours: 3, bookingWindowDays: 1 }),
+    );
+    expect(firstCall[0]).toBe(secondCall[0]);
+  });
+
   it('excludes slots before the minimum notice threshold', () => {
     const slots = generateTimezoneAwareSlots(
       baseInput({ bookingWindowDays: 1, minNoticeHours: 6 }),

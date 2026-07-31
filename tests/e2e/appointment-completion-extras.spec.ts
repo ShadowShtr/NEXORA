@@ -79,18 +79,24 @@ test.describe('appointment completion extras (NEX-111)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    // The completion form opens in a separate bottom sheet (CompletionSheet.tsx), not
+    // inline inside the timeline card — see appointment-completion.spec.ts (NEX-110/
+    // NEX-178) for the same pattern.
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Adicionar serviço').selectOption({ label: 'Verniz Gel (15,00 €)' });
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    await sheet.getByLabel('Adicionar serviço').selectOption({ label: 'Verniz Gel (15,00 €)' });
 
     // 25.00 (expected) + 15.00 (extra) = 40.00, auto-suggested since the owner hasn't
     // typed into the value field herself.
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('40.00');
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('40.00');
 
-    await card.getByRole('button', { name: 'Dinheiro' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Dinheiro' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    // On success the panel returns null and the sheet's onCompleted closes it — there's
+    // no inline "concluded" text anymore, the sheet disappearing is the success signal.
+    await expect(sheet).toBeHidden();
 
     const { data: appointment } = await user.admin
       .from('appointments')
@@ -124,14 +130,16 @@ test.describe('appointment completion extras (NEX-111)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByLabel('Valor final (€)').fill('99.00');
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Adicionar serviço').selectOption({ label: 'Verniz Gel (15,00 €)' });
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByLabel('Valor final (€)').fill('99.00');
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    await sheet.getByLabel('Adicionar serviço').selectOption({ label: 'Verniz Gel (15,00 €)' });
 
-    // Owner already typed her own value — it must survive the extra being added.
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('99');
+    // Owner already typed her own value — it must survive the extra being added
+    // (the input keeps the exact string she typed, "99.00", not a re-parsed "99").
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('99.00');
   });
 
   test('adding and removing a manual extra', async ({ page }) => {
@@ -150,23 +158,24 @@ test.describe('appointment completion extras (NEX-111)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Ajuste manual — descrição').fill('Correção de unha');
-    await card.getByLabel('Valor (€)').fill('5.00');
-    await card.getByRole('button', { name: 'Adicionar' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    await sheet.getByLabel('Ajuste manual — descrição').fill('Correção de unha');
+    await sheet.getByLabel('Valor (€)').fill('5.00');
+    await sheet.getByRole('button', { name: 'Adicionar' }).click();
 
-    await expect(card.getByText('Correção de unha')).toBeVisible();
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('30.00');
+    await expect(sheet.getByText('Correção de unha')).toBeVisible();
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('30.00');
 
-    await card.getByRole('button', { name: 'Remover Correção de unha' }).click();
-    await expect(card.getByText('Correção de unha')).toHaveCount(0);
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('25.00');
+    await sheet.getByRole('button', { name: 'Remover Correção de unha' }).click();
+    await expect(sheet.getByText('Correção de unha')).toHaveCount(0);
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('25.00');
 
-    await card.getByRole('button', { name: 'Pendente' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Pendente' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    await expect(sheet).toBeHidden();
 
     const { data: items } = await user.admin
       .from('appointment_items')

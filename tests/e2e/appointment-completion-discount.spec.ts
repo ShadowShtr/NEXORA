@@ -67,19 +67,31 @@ test.describe('appointment completion discount (NEX-112)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    // The completion form opens in a separate bottom sheet (CompletionSheet.tsx), not
+    // inline inside the timeline card — see appointment-completion.spec.ts (NEX-110/
+    // NEX-178) for the same pattern.
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Desconto').selectOption('fixed');
-    await card.getByLabel('Valor (€)').fill('5.00');
-    await card.getByLabel('Motivo (opcional)').fill('Cliente fiel');
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    // Scoped to .completion-discount: the sibling manual-extra field shares the exact
+    // same "Valor (€)" label, and a <select>'s accessible name (browser accname algo)
+    // includes its own <option> text nodes — "Desconto"'s <select> ends up with
+    // "Percentagem (%)" as a literal substring of its computed name, so a fuzzy
+    // getByLabel('Percentagem (%)') matches it too without this scoping.
+    const discount = sheet.locator('.completion-discount');
+    await discount.getByLabel('Desconto').selectOption('fixed');
+    await discount.getByLabel('Valor (€)', { exact: true }).fill('5.00');
+    await discount.getByLabel('Motivo (opcional)').fill('Cliente fiel');
 
     // 25.00 (expected) - 5.00 (discount) = 20.00.
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('20.00');
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('20.00');
 
-    await card.getByRole('button', { name: 'Dinheiro' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Dinheiro' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    // On success the panel returns null and the sheet's onCompleted closes it — there's
+    // no inline "concluded" text anymore, the sheet disappearing is the success signal.
+    await expect(sheet).toBeHidden();
 
     const { data: appointment } = await user.admin
       .from('appointments')
@@ -112,14 +124,16 @@ test.describe('appointment completion discount (NEX-112)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Desconto').selectOption('percent');
-    await card.getByLabel('Percentagem (%)').fill('20');
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    const discount = sheet.locator('.completion-discount');
+    await discount.getByLabel('Desconto').selectOption('percent');
+    await discount.getByLabel('Percentagem (%)', { exact: true }).fill('20');
 
     // 25.00 * 0.8 = 20.00.
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('20.00');
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('20.00');
   });
 
   test('shows a validation error for a percent discount above 100 and disables submit', async ({
@@ -140,15 +154,17 @@ test.describe('appointment completion discount (NEX-112)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Desconto').selectOption('percent');
-    await card.getByLabel('Percentagem (%)').fill('150');
-    await card.getByRole('button', { name: 'Dinheiro' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    const discount = sheet.locator('.completion-discount');
+    await discount.getByLabel('Desconto').selectOption('percent');
+    await discount.getByLabel('Percentagem (%)', { exact: true }).fill('150');
+    await sheet.getByRole('button', { name: 'Dinheiro' }).click();
 
-    await expect(card.getByText('O desconto percentual deve ser entre 0 e 100.')).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Confirmar conclusão' })).toBeDisabled();
+    await expect(sheet.getByText('O desconto percentual deve ser entre 0 e 100.')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Confirmar conclusão' })).toBeDisabled();
   });
 
   test('a discount larger than the total never produces a negative final value', async ({
@@ -169,17 +185,19 @@ test.describe('appointment completion discount (NEX-112)', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     await page.goto('/dashboard/agenda');
 
-    const card = page.locator('.appointment-card').first();
+    const card = page.locator('.appointment-timeline-card').first();
     await card.getByRole('button', { name: 'Concluir' }).click();
-    await card.getByRole('button', { name: 'Ver mais' }).click();
-    await card.getByLabel('Desconto').selectOption('fixed');
-    await card.getByLabel('Valor (€)').fill('999');
+    const sheet = page.getByRole('dialog', { name: 'Concluir atendimento' });
+    await sheet.getByRole('button', { name: 'Ver mais' }).click();
+    const discount = sheet.locator('.completion-discount');
+    await discount.getByLabel('Desconto').selectOption('fixed');
+    await discount.getByLabel('Valor (€)', { exact: true }).fill('999');
 
-    await expect(card.getByLabel('Valor final (€)')).toHaveValue('0.00');
+    await expect(sheet.getByLabel('Valor final (€)')).toHaveValue('0.00');
 
-    await card.getByRole('button', { name: 'Pendente' }).click();
-    await card.getByRole('button', { name: 'Confirmar conclusão' }).click();
-    await expect(card.getByText('Atendimento concluído.')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Pendente' }).click();
+    await sheet.getByRole('button', { name: 'Confirmar conclusão' }).click();
+    await expect(sheet).toBeHidden();
 
     const { data: appointment } = await user.admin
       .from('appointments')

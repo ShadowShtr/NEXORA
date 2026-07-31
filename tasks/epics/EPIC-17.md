@@ -269,7 +269,7 @@ Implementar checklist beta privado sem expandir o escopo para funcionalidades n�
 
 **Critérios de aceite**
 
-- Todos os gates de beta satisfeitos.
+- Todos os gates de beta avaliados com evidência real, cada um com estado explícito (pronto/parcial/em falta) — não necessariamente todos "satisfeitos": `docs/BETA_CHECKLIST.md` conclui **NO-GO**, com 4 de 13 itens ainda por resolver (backup real, política de privacidade, suporte, PWA em dispositivo físico).
 - Nenhum dado de outro tenant pode ser acedido.
 - A interface mantém linguagem simples e fluxo guiado quando houver UI.
 - Logs não contêm segredos nem PII desnecessária.
@@ -281,17 +281,17 @@ Implementar checklist beta privado sem expandir o escopo para funcionalidades n�
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só avaliação/documentação.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. Ver `docs/evidence/NEX-176_CHECKLIST_BETA_PRIVADO.md` e `docs/BETA_CHECKLIST.md` para os 4 itens pendentes e o plano de resolução.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-177 — Lançamento e monitorização inicial
 
@@ -322,14 +322,14 @@ Implementar lançamento e monitorização inicial sem expandir o escopo para fun
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só documentação de processo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. Dashboard de logs é o painel nativo da Vercel (sem observabilidade externa provisionada); contacto de suporte e feedback estruturado ainda dependem de `EPIC-30`, gap já registado em `NEX-176`. Ver `docs/evidence/NEX-177_LANCAMENTO_MONITORIZACAO_INICIAL.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

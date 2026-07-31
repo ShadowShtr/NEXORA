@@ -1,0 +1,89 @@
+name: Regressão visual (NEX-203)
+
+# Harness de regressão visual sem serviço externo pago (Percy/Chromatic) — compara
+# contra baselines PNG commitadas em tests/e2e/visual-regression.spec.ts-snapshots/.
+#
+# As baselines só podem ser geradas por este workflow (workflow_dispatch com
+# update=true), nunca localmente: o runner ubuntu-latest tem uma renderização de fontes
+# diferente de qualquer máquina de desenvolvimento Windows/macOS, e o próprio nome do
+# ficheiro de snapshot do Playwright inclui a plataforma (`-linux.png`) — uma baseline
+# gerada localmente no Windows (`-win32.png`) nunca seria sequer usada na comparação
+# daqui, então nunca deve ser commitada.
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update:
+        description: 'Gerar/atualizar baselines em vez de comparar (commita o resultado)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Só corre de facto com o secret disponível — permite mesclar este workflow antes de
+    # o secret existir, sem quebrar PRs de outras tarefas.
+    if: ${{ github.event.inputs.update == 'true' || vars.VISUAL_REGRESSION_ENABLED == 'true' }}
+    permissions:
+      contents: ${{ github.event.inputs.update == 'true' && 'write' || 'read' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: ${{ github.event.inputs.update == 'true' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: supabase start
+      - name: Correr o harness (comparar, ou atualizar baselines se disparado manualmente)
+        env:
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          CI: 'true'
+        run: |
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.secret_key=SUPABASE_SERVICE_ROLE_KEY)"
+          export BOOKING_DRAFT_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+          set +a
+          npm run build
+          # playwright.config.ts's webServer already runs `npm run start:test` (a real
+          # production `next start`, not `next dev`) whenever CI is set — same pattern
+          # e2e-critical uses, so this never starts a second, conflicting server.
+          npx playwright test tests/e2e/visual-regression.spec.ts --project=chromium \
+            ${{ github.event.inputs.update == 'true' && '--update-snapshots' || '' }}
+
+      - name: Commitar baselines atualizadas
+        if: ${{ github.event.inputs.update == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/e2e/visual-regression.spec.ts-snapshots/
+          if git diff --cached --quiet; then
+            echo "Sem alterações às baselines."
+          else
+            git commit -m "chore(visual): atualizar baselines de regressão visual (NEX-203)"
+            git push
+          fi
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-visual
+          path: playwright-report/
+          retention-days: 14
