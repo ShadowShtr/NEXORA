@@ -49,23 +49,39 @@ flowchart TD
 
 ### Estado de implementação da página pública (`/b/{slug}`)
 
-A página pública (`src/app/b/[slug]/`) implementa por agora as duas primeiras fases do
-Fluxo B. Fases ainda por implementar, pela ordem completa do Fluxo B acima:
+A página pública (`src/app/b/[slug]/`) implementa hoje o Fluxo B completo,
+paginado em rotas próprias (não um wizard de um único ecrã):
 
 1. **Cadastro** (`NEX-051`) — nome + telemóvel (+ e-mail opcional) antes de escolher
-   serviços; recuperável no mesmo dispositivo por 24h sem e-mail (`NEX-052`).
-2. **Serviços/Pacotes + carrinho** — serviços agrupados por categoria (checkboxes);
+   serviços; recuperável no mesmo dispositivo por 24h sem e-mail (`NEX-052`),
+   com rascunho cifrado (`booking_drafts`, `BOOKING_DRAFT_ENCRYPTION_KEY`).
+2. **`/b/{slug}/servicos`** — serviços agrupados por categoria (checkboxes);
    pacote de escolha única (`radio`, PRD 01 §4: "aba separada"); extras — serviços
    avulsos combinados com um pacote — nunca duplicam um item já incluído no pacote
    escolhido (`src/app/b/[slug]/domain/booking-selection.ts`, `NEX-053`); barra de
-   total/duração ao vivo (`NEX-054` cobre a formalização do carrinho fixo com testes
-   próprios — a versão atual já cumpre "sem float" e "recalcula ao vivo").
-3. **Escolha do dia** e do horário disponível (depende do motor de disponibilidade,
-   `EPIC-06`, ainda não construído).
-4. Observação opcional + resumo final + confirmação (reserva atómica) — por agora, a
-   confirmação é só um link `wa.me` com a seleção itemizada (sem motor de marcação).
+   total/duração ao vivo (`NEX-054`, "sem float", recalcula em direto).
+3. **`/b/{slug}/horario`** — escolha do dia e do horário disponível, servida pelo
+   motor de disponibilidade real (`EPIC-06`: `NEX-060` a `NEX-066` — geração de
+   slots timezone-aware, consulta pública, constraint de não sobreposição no
+   Postgres, rate limit/proteção anti-bot).
+4. **`/b/{slug}/dados`** — observação opcional.
+5. **`/b/{slug}/resumo`** — resumo final e confirmação via reserva atómica e
+   idempotente (Route Handler `/api/public/business/[slug]/bookings`,
+   `NEX-064`), protegida contra dupla marcação por constraint de exclusão na
+   base de dados e testada sob concorrência real até 15 pedidos simultâneos
+   (`NEX-175`). Em caso de conflito (`SLOT_TAKEN`), a UX preserva os dados
+   escolhidos e volta ao passo de horário (`NEX-065`) em vez de apenas
+   mostrar um erro genérico. Ecrã final de confirmação com ficheiro `.ics`,
+   "Como chegar" e e-mail opcional (`NEX-070` a `NEX-074`).
 
-A versão formal e testada desta página fica para `NEX-050` em diante.
+O link `wa.me` deixou de ser o mecanismo de confirmação — é hoje um canal
+manual de lembrete (Fluxo D), não parte da reserva em si.
+
+Bug de concorrência real encontrado e corrigido em produção (cliente ficava
+preso em "A confirmar…" quando duas visitantes confirmavam o mesmo horário
+ao mesmo tempo) — ver `docs/evidence/NEX-178_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md`.
+Este fluxo tem cobertura E2E `@critical` em CI (`tests/e2e/`, job
+`e2e-critical` em `.github/workflows/ci.yml`).
 
 ## Fluxo C — Agenda diária
 

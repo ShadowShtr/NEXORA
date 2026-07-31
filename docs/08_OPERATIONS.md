@@ -79,11 +79,22 @@ Alertas iniciais:
 
 ## Backups
 
-- usar backups geridos do Supabase conforme plano;
-- documentar frequência e retenção real;
-- testar restore trimestralmente no MVP;
-- RPO alvo inicial 24 h, RTO 4 h;
-- aumentar proteção conforme clientes/receita.
+O projeto Supabase de produção está no **plano Free** — sem backups geridos
+automáticos do fornecedor (exclusivo do plano Pro em diante). A salvaguarda
+real é o workflow `.github/workflows/backup-restore-test.yml` (`NEX-173`):
+dump lógico diário (schema + dados) + restore para um Postgres efémero em CI
+
+- verificação de integridade por contagem de linhas por tabela. Detalhe
+  completo e estado real (execução pendente de secret da dona) em
+  `docs/evidence/NEX-173_BACKUPS_RESTORE_TEST.md`.
+
+* RPO alvo: 24 h (cadência diária do workflow).
+* RTO alvo: sob 30 min (restore rehearsal em CI demora 1–3 min para o volume
+  atual; a estimativa inclui margem para criar um projeto Supabase novo e
+  trocar variáveis de ambiente no Vercel, caso o projeto original seja
+  perdido).
+* Revisitar para o plano Pro (backups geridos + PITR) quando o volume de
+  clientes/receita justificar — não é um "módulo pago obrigatório" agora.
 
 ## Incidentes
 
@@ -110,11 +121,17 @@ Definir alertas de budget antes do lançamento comercial.
 
 ## Runbooks mínimos
 
-- booking indisponível;
-- conflito elevado;
-- auth indisponível;
-- service role comprometida;
-- restauração de backup;
-- falha de e-mail;
-- fotografia exposta;
-- tenant access incident.
+Detalhe passo-a-passo (deteção, impacto, contenção, diagnóstico,
+recuperação, comunicação, pós-incidente) em `docs/RUNBOOKS.md` (`NEX-174`):
+
+- login indisponível;
+- Supabase indisponível;
+- deploy falhado;
+- e-mail degradado;
+- reserva pública a falhar;
+- erro de concorrência;
+- Storage indisponível;
+- exportação financeira a falhar;
+- suspeita de acesso cross-tenant;
+- fuga de token público;
+- restore de backup.

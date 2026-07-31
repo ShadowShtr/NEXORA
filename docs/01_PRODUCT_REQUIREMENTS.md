@@ -208,16 +208,21 @@ Barra inferior:
 
 “Mais” contém Financeiro, Relatórios, Definições e Terminar sessão.
 
-## 15. Fora do MVP
+## 15. Fora do MVP original — estado atual
 
-- API automática do WhatsApp;
-- pagamentos online;
-- faturação fiscal;
-- despesas;
-- equipas e comissões na interface;
-- marketplace;
-- aplicação nativa nas lojas;
-- portefólio público;
-- login da cliente;
-- domínio próprio por tenant;
-- IA.
+Lista original do MVP da primeira vertical (profissional independente). O
+plano mestre de expansão (`TASKS.md`, `EPIC-18` em diante) já traz de volta
+parte desta lista como direção oficial do produto — marcado abaixo item a
+item, sem reescrever a história do que era o MVP inicial.
+
+- API automática do WhatsApp — **continua fora** (não depender de API paga, ver `NEXORA_PLANO_MESTRE...md` §3.1);
+- pagamentos online — **continua fora** (§3.2 do mesmo plano: registo manual de pagamento, sem gateway);
+- faturação fiscal — **continua fora** (§3.3: só comprovativo interno, não documento fiscal);
+- despesas — parcialmente endereçado por `EPIC-22` (caixa interna/dívidas) e `EPIC-23` (stock/fornecedores/compras), ainda por implementar;
+- equipas e comissões na interface — **deixou de estar fora de âmbito**: `EPIC-19` (equipas/prestadores/recursos) e `EPIC-24` (comissões) passam a ser direção oficial do produto (`CLAUDE.md` atualizado, já não proíbe);
+- marketplace — continua fora;
+- aplicação nativa nas lojas — continua fora (`§3.4`: PWA instalável é a alternativa);
+- portefólio público — parcialmente endereçado pela landing institucional (`EPIC-32`), ainda por implementar;
+- login da cliente — evoluído para **área do cliente por link seguro** (`EPIC-20`), sem conta/password tradicional, não um login completo;
+- domínio próprio por tenant — continua fora do MVP original (não confundir com a estrutura de domínios da própria NEXORA — `nnexora.pt`/`app.nnexora.pt` — de `EPIC-32`);
+- IA — continua fora.

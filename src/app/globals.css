@@ -11,6 +11,30 @@
   --warning: #975c10;
   --shadow-dark: rgba(153, 86, 114, 0.16);
   --shadow-light: rgba(255, 255, 255, 0.95);
+
+  /* NEX-202: escala de espaçamento e radius (NEXORA_PLANO_MESTRE...md §5.2).
+     Introduzida sem alterar nenhum valor visual já aprovado — aplicada só onde
+     o valor existente já coincide exatamente com um destes tokens; onde não
+     coincide (ex.: .summary-card usa 18px de radius, não 16 nem 20), o valor
+     original foi mantido tal como está, para não mudar o visual. Ver
+     docs/evidence/NEX-202_TOKENIZAR_ESPACAMENTO_RADIUS.md. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-sheet: 28px;
+  --radius-pill: 999px;
+
   font-family:
     var(--font-body),
     -apple-system,
@@ -75,8 +99,8 @@ select {
 
 .card {
   border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 1.5rem;
-  padding: 1.25rem;
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(253, 235, 243, 0.9));
   box-shadow:
     12px 12px 28px var(--shadow-dark),
@@ -150,7 +174,7 @@ select {
 .button {
   min-height: 48px;
   border: 0;
-  border-radius: 1rem;
+  border-radius: var(--radius-md);
   padding: 0.8rem 1.2rem;
   background: linear-gradient(145deg, var(--pink-500), var(--pink-600));
   color: white;
@@ -1624,8 +1648,8 @@ select {
 }
 .appointment-card {
   border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 1.5rem;
-  padding: 1.25rem;
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(253, 235, 243, 0.9));
   box-shadow:
     12px 12px 28px var(--shadow-dark),
@@ -1809,8 +1833,8 @@ select {
   z-index: 90;
   max-height: 88vh;
   overflow-y: auto;
-  padding: 0.65rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
-  border-radius: 1.75rem 1.75rem 0 0;
+  padding: 0.65rem var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   background: white;
   box-shadow: 0 -16px 45px rgba(35, 25, 30, 0.15);
 }
@@ -2415,7 +2439,7 @@ body[data-sheet-open='true'] .agenda-fab,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(241, 232, 236, 0.92);
   background: rgba(255, 255, 255, 0.96);
   white-space: nowrap;
@@ -3065,8 +3089,8 @@ body[data-sheet-open='true'] .agenda-fab,
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  padding: 0.65rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
-  border-radius: 1.75rem 1.75rem 0 0;
+  padding: 0.65rem var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   background: white;
   box-shadow: 0 -16px 45px rgba(35, 25, 30, 0.15);
 }

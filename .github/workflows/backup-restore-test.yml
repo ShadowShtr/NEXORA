@@ -1,0 +1,120 @@
+name: Backup e restore test (NEX-173)
+
+# Free tier do Supabase não inclui backups automáticos do lado do fornecedor —
+# este workflow é a salvaguarda real: dump lógico (schema + dados) do projeto
+# indicado por `BACKUP_SOURCE_DATABASE_URL`, seguido de um restore completo
+# para um Postgres efémero do próprio runner (sem custo adicional, sem
+# depender de infraestrutura nova) e uma verificação de integridade por
+# contagem de linhas. Corre com Docker nativo do runner ubuntu-latest — a
+# máquina de desenvolvimento local não tem Docker funcional (ver ADR-007),
+# por isso este mecanismo só corre em CI, nunca localmente.
+
+on:
+  schedule:
+    # Diariamente às 04:00 UTC — RPO alvo de 24h enquanto o volume de dados
+    # for o de uma profissional independente/pequena equipa.
+    - cron: '0 4 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-restore-test
+  cancel-in-progress: false
+
+jobs:
+  backup-restore-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Sem este secret o job termina cedo e sem falhar — permite fazer merge
+    # do workflow antes de o secret existir, sem quebrar o repositório.
+    if: ${{ vars.BACKUP_ENABLED == 'true' || github.event_name == 'workflow_dispatch' }}
+    services:
+      restore_target:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: restore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Confirmar que o secret de origem existe
+        id: check-secret
+        run: |
+          if [ -z "${{ secrets.BACKUP_SOURCE_DATABASE_URL }}" ]; then
+            echo "has_secret=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::BACKUP_SOURCE_DATABASE_URL não está configurado — a saltar backup/restore test. Ver docs/RUNBOOKS.md e docs/evidence/NEX-173_BACKUPS_RESTORE_TEST.md."
+          else
+            echo "has_secret=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v3
+        if: steps.check-secret.outputs.has_secret == 'true'
+        with:
+          version: latest
+
+      - name: Dump do schema e dos dados (fonte configurada no secret)
+        if: steps.check-secret.outputs.has_secret == 'true'
+        env:
+          SOURCE_DB_URL: ${{ secrets.BACKUP_SOURCE_DATABASE_URL }}
+        run: |
+          mkdir -p backup
+          supabase db dump --db-url "$SOURCE_DB_URL" --file backup/schema.sql
+          supabase db dump --db-url "$SOURCE_DB_URL" --data-only --use-copy --file backup/data.sql
+          echo "Tamanhos do dump:"
+          ls -lh backup/
+
+      - name: Restore completo no Postgres efémero do runner
+        if: steps.check-secret.outputs.has_secret == 'true'
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: restore_test
+        run: |
+          psql -v ON_ERROR_STOP=1 -f backup/schema.sql
+          psql -v ON_ERROR_STOP=1 -f backup/data.sql
+
+      - name: Verificar integridade do restore (contagem de linhas por tabela tenant-scoped)
+        if: steps.check-secret.outputs.has_secret == 'true'
+        env:
+          SOURCE_DB_URL: ${{ secrets.BACKUP_SOURCE_DATABASE_URL }}
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: restore_test
+        run: |
+          set -euo pipefail
+          tables="tenants profiles appointments clients services service_categories audit_logs"
+          fail=0
+          for t in $tables; do
+            src=$(psql "$SOURCE_DB_URL" -Atqc "select count(*) from public.$t" 2>/dev/null || echo "N/A")
+            dst=$(psql -Atqc "select count(*) from public.$t" 2>/dev/null || echo "N/A")
+            echo "$t: origem=$src restaurado=$dst"
+            if [ "$src" != "$dst" ]; then
+              echo "::error::Contagem diferente na tabela $t (origem=$src, restaurado=$dst)"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Upload do dump como evidência (retenção curta — contém dados reais)
+        if: steps.check-secret.outputs.has_secret == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-dump-${{ github.run_id }}
+          path: backup/
+          retention-days: 7
