@@ -172,6 +172,190 @@
 - [ ] **NEX-177** — Lançamento e monitorização inicial _(depende: NEX-176)_
 - [x] **NEX-178** — Corrigir concorrência do cliente em `/resumo` e adicionar E2E ao CI _(depende: NEX-065,NEX-175)_ — bug do cliente React e deadlock do Postgres corrigidos e mesclados (#138). Job `e2e-critical` implementado e mesclado (#139, `.github/workflows/ci.yml`: build de produção + `supabase start` + `playwright test --grep @critical`, 6 specs `@critical`), provado a passar no GitHub Actions real (3m47s, sem falhas). Proteção de branch do `main` configurada (ruleset ativo, `strict_required_status_checks_policy`) a exigir `verify`/`integration`/`E2E crítico`/`gitleaks`/`analyze` antes de mesclar — confirmado via API (`gh api repos/ShadowShtr/NEXORA/rulesets`). Ver `docs/evidence/NEX-178_PUBLIC_BOOKING_CLIENT_CONCURRENCY.md` para o relato completo, incluindo o achado de que `appointment-completion.spec.ts` (NEX-110) estava genuinamente partido (redesign da agenda para bottom sheet nunca refletido no teste, só descoberto porque o E2E finalmente correu) e foi corrigido no processo. Gaps encontrados mas fora do âmbito desta tarefa, ficam para seguimento: falta spec E2E completa de NEX-085 (criação manual de marcação, só existe a parcial NEX-092); `appointment-completion-discount.spec.ts`, `appointment-completion-extras.spec.ts` e `appointment-card.spec.ts` têm o mesmo padrão desatualizado do NEX-110 mas não foram corrigidas (não são `@critical`, não bloqueiam o CI, mas estão partidas se alguém as correr)
 
+### EPIC-18 — Alinhar documentação, QA e design foundations
+
+- [ ] **NEX-200** — Atualizar documentos de produto e UX _(depende: Nenhuma)_
+- [ ] **NEX-201** — Inventário único de funcionalidades e rotas _(depende: NEX-200)_
+- [ ] **NEX-202** — Tokenizar espaçamento, radius e elevação _(depende: NEX-150)_
+- [ ] **NEX-203** — Criar harness de regressão visual _(depende: NEX-202)_
+- [ ] **NEX-204** — Corrigir specs E2E não críticas desatualizadas _(depende: NEX-178)_
+- [ ] **NEX-205** — E2E completo da criação manual _(depende: NEX-085,NEX-204)_
+
+### EPIC-19 — Equipas, prestadores, salas e equipamentos
+
+- [ ] **NEX-210** — Modelo de membros, prestadores e roles _(depende: NEX-012,NEX-013)_
+- [ ] **NEX-211** — Matriz de permissões _(depende: NEX-210)_
+- [ ] **NEX-212** — Provisionamento de colaborador _(depende: NEX-211)_
+- [ ] **NEX-213** — Horários por prestador _(depende: NEX-210,NEX-060)_
+- [ ] **NEX-214** — Serviços por prestador _(depende: NEX-210)_
+- [ ] **NEX-215** — Salas e equipamentos _(depende: NEX-210)_
+- [ ] **NEX-216** — Motor de disponibilidade multi-recurso _(depende: NEX-061,NEX-213,NEX-214,NEX-215)_
+- [ ] **NEX-217** — UI da página Equipa e Recursos _(depende: NEX-212,NEX-213,NEX-214,NEX-215)_
+- [ ] **NEX-218** — Integração visual na Agenda _(depende: NEX-082,NEX-216)_
+- [ ] **NEX-219** — Testes e métricas de equipas/recursos _(depende: NEX-216,NEX-217,NEX-218)_
+
+### EPIC-20 — Área do cliente por link seguro
+
+- [ ] **NEX-220** — Token de acesso da cliente _(depende: NEX-091)_
+- [ ] **NEX-221** — Resolver cliente por token _(depende: NEX-220)_
+- [ ] **NEX-222** — Página inicial da área do cliente _(depende: NEX-221)_
+- [ ] **NEX-223** — Próximas marcações na área do cliente _(depende: NEX-222)_
+- [ ] **NEX-224** — Histórico e repetir marcação _(depende: NEX-222)_
+- [ ] **NEX-225** — Perfil editável limitado _(depende: NEX-222)_
+- [ ] **NEX-226** — Partilha manual pela dona _(depende: NEX-220)_
+- [ ] **NEX-227** — Instalação PWA da área do cliente _(depende: NEX-152,NEX-222)_
+- [ ] **NEX-228** — Segurança da área do cliente _(depende: NEX-220,NEX-221)_
+- [ ] **NEX-229** — Testes e métricas da área do cliente _(depende: NEX-223,NEX-224,NEX-225,NEX-228)_
+
+### EPIC-21 — Packs de sessões, vouchers e fidelização
+
+- [ ] **NEX-230** — Modelar produtos de pack _(depende: Nenhuma)_
+- [ ] **NEX-231** — Pack adquirido pela cliente _(depende: NEX-230)_
+- [ ] **NEX-232** — Consumo de sessão _(depende: NEX-113,NEX-231)_
+- [ ] **NEX-233** — UI em Serviços — Packs de sessões _(depende: NEX-230)_
+- [ ] **NEX-234** — UI na ficha do cliente — Packs _(depende: NEX-091,NEX-231)_
+- [ ] **NEX-235** — Alertas de validade de packs _(depende: NEX-231)_
+- [ ] **NEX-236** — Vouchers e cartões-oferta _(depende: Nenhuma)_
+- [ ] **NEX-237** — UI de vouchers _(depende: NEX-236)_
+- [ ] **NEX-238** — Fidelização simples _(depende: NEX-113)_
+- [ ] **NEX-239** — Testes e métricas de packs/vouchers _(depende: NEX-232,NEX-236,NEX-238)_
+
+### EPIC-22 — Caixa interna, dívidas e comprovativos
+
+- [ ] **NEX-240** — Sessão de caixa _(depende: NEX-013)_
+- [ ] **NEX-241** — Movimentos de caixa _(depende: NEX-240)_
+- [ ] **NEX-242** — Dívidas e vencimento _(depende: NEX-114)_
+- [ ] **NEX-243** — Comprovativo de pagamento manual _(depende: NEX-242)_
+- [ ] **NEX-244** — Comprovativo interno PDF _(depende: NEX-134,NEX-243)_
+- [ ] **NEX-245** — UI Financeiro — Caixa e pendentes _(depende: NEX-130,NEX-241,NEX-242)_
+- [ ] **NEX-246** — Fluxo de regularização _(depende: NEX-242,NEX-243)_
+- [ ] **NEX-247** — Aging report _(depende: NEX-242)_
+- [ ] **NEX-248** — Segurança de comprovativos e caixa _(depende: NEX-241,NEX-243)_
+- [ ] **NEX-249** — Testes e métricas de caixa/dívidas _(depende: NEX-245,NEX-246,NEX-247,NEX-248)_
+
+### EPIC-23 — Produtos, stock, fornecedores e compras
+
+- [ ] **NEX-250** — Catálogo de produtos _(depende: NEX-013)_
+- [ ] **NEX-251** — Movimentos de stock _(depende: NEX-250)_
+- [ ] **NEX-252** — Receitas/consumo por serviço _(depende: NEX-113,NEX-250)_
+- [ ] **NEX-253** — Fornecedores _(depende: NEX-250)_
+- [ ] **NEX-254** — Compras internas _(depende: NEX-251,NEX-253)_
+- [ ] **NEX-255** — UI em Serviços — Produtos _(depende: NEX-251)_
+- [ ] **NEX-256** — Página Stock _(depende: NEX-251,NEX-254)_
+- [ ] **NEX-257** — Scanner sem serviço externo _(depende: NEX-255)_
+- [ ] **NEX-258** — Alertas internos de stock _(depende: NEX-251)_
+- [ ] **NEX-259** — Testes e métricas de stock _(depende: NEX-252,NEX-256,NEX-258)_
+
+### EPIC-24 — Comissões e desempenho da equipa
+
+- [ ] **NEX-260** — Regras de comissão _(depende: NEX-214)_
+- [ ] **NEX-261** — Snapshot de comissão _(depende: NEX-113,NEX-260)_
+- [ ] **NEX-262** — Períodos e estados de comissão _(depende: NEX-261)_
+- [ ] **NEX-263** — UI Financeiro — Comissões _(depende: NEX-130,NEX-262)_
+- [ ] **NEX-264** — UI no perfil da equipa — Comissões _(depende: NEX-217,NEX-262)_
+- [ ] **NEX-265** — Ajustes de comissão _(depende: NEX-262)_
+- [ ] **NEX-266** — Permissões de comissão _(depende: NEX-211,NEX-263)_
+- [ ] **NEX-267** — Testes e métricas de comissões _(depende: NEX-263,NEX-265,NEX-266)_
+
+### EPIC-25 — CRM, segmentação e campanhas manuais
+
+- [ ] **NEX-270** — Motor de segmentos _(depende: NEX-090)_
+- [ ] **NEX-271** — Segmentos guardados _(depende: NEX-270)_
+- [ ] **NEX-272** — UI Clientes — Segmentos _(depende: NEX-271)_
+- [ ] **NEX-273** — Campanha manual _(depende: NEX-271)_
+- [ ] **NEX-274** — UI do construtor de campanhas _(depende: NEX-273)_
+- [ ] **NEX-275** — Aniversários _(depende: NEX-270)_
+- [ ] **NEX-276** — Reativação _(depende: NEX-270)_
+- [ ] **NEX-277** — Consentimento de marketing _(depende: NEX-270)_
+- [ ] **NEX-278** — Segurança e privacidade do CRM _(depende: NEX-273,NEX-277)_
+- [ ] **NEX-279** — Testes e métricas de CRM _(depende: NEX-272,NEX-274,NEX-277)_
+
+### EPIC-26 — Fichas técnicas, anamnese e consentimentos
+
+- [ ] **NEX-280** — Modelos de ficha _(depende: NEX-013)_
+- [ ] **NEX-281** — Versão de modelo _(depende: NEX-280)_
+- [ ] **NEX-282** — Ficha da cliente — novas tabs _(depende: NEX-091,NEX-281)_
+- [ ] **NEX-283** — Preenchimento de ficha _(depende: NEX-282)_
+- [ ] **NEX-284** — Proteção adicional para fichas sensíveis _(depende: NEX-282)_
+- [ ] **NEX-285** — Consentimentos _(depende: NEX-280)_
+- [ ] **NEX-286** — UI Definições — Fichas e consentimentos _(depende: NEX-140,NEX-281,NEX-285)_
+- [ ] **NEX-287** — Exportação e eliminação de fichas _(depende: NEX-162,NEX-163,NEX-283)_
+- [ ] **NEX-288** — Avisos legais de fichas _(depende: NEX-286)_
+- [ ] **NEX-289** — Testes e métricas de fichas/consentimentos _(depende: NEX-283,NEX-284,NEX-285,NEX-287)_
+
+### EPIC-27 — Multi-localização
+
+- [ ] **NEX-290** — Modelo de localizações _(depende: NEX-011)_
+- [ ] **NEX-291** — Escopo por localização _(depende: NEX-290)_
+- [ ] **NEX-292** — Horários e serviços por localização _(depende: NEX-060,NEX-291)_
+- [ ] **NEX-293** — Seletor global de localização _(depende: NEX-291)_
+- [ ] **NEX-294** — Página de localizações _(depende: NEX-291)_
+- [ ] **NEX-295** — Marcação pública por localização _(depende: NEX-050,NEX-291)_
+- [ ] **NEX-296** — Relatórios consolidados por localização _(depende: NEX-130,NEX-291)_
+- [ ] **NEX-297** — Transferências entre localizações _(depende: NEX-291)_
+- [ ] **NEX-298** — Segurança multi-localização _(depende: NEX-211,NEX-291)_
+- [ ] **NEX-299** — Testes e métricas multi-localização _(depende: NEX-293,NEX-295,NEX-298)_
+
+### EPIC-28 — Relatórios avançados
+
+- [ ] **NEX-300** — Hub de relatórios _(depende: NEX-130)_
+- [ ] **NEX-301** — Ocupação da agenda _(depende: NEX-082,NEX-300)_
+- [ ] **NEX-302** — Clientes e retenção _(depende: NEX-090,NEX-300)_
+- [ ] **NEX-303** — Serviços (relatório) _(depende: NEX-300)_
+- [ ] **NEX-304** — Prestadores (relatório) _(depende: NEX-216,NEX-300)_
+- [ ] **NEX-305** — Packs (relatório) _(depende: NEX-231,NEX-300)_
+- [ ] **NEX-306** — Stock (relatório) _(depende: NEX-251,NEX-300)_
+- [ ] **NEX-307** — UI de gráficos sem biblioteca externa _(depende: NEX-301)_
+- [ ] **NEX-308** — Exportação de relatórios _(depende: NEX-132,NEX-133,NEX-134,NEX-301)_
+- [ ] **NEX-309** — Testes e métricas de relatórios _(depende: NEX-307,NEX-308)_
+
+### EPIC-29 — Notificações sem API paga
+
+- [ ] **NEX-310** — Modelo de notificações internas _(depende: NEX-013)_
+- [ ] **NEX-311** — Página Notificações _(depende: NEX-310)_
+- [ ] **NEX-312** — Web Push para a dona _(depende: NEX-310)_
+- [ ] **NEX-313** — Push para cliente, opcional _(depende: NEX-220,NEX-312)_
+- [ ] **NEX-314** — Preferências de notificação _(depende: NEX-311,NEX-312)_
+- [ ] **NEX-315** — Badge da app _(depende: NEX-311)_
+- [ ] **NEX-316** — Cron e jobs de notificações _(depende: NEX-310)_
+- [ ] **NEX-317** — Privacidade das notificações _(depende: NEX-311,NEX-313)_
+- [ ] **NEX-318** — Testes e métricas de notificações _(depende: NEX-312,NEX-313,NEX-317)_
+
+### EPIC-30 — Centro de ajuda e feedback
+
+- [ ] **NEX-320** — Ajuda baseada em Markdown _(depende: Nenhuma)_
+- [ ] **NEX-321** — Página Ajuda _(depende: NEX-320)_
+- [ ] **NEX-322** — Ajuda contextual _(depende: NEX-144,NEX-321)_
+- [ ] **NEX-323** — Feedback interno _(depende: Nenhuma)_
+- [ ] **NEX-324** — Estado do pedido de feedback _(depende: NEX-323)_
+- [ ] **NEX-325** — UI em Mais — Suporte _(depende: NEX-321,NEX-323)_
+
+### EPIC-31 — Planos, limites e administração manual
+
+- [ ] **NEX-330** — Modelo de planos _(depende: NEX-013)_
+- [ ] **NEX-331** — Entitlements _(depende: NEX-330)_
+- [ ] **NEX-332** — Enforcement server-side de limites _(depende: NEX-331)_
+- [ ] **NEX-333** — UI Definições — Plano _(depende: NEX-140,NEX-331)_
+- [ ] **NEX-334** — Avisos de limite _(depende: NEX-332,NEX-333)_
+- [ ] **NEX-335** — Admin mínimo _(depende: NEX-330)_
+- [ ] **NEX-336** — Período de teste manual _(depende: NEX-330)_
+- [ ] **NEX-337** — UI de trial _(depende: NEX-336)_
+- [ ] **NEX-338** — Migração de tenants existentes para plano _(depende: NEX-330)_
+- [ ] **NEX-339** — Testes de planos e limites _(depende: NEX-332,NEX-334,NEX-338)_
+
+### EPIC-32 — Landing, preçário e demonstração
+
+- [ ] **NEX-340** — Estrutura de domínio _(depende: Nenhuma)_
+- [ ] **NEX-341** — Landing principal _(depende: NEX-340)_
+- [ ] **NEX-342** — Página de funcionalidades _(depende: NEX-341)_
+- [ ] **NEX-343** — Preçário verdadeiro _(depende: NEX-330,NEX-341)_
+- [ ] **NEX-344** — Demonstração sem automação paga _(depende: NEX-341)_
+- [ ] **NEX-345** — UI da landing _(depende: NEX-341)_
+- [ ] **NEX-346** — SEO e metadata _(depende: NEX-341)_
+- [ ] **NEX-347** — Privacidade e termos _(depende: NEX-341)_
+- [ ] **NEX-348** — Analytics sem fornecedor pago _(depende: NEX-341)_
+- [ ] **NEX-349** — Testes da landing _(depende: NEX-345,NEX-346,NEX-347)_
+
 ## Regras de atualização
 
 - Não reordenar IDs após início da execução.
