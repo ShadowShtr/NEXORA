@@ -165,8 +165,8 @@
 - [x] **NEX-170** — Logs estruturados e redaction _(depende: NEX-004)_
 - [x] **NEX-171** — Métricas e alertas _(depende: NEX-170)_
 - [!] **NEX-172** — Deploy Vercel e Supabase separados _(depende: NEX-003,NEX-010)_ — tentado, revertido após incidente real de produção; segredos continuam partilhados entre Preview/Produção por decisão da dona (`docs/evidence/NEX-172_DEPLOY_PREVIEW_PROD_SEPARADOS.md`)
-- [ ] **NEX-173** — Backups e restore test _(depende: NEX-172)_
-- [ ] **NEX-174** — Runbooks de incidentes _(depende: NEX-171,NEX-173)_
+- [~] **NEX-173** — Backups e restore test _(depende: NEX-172)_ — mecanismo pronto (workflow `.github/workflows/backup-restore-test.yml`, dump lógico + restore efémero + verificação de integridade em CI), Free tier confirmado sem backups automáticos do fornecedor; falta só a dona adicionar o secret `BACKUP_SOURCE_DATABASE_URL` e disparar um run real — ver `docs/evidence/NEX-173_BACKUPS_RESTORE_TEST.md`
+- [x] **NEX-174** — Runbooks de incidentes _(depende: NEX-171,NEX-173)_ — `docs/RUNBOOKS.md` com os 11 cenários (login, Supabase, deploy, e-mail, reserva pública, concorrência, Storage, exportação, cross-tenant, token público, restore); ver `docs/evidence/NEX-174_RUNBOOKS_INCIDENTES.md`
 - [x] **NEX-175** — Load/concurrency test _(depende: NEX-064,NEX-155)_
 - [ ] **NEX-176** — Checklist beta privado _(depende: NEX-154,NEX-167,NEX-175)_
 - [ ] **NEX-177** — Lançamento e monitorização inicial _(depende: NEX-176)_
@@ -174,9 +174,9 @@
 
 ### EPIC-18 — Alinhar documentação, QA e design foundations
 
-- [ ] **NEX-200** — Atualizar documentos de produto e UX _(depende: Nenhuma)_
-- [ ] **NEX-201** — Inventário único de funcionalidades e rotas _(depende: NEX-200)_
-- [ ] **NEX-202** — Tokenizar espaçamento, radius e elevação _(depende: NEX-150)_
+- [x] **NEX-200** — Atualizar documentos de produto e UX _(depende: Nenhuma)_ — README/`02_UX_FLOWS`/`01_PRODUCT_REQUIREMENTS` deixam de descrever "esqueleto inicial"/fluxo público por construir; distinção pacote-de-serviços vs. pack-de-sessões explícita; ver `docs/evidence/NEX-200_ATUALIZAR_DOCUMENTOS_PRODUTO_UX.md`
+- [x] **NEX-201** — Inventário único de funcionalidades e rotas _(depende: NEX-200)_ — `docs/FEATURE_ROUTE_INVENTORY.md`, 14 secções/~125 linhas, levantado do código real (rotas, actions/RPC, tabelas, testes); ver `docs/evidence/NEX-201_INVENTARIO_FUNCIONALIDADES_ROTAS.md`
+- [x] **NEX-202** — Tokenizar espaçamento, radius e elevação _(depende: NEX-150)_ — tokens `--space-*`/`--radius-*` em `globals.css`, aplicados a Button/Card/BottomSheet/FilterChip onde o valor batia certo (zero mudança visual); PageHeader/MetricCard sem componente ou valor alinhado — ver `docs/evidence/NEX-202_TOKENIZAR_ESPACAMENTO_RADIUS.md`
 - [ ] **NEX-203** — Criar harness de regressão visual _(depende: NEX-202)_
 - [ ] **NEX-204** — Corrigir specs E2E não críticas desatualizadas _(depende: NEX-178)_
 - [ ] **NEX-205** — E2E completo da criação manual _(depende: NEX-085,NEX-204)_

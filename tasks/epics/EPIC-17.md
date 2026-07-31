@@ -158,17 +158,17 @@ Implementar backups e restore test sem expandir o escopo para funcionalidades n�
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só adiciona um workflow de CI que lê um secret novo (`BACKUP_SOURCE_DATABASE_URL`) e escreve para um Postgres efémero do próprio job; não expõe rota nova nem privilégio novo à aplicação.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — o dump/restore corre fora da aplicação, com a connection string direta do Postgres (bypassa RLS por natureza, como qualquer backup lógico); o secret só é acessível a quem administra os secrets do repositório GitHub.
+- Registar risco residual ou decisão temporária. Confirmado que o plano de produção é **Free** — sem backups automáticos do fornecedor, esta tarefa é a única salvaguarda real. Mecanismo (workflow, dump, restore efémero, verificação de integridade por contagem de linhas) implementado e com sintaxe validada, mas **sem execução real com dados verdadeiros** — falta a dona adicionar o secret `BACKUP_SOURCE_DATABASE_URL` (não pode ser feito por mim, exige a password da BD de produção) e disparar um run manual. Ver `docs/evidence/NEX-173_BACKUPS_RESTORE_TEST.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — workflow `.github/workflows/backup-restore-test.yml`
+- [ ] Testes concluídos — sintaxe validada; execução real pendente do secret da dona
+- [x] Documentação atualizada — `docs/ENVIRONMENTS_AND_SECRETS.md`, `docs/evidence/NEX-173_BACKUPS_RESTORE_TEST.md`
+- [ ] Critérios de aceite validados — "restore comprovado" só fecha com um run real verde
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`, não `[x]`, até à execução real
 
 ### NEX-174 — Runbooks de incidentes
 
@@ -199,17 +199,17 @@ Implementar runbooks de incidentes sem expandir o escopo para funcionalidades n�
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só documentação.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. Contactos = owner único (`ShadowShtr`) em todos os 11 runbooks; sem equipa de suporte a listar nesta fase (ver `EPIC-19`). Runbook de restore depende da execução real ainda pendente da `NEX-173`. Ver `docs/evidence/NEX-174_RUNBOOKS_INCIDENTES.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — `docs/RUNBOOKS.md`
+- [x] Testes concluídos — tabletop exercise contra o código/infra real
+- [x] Documentação atualizada — `docs/08_OPERATIONS.md` atualizado a apontar para o novo ficheiro
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-175 — Load/concurrency test
 

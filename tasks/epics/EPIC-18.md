@@ -37,17 +37,17 @@ Implementar atualizar documentos de produto e ux sem expandir o escopo para func
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só documentação.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. Nenhum — ver `docs/evidence/NEX-200_ATUALIZAR_DOCUMENTOS_PRODUTO_UX.md` para as 5 lacunas encontradas e corrigidas.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-201 — Inventário único de funcionalidades e rotas
 
@@ -78,17 +78,17 @@ Implementar inventário único de funcionalidades e rotas sem expandir o escopo 
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só documentação.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. ~15 tarefas sem ficheiro de evidência próprio localizável, marcadas "não confirmado" em vez de adivinhadas — ver `docs/evidence/NEX-201_INVENTARIO_FUNCIONALIDADES_ROTAS.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — `docs/FEATURE_ROUTE_INVENTORY.md`
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-202 — Tokenizar espaçamento, radius e elevação
 
@@ -120,17 +120,17 @@ Implementar tokenizar espaçamento, radius e elevação sem expandir o escopo pa
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só tokens CSS.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. `PageHeader` e `MetricCard` não têm componente/valor alinhado à escala proposta — ver `docs/evidence/NEX-202_TOKENIZAR_ESPACAMENTO_RADIUS.md` para o detalhe e a decisão de não forçar mudança visual.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-203 — Criar harness de regressão visual
 

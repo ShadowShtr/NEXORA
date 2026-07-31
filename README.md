@@ -4,16 +4,42 @@ NEXORA é uma plataforma SaaS de marcações e gestão para profissionais indepe
 
 ## Estado do repositório
 
-Este repositório é uma **base de execução orientada por tarefas para Claude Code**. Ele contém:
+NEXORA já é uma aplicação em produção, não um esqueleto inicial. EPIC-00 a
+EPIC-16 (fundação, dados/RLS, autenticação, onboarding, catálogo, marcação
+pública, disponibilidade, confirmação, agenda, clientes, lembretes,
+conclusão/pagamentos, recorrência, financeiro, definições, PWA/design,
+privacidade/segurança) estão completos e em produção. EPIC-17
+(observabilidade/CI/lançamento) está quase completo — ver `TASKS.md` para o
+estado exato de cada tarefa.
 
-- especificação funcional completa;
-- fluxos de UX da cliente e da dona;
-- arquitetura Next.js + Vercel + Supabase;
-- modelo de dados multi-tenant e migração inicial com RLS;
-- threat model, privacidade e operação;
-- backlog executável com critérios de aceite;
-- workflows de CI, CodeQL e dependency review;
-- esqueleto inicial TypeScript/Next.js/PWA.
+Em produção, o repositório já entrega:
+
+- autenticação e onboarding guiado da dona;
+- catálogo de categorias, serviços e pacotes;
+- marcação pública paginada por várias páginas (`/b/{slug}/servicos` →
+  `/horario` → `/dados` → `/resumo`), com disponibilidade calculada,
+  reserva transacional/idempotente e proteção contra dupla marcação
+  (Route Handler + Server Actions, constraint de exclusão no Postgres);
+- agenda diária/semanal/mensal, criação manual de marcação e recorrência;
+- clientes, histórico e fotografias privadas;
+- lembretes manuais via deep link do WhatsApp;
+- conclusão de atendimento, extras/descontos e pagamentos pendentes;
+- financeiro interno com exportação CSV/Excel/PDF;
+- PWA instalável, RLS multi-tenant e auditoria append-only;
+- CI com testes unitários, integração (RLS/isolamento) e E2E crítico
+  (`e2e-critical`, Playwright contra Supabase local no runner) — branch
+  `main` protegida, exige todos os checks antes de merge.
+
+Um plano mestre de expansão (equipas/prestadores, área do cliente, packs e
+vouchers, caixa interna, stock, comissões, CRM, fichas/consentimentos,
+multi-localização, relatórios avançados, notificações, ajuda, planos/limites,
+landing) está a ser executado a partir de `EPIC-18` — ver `TASKS.md` e
+`tasks/epics/EPIC-18.md` em diante.
+
+**Distinção importante de vocabulário**: um **pacote de serviços**
+(`packages`, `EPIC-04`) agrupa vários serviços na mesma marcação; um **pack
+de sessões** (`EPIC-21`, ainda por implementar) é um direito adquirido a
+várias utilizações ao longo do tempo. Não são a mesma entidade.
 
 ## Stack alvo
 
@@ -58,15 +84,17 @@ npm run verify
 
 O comando agrega lint, formatação, tipos, testes unitários e build.
 
-## Publicação no GitHub
+## Repositório e deploy
 
-O ambiente atual não permitiu criar o repositório remoto automaticamente. O repositório local já está inicializado e pode ser publicado com:
+Repositório privado: `github.com/ShadowShtr/NEXORA`. A branch `main` tem
+proteção ativa (ruleset do GitHub) — exige Pull Request e os checks
+`verify`, `integration`, `E2E crítico`, `gitleaks` e `analyze` verdes antes
+de qualquer merge; não é possível fazer push direto a `main`.
 
-```bash
-bash scripts/publish-to-github.sh
-```
-
-O script cria o repositório privado `ltd-tech/nexora` usando GitHub CLI, configura o remote e envia a branch `main`.
+Deploy de produção é automático (Vercel ↔ GitHub): cada push a `main`
+dispara um novo deployment de produção. Ver `docs/08_OPERATIONS.md` e
+`docs/ENVIRONMENTS_AND_SECRETS.md` para a matriz de ambientes/segredos, e
+`docs/RUNBOOKS.md` para os runbooks de incidente.
 
 ## Regra de execução
 
