@@ -183,11 +183,11 @@
 
 ### EPIC-19 — Equipas, prestadores, salas e equipamentos
 
-- [ ] **NEX-210** — Modelo de membros, prestadores e roles _(depende: NEX-012,NEX-013)_
-- [ ] **NEX-211** — Matriz de permissões _(depende: NEX-210)_
-- [ ] **NEX-212** — Provisionamento de colaborador _(depende: NEX-211)_
-- [ ] **NEX-213** — Horários por prestador _(depende: NEX-210,NEX-060)_
-- [ ] **NEX-214** — Serviços por prestador _(depende: NEX-210)_
+- [~] **NEX-210** — Modelo de membros, prestadores e roles _(depende: NEX-012,NEX-013)_ — `profiles` estendido em vez de `tenant_members` paralela (`ADR-011`); `service_providers` + `assert_not_last_owner`; testes de integração escritos mas só correm de facto no CI (sem Docker/DB direta neste ambiente); ver `docs/evidence/NEX-210_MODELO_MEMBROS_PRESTADORES_ROLES.md`
+- [x] **NEX-211** — Matriz de permissões _(depende: NEX-210)_ — `docs/PERMISSION_MATRIX.md` + `hasPermission()` (`src/lib/auth/permissions.ts`), 73/73 testes unitários confirmando a matriz linha a linha; ver `docs/evidence/NEX-211_MATRIZ_PERMISSOES.md`
+- [~] **NEX-212** — Provisionamento de colaborador _(depende: NEX-211)_ — mecanismo de convite (token hash, expiração, uso único, rate limit) pronto; UI/página de aceitação fica para `NEX-217`; testes de integração escritos, execução real pendente do CI; ver `docs/evidence/NEX-212_PROVISIONAMENTO_COLABORADOR.md`
+- [~] **NEX-213** — Horários por prestador _(depende: NEX-210,NEX-060)_ — `provider_business_hours`/`_exceptions` + `availability_blocks.provider_id`; herança por dia da semana (`resolveProviderDayHours`) verificada com 5/5 testes unitários reais; schema/RLS pendentes de confirmação no CI; ver `docs/evidence/NEX-213_HORARIOS_POR_PRESTADOR.md`
+- [~] **NEX-214** — Serviços por prestador _(depende: NEX-210)_ — `provider_services` N:N + `resolveEffectiveProviderService` (fallback preço/duração) verificado com 5/5 testes unitários reais; schema/RLS pendentes de confirmação no CI; ver `docs/evidence/NEX-214_SERVICOS_POR_PRESTADOR.md`
 - [ ] **NEX-215** — Salas e equipamentos _(depende: NEX-210)_
 - [ ] **NEX-216** — Motor de disponibilidade multi-recurso _(depende: NEX-061,NEX-213,NEX-214,NEX-215)_
 - [ ] **NEX-217** — UI da página Equipa e Recursos _(depende: NEX-212,NEX-213,NEX-214,NEX-215)_

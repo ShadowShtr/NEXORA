@@ -53,7 +53,13 @@ describe('requireProfile (NEX-135: authorization)', () => {
   it('returns the tenant-scoped identity for a valid session with a profile, without redirecting', async () => {
     getClaimsMock.mockResolvedValue({ data: { claims: { sub: 'user-1' } } });
     maybeSingleMock.mockResolvedValue({
-      data: { user_id: 'user-1', tenant_id: 'tenant-1', display_name: 'Owner' },
+      data: {
+        user_id: 'user-1',
+        tenant_id: 'tenant-1',
+        display_name: 'Owner',
+        role: 'owner',
+        is_active: true,
+      },
     });
     const { requireProfile } = await import('@/lib/auth/require-profile');
 
@@ -61,7 +67,28 @@ describe('requireProfile (NEX-135: authorization)', () => {
       userId: 'user-1',
       tenantId: 'tenant-1',
       displayName: 'Owner',
+      role: 'owner',
     });
     expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  // NEX-210: "conta desativada perde sessão" — enforced at this same authorization gate,
+  // not duplicated per feature.
+  it('signs out and redirects when the profile is inactive', async () => {
+    getClaimsMock.mockResolvedValue({ data: { claims: { sub: 'user-1' } } });
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        user_id: 'user-1',
+        tenant_id: 'tenant-1',
+        display_name: 'Ex-Member',
+        role: 'receptionist',
+        is_active: false,
+      },
+    });
+    const { requireProfile } = await import('@/lib/auth/require-profile');
+
+    await expect(requireProfile()).rejects.toThrow('NEXT_REDIRECT:/login?error=inactive_account');
+    expect(signOutMock).toHaveBeenCalled();
+    expect(redirectMock).toHaveBeenCalledWith('/login?error=inactive_account');
   });
 });

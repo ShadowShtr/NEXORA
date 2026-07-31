@@ -21,6 +21,8 @@ type Limiters = {
   loginIp: Ratelimit;
   loginEmail: Ratelimit;
   passwordReset: Ratelimit;
+  teamInviteCreate: Ratelimit;
+  teamInviteAccept: Ratelimit;
 };
 let cachedLimiters: Limiters | null = null;
 
@@ -81,6 +83,22 @@ function getLimiters(): Limiters | null {
       limiter: Ratelimit.slidingWindow(5, '5 m'),
       prefix: 'nexora:ratelimit:password-reset',
     }),
+    // NEX-212: invite creation is authenticated (owner/manager only) but still a write
+    // that could otherwise be hammered to enumerate tenant emails or exhaust the invite
+    // table — generous for real use (a real team is small), tight against abuse.
+    teamInviteCreate: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '1 h'),
+      prefix: 'nexora:ratelimit:team-invite-create',
+    }),
+    // Invite acceptance is unauthenticated (the token *is* the credential) — same
+    // reasoning as bookingLookup: the 256-bit token already makes brute force
+    // impractical, this is defense in depth against a scripted attempt.
+    teamInviteAccept: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, '1 m'),
+      prefix: 'nexora:ratelimit:team-invite-accept',
+    }),
   };
   return cachedLimiters;
 }
@@ -127,4 +145,16 @@ export async function checkPasswordResetRateLimit(identifier: string): Promise<R
   const limiters = getLimiters();
   if (!limiters) return { limited: false };
   return check(limiters.passwordReset, identifier);
+}
+
+export async function checkTeamInviteCreateRateLimit(identifier: string): Promise<RateLimitResult> {
+  const limiters = getLimiters();
+  if (!limiters) return { limited: false };
+  return check(limiters.teamInviteCreate, identifier);
+}
+
+export async function checkTeamInviteAcceptRateLimit(identifier: string): Promise<RateLimitResult> {
+  const limiters = getLimiters();
+  if (!limiters) return { limited: false };
+  return check(limiters.teamInviteAccept, identifier);
 }
