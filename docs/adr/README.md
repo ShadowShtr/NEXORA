@@ -37,5 +37,6 @@ Não é necessário ADR para detalhes de implementação reversíveis dentro do 
 | [ADR-009](ADR-009-supabase-email-link-implicit-flow.md) | Links de e-mail do Supabase Auth usam fluxo implícito, não PKCE           | Aceite |
 | [ADR-010](ADR-010-write-confirmation-standard.md)       | Padrão de confirmação de escrita (`hasAffectedRows`)                      | Aceite |
 | [ADR-011](ADR-011-tenant-members-extends-profiles.md)   | Equipa/prestadores estende `profiles`, não cria `tenant_members` paralela | Aceite |
+| [ADR-012](ADR-012-multi-provider-overlap-exclusion.md)  | Exclusão de sobreposição deixa de ser só tenant-wide                      | Aceite |
 
 Atualizar esta tabela sempre que um ADR novo for aceite.

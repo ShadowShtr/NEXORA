@@ -4,6 +4,7 @@ import {
   resolveDayHours,
   type BusinessHoursExceptionRow,
   type BusinessHoursRow,
+  type DayHours,
 } from './daily-schedule';
 
 export type BusyInterval = Readonly<{ startMs: number; endMs: number }>;
@@ -55,6 +56,18 @@ export type GenerateTimezoneAwareSlotsInput = Readonly<{
   weeklyHours: readonly BusinessHoursRow[];
   exceptions: readonly BusinessHoursExceptionRow[];
   busy: readonly BusyInterval[];
+  // NEX-216: lets a provider-aware caller (multi-resource-availability.ts) resolve each
+  // day's hours against the provider's own schedule (falling back to the business's,
+  // NEX-213's resolveProviderDayHours) instead of the tenant's business_hours directly
+  // — same day-walking/DST-safety logic either way, only *which* hours apply differs.
+  // Defaults to the plain resolveDayHours(dateKey, dayOfWeek, weeklyHours, exceptions)
+  // every existing caller already relies on.
+  resolveHours?: (
+    dateKey: string,
+    dayOfWeek: number,
+    weeklyHours: readonly BusinessHoursRow[],
+    exceptions: readonly BusinessHoursExceptionRow[],
+  ) => DayHours;
 }>;
 
 // Orchestrates NEX-061: walks each calendar day (in the tenant's timezone) inside
@@ -78,6 +91,7 @@ export function generateTimezoneAwareSlots(input: GenerateTimezoneAwareSlotsInpu
     weeklyHours,
     exceptions,
     busy,
+    resolveHours = resolveDayHours,
   } = input;
 
   if (bookingWindowDays <= 0) throw new Error('Booking window must be positive');
@@ -103,7 +117,7 @@ export function generateTimezoneAwareSlots(input: GenerateTimezoneAwareSlotsInpu
     const dateKey = dayAnchor.toISOString().slice(0, 10);
     const dayOfWeek = dayAnchor.getUTCDay();
 
-    const dayHours = resolveDayHours(dateKey, dayOfWeek, weeklyHours, exceptions);
+    const dayHours = resolveHours(dateKey, dayOfWeek, weeklyHours, exceptions);
     const openIntervals = dayHoursToOpenIntervals(dateKey, dayHours, timeZone);
 
     for (const interval of openIntervals) {

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { computeAvailableSlotsMs } from '@/lib/availability-lookup';
+import { listResources, listTeamMembers } from '@/features/team/queries';
 import { AppointmentCard, type AppointmentCardData } from '@/features/appointments/AppointmentCard';
 import { AgendaCompletionProvider } from '@/features/appointments/AgendaCompletionContext';
 import { AgendaDatePicker } from '@/features/appointments/AgendaDatePicker';
@@ -30,12 +31,19 @@ function isCalendarView(value: string | undefined): value is CalendarView {
   return value === 'day' || value === 'week' || value === 'month';
 }
 
+type AgendaFilter =
+  | { kind: 'all' }
+  | { kind: 'me'; providerId: string }
+  | { kind: 'provider'; providerId: string }
+  | { kind: 'resource'; resourceId: string };
+
 // Data loading (including the Date.now() read) lives outside the component body — see
 // the same purity-rule note in src/app/(dashboard)/dashboard/page.tsx (NEX-080).
 async function loadAgendaData(
   tenantId: string,
   view: CalendarView,
   requestedDateKey: string | undefined,
+  filter: AgendaFilter,
 ) {
   const supabase = await createClient();
 
@@ -53,17 +61,24 @@ async function loadAgendaData(
   const dateKey = requestedDateKey ?? todayKey;
   const range = resolveCalendarRange(view, dateKey, timezone);
 
-  const [{ data: rows }, { data: shortestServiceRows }, { data: activeServiceRows }] =
+  let appointmentsQuery = supabase
+    .from('appointments')
+    .select(
+      'id, start_at, status, expected_total_cents, final_total_cents, provider_id, resource_id, clients(name, phone_e164), appointment_items(description)',
+    )
+    .eq('tenant_id', tenantId)
+    .gte('start_at', range.startIso)
+    .lt('start_at', range.endIso)
+    .order('start_at');
+  if (filter.kind === 'me' || filter.kind === 'provider') {
+    appointmentsQuery = appointmentsQuery.eq('provider_id', filter.providerId);
+  } else if (filter.kind === 'resource') {
+    appointmentsQuery = appointmentsQuery.eq('resource_id', filter.resourceId);
+  }
+
+  const [{ data: rows }, { data: shortestServiceRows }, { data: activeServiceRows }, members] =
     await Promise.all([
-      supabase
-        .from('appointments')
-        .select(
-          'id, start_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
-        )
-        .eq('tenant_id', tenantId)
-        .gte('start_at', range.startIso)
-        .lt('start_at', range.endIso)
-        .order('start_at'),
+      appointmentsQuery,
       supabase
         .from('services')
         .select('duration_minutes')
@@ -77,7 +92,12 @@ async function loadAgendaData(
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .order('name'),
+      listTeamMembers(tenantId),
     ]);
+
+  const providerColorByProviderId = new Map(
+    members.filter((m) => m.providerId).map((m) => [m.providerId as string, m.providerColor]),
+  );
 
   const availableServices = (activeServiceRows ?? []).map((service) => ({
     id: service.id,
@@ -99,6 +119,9 @@ async function loadAgendaData(
       itemDescriptions: (row.appointment_items ?? []).map((item) => item.description),
       totalCents: row.final_total_cents ?? row.expected_total_cents,
       status: row.status as AppointmentCardStatus,
+      providerColor: row.provider_id
+        ? (providerColorByProviderId.get(row.provider_id) ?? null)
+        : null,
     };
     const dateKeyForRow = formatInTimeZone(row.start_at, timezone, 'yyyy-MM-dd');
     const list = byDateKey.get(dateKeyForRow);
@@ -137,11 +160,22 @@ async function loadAgendaData(
     freeSlotsByDay,
     availableServices,
     nowMs,
+    members,
   };
 }
 
-function navHref(view: CalendarView, dateKey: string) {
-  return `/dashboard/agenda?view=${view}&date=${dateKey}`;
+function navHref(
+  view: CalendarView,
+  dateKey: string,
+  filterKind?: string | null,
+  filterId?: string | null,
+) {
+  const base = `/dashboard/agenda?view=${view}&date=${dateKey}`;
+  return filterKind && filterId ? `${base}&filterKind=${filterKind}&filterId=${filterId}` : base;
+}
+
+function isAgendaFilterKind(value: string | undefined): value is 'me' | 'provider' | 'resource' {
+  return value === 'me' || value === 'provider' || value === 'resource';
 }
 
 // NEX-082: "Navegação eficiente e responsiva" across day/week/month (docs/02_UX_FLOWS.md,
@@ -151,25 +185,48 @@ function navHref(view: CalendarView, dateKey: string) {
 // dashboard page. View/date state lives in the URL (?view=&date=), not client
 // component state — a server-rendered page with plain links, so back/forward and
 // bookmarking a specific week/month both work for free.
+//
+// NEX-218: filtros Todos/Eu/prestador/Recursos e cor do prestador (faixa lateral de
+// 4px, AppointmentCard.tsx) somam-se à navegação existente, sem a substituir — filtro
+// e vista/data persistem juntos na própria URL.
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; date?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; filterKind?: string; filterId?: string }>;
 }) {
-  const { tenantId } = await requireProfile();
+  const { tenantId, userId } = await requireProfile();
   const params = await searchParams;
   const view: CalendarView = isCalendarView(params.view) ? params.view : 'day';
 
-  const {
-    timezone,
-    dateKey,
-    todayKey,
-    range,
-    byDateKey,
-    freeSlotsByDay,
-    availableServices,
-    nowMs,
-  } = await loadAgendaData(tenantId, view, params.date);
+  const filterKind = isAgendaFilterKind(params.filterKind) ? params.filterKind : null;
+  const filterId = params.filterId ?? null;
+  const filter: AgendaFilter =
+    filterKind && filterId
+      ? filterKind === 'resource'
+        ? { kind: 'resource', resourceId: filterId }
+        : { kind: filterKind, providerId: filterId }
+      : { kind: 'all' };
+
+  const [
+    {
+      timezone,
+      dateKey,
+      todayKey,
+      range,
+      byDateKey,
+      freeSlotsByDay,
+      availableServices,
+      nowMs,
+      members,
+    },
+    resources,
+  ] = await Promise.all([
+    loadAgendaData(tenantId, view, params.date, filter),
+    listResources(tenantId),
+  ]);
+
+  const ownProvider = members.find((m) => m.userId === userId && m.providerId);
+  const providerChips = members.filter((m) => m.isProvider && m.providerId);
 
   const previousDateKey = shiftCalendarDate(view, dateKey, -1);
   const nextDateKey = shiftCalendarDate(view, dateKey, 1);
@@ -188,19 +245,19 @@ export default async function AgendaPage({
         <AgendaDatePicker view={view} dateKey={dateKey} label={capitalize(rangeLabel)} />
         <nav className="agenda-date-nav" aria-label="Navegar datas">
           <a
-            href={navHref(view, previousDateKey)}
+            href={navHref(view, previousDateKey, filterKind, filterId)}
             className="nx-icon-button agenda-nav-icon-button"
             aria-label="Data anterior"
           >
             <ChevronLeft aria-hidden="true" />
           </a>
           {dateKey !== todayKey ? (
-            <a href={navHref(view, todayKey)} className="agenda-today-link">
+            <a href={navHref(view, todayKey, filterKind, filterId)} className="agenda-today-link">
               Hoje
             </a>
           ) : null}
           <a
-            href={navHref(view, nextDateKey)}
+            href={navHref(view, nextDateKey, filterKind, filterId)}
             className="nx-icon-button agenda-nav-icon-button"
             aria-label="Data seguinte"
           >
@@ -215,7 +272,7 @@ export default async function AgendaPage({
         className="nx-tabs nx-tabs-pill agenda-view-tabs"
       >
         <a
-          href={navHref('day', dateKey)}
+          href={navHref('day', dateKey, filterKind, filterId)}
           role="tab"
           aria-current={view === 'day' ? 'page' : undefined}
           className="nx-tab"
@@ -223,7 +280,7 @@ export default async function AgendaPage({
           Dia
         </a>
         <a
-          href={navHref('week', dateKey)}
+          href={navHref('week', dateKey, filterKind, filterId)}
           role="tab"
           aria-current={view === 'week' ? 'page' : undefined}
           className="nx-tab"
@@ -231,7 +288,7 @@ export default async function AgendaPage({
           Semana
         </a>
         <a
-          href={navHref('month', dateKey)}
+          href={navHref('month', dateKey, filterKind, filterId)}
           role="tab"
           aria-current={view === 'month' ? 'page' : undefined}
           className="nx-tab"
@@ -239,6 +296,55 @@ export default async function AgendaPage({
           Lista
         </a>
       </div>
+
+      {providerChips.length > 0 || resources.length > 0 ? (
+        <div
+          className="clients-filter-chips agenda-provider-filters"
+          aria-label="Filtrar por prestador ou recurso"
+        >
+          <a
+            href={navHref(view, dateKey)}
+            className="filter-chip"
+            data-active={filter.kind === 'all' || undefined}
+          >
+            Todos
+          </a>
+          {ownProvider?.providerId ? (
+            <a
+              href={navHref(view, dateKey, 'me', ownProvider.providerId)}
+              className="filter-chip"
+              data-active={filter.kind === 'me' || undefined}
+            >
+              Eu
+            </a>
+          ) : null}
+          {providerChips.map((provider) => (
+            <a
+              key={provider.providerId}
+              href={navHref(view, dateKey, 'provider', provider.providerId as string)}
+              className="filter-chip"
+              data-active={
+                (filter.kind === 'provider' && filter.providerId === provider.providerId) ||
+                undefined
+              }
+            >
+              {provider.displayName}
+            </a>
+          ))}
+          {resources.map((resource) => (
+            <a
+              key={resource.id}
+              href={navHref(view, dateKey, 'resource', resource.id)}
+              className="filter-chip"
+              data-active={
+                (filter.kind === 'resource' && filter.resourceId === resource.id) || undefined
+              }
+            >
+              {resource.name}
+            </a>
+          ))}
+        </div>
+      ) : null}
 
       <Card className="agenda-free-slots">
         <details>
@@ -293,6 +399,14 @@ export default async function AgendaPage({
                           { locale: pt },
                         ),
                       )}
+                      {view === 'month' && appointments.length > 0 ? (
+                        <span
+                          className="agenda-day-group-count"
+                          aria-label={`${appointments.length} marcações`}
+                        >
+                          {appointments.length}
+                        </span>
+                      ) : null}
                     </p>
                   ) : null}
                   {appointments.length === 0 ? (

@@ -1,4 +1,4 @@
-import { Bell, BarChart3, Settings, Wallet } from 'lucide-react';
+import { Bell, BarChart3, Settings, Users2, Wallet } from 'lucide-react';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { publicEnv } from '@/lib/env';
@@ -7,6 +7,7 @@ import { ProfileSummaryCard } from '@/features/shell/ProfileSummaryCard';
 import { MoreMenuItem, MoreSection } from '@/features/shell/MoreMenuItem';
 import { LogoutSection } from '@/features/shell/LogoutSection';
 import { InstallAppCard } from '@/features/shell/InstallAppCard';
+import { hasPermission, type TenantRole } from '@/lib/auth/permissions';
 
 const APP_VERSION = '0.1.0';
 
@@ -56,9 +57,10 @@ async function loadMoreData(tenantId: string) {
 // help center, feedback form, or support contact exists anywhere in this app to link
 // to.
 export default async function MaisPage() {
-  const { tenantId } = await requireProfile();
+  const { tenantId, role } = await requireProfile();
   const { displayName, tenantSlug, pendingRemindersCount, pendingPaymentsCount } =
     await loadMoreData(tenantId);
+  const canManageTeam = hasPermission(role as TenantRole, 'manage_team');
 
   const publicUrl = tenantSlug ? publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantSlug) : null;
 
@@ -84,6 +86,14 @@ export default async function MaisPage() {
       <ProfileSummaryCard displayName={displayName} publicUrl={publicUrl} />
 
       <MoreSection title="Gestão">
+        {canManageTeam ? (
+          <MoreMenuItem
+            href="/dashboard/equipa"
+            icon={Users2}
+            label="Equipa e recursos"
+            description="Pessoas, salas e equipamentos, permissões"
+          />
+        ) : null}
         <MoreMenuItem
           href="/dashboard/lembretes"
           icon={Bell}
