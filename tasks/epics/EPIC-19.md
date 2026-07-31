@@ -36,17 +36,17 @@ Implementar modelo de membros, prestadores e roles sem expandir o escopo para fu
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. `service_providers` e o RPC `assert_not_last_owner` são novos, mas tenant-scoped pela mesma `current_tenant_id()` já usada em todo o schema; sem privilégio novo introduzido.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. RLS padrão em `service_providers`; trigger reforça que `member_user_id` pertence ao mesmo tenant.
+- Registar risco residual ou decisão temporária. Decisão de arquitetura registada em `docs/adr/ADR-011-tenant-members-extends-profiles.md` (estender `profiles`, não criar `tenant_members` paralela). Testes de integração escritos e revistos, mas sem execução real nesta sessão (sem Docker/DB direta) — corre de facto no job `integration` do CI, já obrigatório na proteção de branch. Ver `docs/evidence/NEX-210_MODELO_MEMBROS_PRESTADORES_ROLES.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [ ] Testes concluídos — escritos; execução real pendente do CI
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`, não `[x]`
 
 ### NEX-211 — Matriz de permissões
 
@@ -77,17 +77,17 @@ Implementar matriz de permissões sem expandir o escopo para funcionalidades nã
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só a camada de decisão (`hasPermission`), ainda sem aplicação a nenhuma rota real.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável ainda — RLS continua tenant-scoped por `current_tenant_id()`, sem distinguir role; `hasPermission` fica pronta para tarefas futuras a aplicarem.
+- Registar risco residual ou decisão temporária. `hasPermission` ainda não está ligada a nenhuma rota/Server Action — ordem natural do épico (modelo → matriz → provisionamento → UI → aplicação real), não um gap escondido. Ver `docs/evidence/NEX-211_MATRIZ_PERMISSOES.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-212 — Provisionamento de colaborador
 
@@ -119,17 +119,17 @@ Implementar provisionamento de colaborador sem expandir o escopo para funcionali
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. `tenant_invites` é uma superfície nova (link partilhado manualmente) — token de 256 bits, só o hash é guardado, RLS tenant-scoped, `role='admin'` bloqueado por `check`.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. `createTeamInvite` verifica `hasPermission(role,'manage_team')` sempre no servidor; `resolveInvite`/`acceptInvite` usam o admin client só porque o convidado ainda não tem sessão, com comparação `timingSafeEqual` e sem distinguir "expirado"/"usado"/"nunca existiu" na resposta.
+- Registar risco residual ou decisão temporária. UI de criação e a página de aceitação (`/convite/{token}`, que cria o utilizador Auth real) ficam para `NEX-217` — mecanismo de backend já pronto e testado para essa UI consumir. Achado real corrigido nesta tarefa: um import estático de `@/lib/tenant-invite` no teste rebentaria o job `verify` do CI (sem variáveis Supabase) — corrigido com import dinâmico. Ver `docs/evidence/NEX-212_PROVISIONAMENTO_COLABORADOR.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [ ] Testes concluídos — unitários reais (5/5); integração escrita, execução real pendente do CI
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-213 — Horários por prestador
 
@@ -161,17 +161,17 @@ Implementar horários por prestador sem expandir o escopo para funcionalidades n
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. `provider_business_hours`/`_exceptions` são novas, tenant-scoped pela mesma `current_tenant_id()`; `availability_blocks.provider_id` é uma extensão opcional, sem mudar o comportamento de bloqueios já existentes (`provider_id` nulo = tenant inteiro, inalterado).
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. RLS tenant-scoped padrão nas duas tabelas novas.
+- Registar risco residual ou decisão temporária. Lógica de herança (`resolveProviderDayHours`) verificada com 5/5 testes reais, localmente, sem depender de BD. Schema/RLS têm a mesma limitação de verificação local de `NEX-210`/`212` — corre no job `integration` do CI. Ver `docs/evidence/NEX-213_HORARIOS_POR_PRESTADOR.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [ ] Testes concluídos — lógica de herança real (5/5); schema/RLS pendentes do CI
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-214 — Serviços por prestador
 
@@ -203,17 +203,17 @@ Implementar serviços por prestador sem expandir o escopo para funcionalidades n
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. `provider_services` é tenant-scoped pela mesma `current_tenant_id()`; trigger reforça que prestador e serviço pertencem ao mesmo tenant.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. RLS tenant-scoped padrão.
+- Registar risco residual ou decisão temporária. Fallback de preço/duração (`resolveEffectiveProviderService`) verificado com 5/5 testes reais, localmente. Schema/RLS têm a mesma limitação de verificação local de `NEX-210`/`212`/`213` — corre no job `integration` do CI. Ver `docs/evidence/NEX-214_SERVICOS_POR_PRESTADOR.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [ ] Testes concluídos — fallback real (5/5); schema/RLS pendentes do CI
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-215 — Salas e equipamentos
 
