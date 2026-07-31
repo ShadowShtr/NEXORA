@@ -13,11 +13,13 @@ import {
   Scissors,
   Settings,
   Users,
+  Users2,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { LogoutSection } from '@/features/shell/LogoutSection';
 import { initials } from '@/lib/initials';
+import { hasPermission, type TenantRole } from '@/lib/auth/permissions';
 
 type NavItem = { href: Route; label: string; icon: LucideIcon };
 
@@ -42,8 +44,20 @@ const MORE_ITEMS: NavItem[] = [
 
 const MORE_NAV_ITEM: NavItem = { href: '/dashboard/mais', label: 'Mais', icon: Grid2x2 };
 
-export function AppShell({ children, displayName }: { children: ReactNode; displayName: string }) {
+const TEAM_ITEM: NavItem = { href: '/dashboard/equipa', label: 'Equipa e recursos', icon: Users2 };
+
+export function AppShell({
+  children,
+  displayName,
+  role,
+}: {
+  children: ReactNode;
+  displayName: string;
+  role: string;
+}) {
   const pathname = usePathname();
+  const canManageTeam = hasPermission(role as TenantRole, 'manage_team');
+  const moreItems = canManageTeam ? [TEAM_ITEM, ...MORE_ITEMS] : MORE_ITEMS;
 
   function isActive(href: string) {
     return href === '/dashboard' ? pathname === href : pathname.startsWith(href);
@@ -58,7 +72,7 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
   function isMoreActive() {
     return (
       pathname.startsWith('/dashboard/mais') ||
-      MORE_ITEMS.some((item) => pathname.startsWith(item.href))
+      moreItems.some((item) => pathname.startsWith(item.href))
     );
   }
 
@@ -89,7 +103,7 @@ export function AppShell({ children, displayName }: { children: ReactNode; displ
 
         <p className="desktop-nav-section-label">Gestão</p>
         <ul className="desktop-nav-list">
-          {MORE_ITEMS.map((item) => (
+          {moreItems.map((item) => (
             <li key={item.href}>
               <Link href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
                 <item.icon aria-hidden="true" size={19} />

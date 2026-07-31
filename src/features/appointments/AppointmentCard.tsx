@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { Check, MessageCircle } from 'lucide-react';
 import {
@@ -19,6 +20,7 @@ export type AppointmentCardData = {
   itemDescriptions: string[];
   totalCents: number;
   status: AppointmentCardStatus;
+  providerColor: string | null;
 };
 
 // NEX-081/NEX-110: "Cartões mostram atendimentos por hora" (docs/02_UX_FLOWS.md, Fluxo
@@ -61,6 +63,12 @@ export function AppointmentCard({
       </span>
       <div
         className={`appointment-timeline-card appointment-card-${appointment.status}${isDue ? ' appointment-timeline-card-due' : ''}`}
+        style={
+          appointment.providerColor
+            ? ({ '--provider-stripe-color': appointment.providerColor } as CSSProperties)
+            : undefined
+        }
+        data-has-provider-color={appointment.providerColor ? 'true' : undefined}
       >
         <Link href={`/dashboard/agenda/${appointment.id}`} className="appointment-timeline-link">
           <span className="appointment-card-client">{appointment.clientName}</span>

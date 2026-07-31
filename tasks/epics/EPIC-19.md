@@ -245,17 +245,17 @@ Implementar salas e equipamentos sem expandir o escopo para funcionalidades não
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. **Achado real**: `appointments_no_overlap` era `exclude` tenant-wide (`NEX-063`) — incompatível com vários prestadores simultâneos. Substituída por 3 exclusões (`ADR-012`), preservando exatamente o comportamento de hoje para marcações sem prestador/recurso.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. RLS tenant-scoped padrão em `resources`/`resource_services`; trigger garante que `provider_id`/`resource_id` de uma marcação pertencem ao mesmo tenant.
+- Registar risco residual ou decisão temporária. Mesma limitação de verificação local do resto do lote (sem Docker/BD direta) — a mudança na exclusão de sobreposição, a mais crítica desta tarefa, fica confirmada pelo job `integration` do CI. Ver `docs/evidence/NEX-215_SALAS_EQUIPAMENTOS.md` e `ADR-012`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [ ] Testes concluídos — escritos; execução real pendente do CI
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-216 — Motor de disponibilidade multi-recurso
 
@@ -291,13 +291,28 @@ Implementar motor de disponibilidade multi-recurso sem expandir o escopo para fu
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
 - Registar risco residual ou decisão temporária.
 
+**Segurança e privacidade — nota**
+
+`classifyOverlapConstraintViolation` depende dos nomes exatos das 3 exclusões de
+`0043_resources_and_multi_resource_conflicts.sql` (ADR-012); se essa migração mudar
+sem atualizar esta função, o mapeamento fica dessincronizado silenciosamente (devolve
+`null`). A integração real com a rota de escrita (que efetivamente recebe o erro
+23P01 do Postgres) ainda não foi feita — apenas o domínio puro. Ver
+`docs/evidence/NEX-216_MOTOR_DISPONIBILIDADE_MULTI_RECURSO.md`.
+
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — domínio puro (`generateMultiResourceSlots`,
+      `isWithinOpenHours`, `classifyOverlapConstraintViolation`); integração com a
+      rota de escrita/`availability-lookup.ts` fica para quando a UI (NEX-217/218)
+      precisar de consumir isto
+- [x] Testes concluídos — 10 testes unitários reais, todos a passar; `npm run verify`
+      completo (635 passed) sem regressão
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados — códigos de conflito mapeados; ordem de
+      avaliação (prestador com fallback ao negócio, depois `busy` mesclado pelo
+      chamador) implementada no motor
+- [~] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-217 — UI da página Equipa e Recursos
 
@@ -333,13 +348,27 @@ Implementar ui da página equipa e recursos sem expandir o escopo para funcional
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
 - Registar risco residual ou decisão temporária.
 
+**Segurança e privacidade — nota**
+
+Gate próprio de página (`hasPermission(role, 'manage_team')`) além do gate de escrita
+já repetido em cada Server Action — quem não gere equipa não vê sequer a lista. Sem
+e-mail completo no card de pessoa (conforme pedido). Ver limitações honestas em
+`docs/evidence/NEX-217_UI_EQUIPA_RECURSOS.md`: sem editor de horário próprio por
+prestador ainda (fallback para horário do negócio, correto por design), sem página de
+aceitação de convite ainda, sem "próximo horário de trabalho" no card (sem dado real
+para isso).
+
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — página, tabs, cards, wizard, Server Actions
+- [x] Testes concluídos — `npm run verify` completo (format/lint/typecheck/635 testes/
+      build/bundle); verificação visual mobile/tablet/desktop e axe reais não foram
+      possíveis (sem Docker/BD local com as migrações aplicadas neste ambiente) —
+      confirmado apenas que a rota compila e redireciona corretamente sem sessão
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados — navegação, tabs, card sem e-mail completo,
+      wizard de 4 passos (com as limitações documentadas)
+- [~] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-218 — Integração visual na Agenda
 
@@ -375,13 +404,23 @@ Implementar integração visual na agenda sem expandir o escopo para funcionalid
 - Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
 - Registar risco residual ou decisão temporária.
 
+**Decisão de arquitetura — nota**
+
+Não existe (nunca existiu nesta base de código) uma vista de calendário em grelha —
+a terceira vista chama-se "Lista" na interface, uma lista cronológica agrupada por
+dia. O "indicador por quantidade" foi aplicado a essa estrutura (badge por grupo de
+dia) em vez de construir uma grelha só para corresponder literalmente à palavra
+"Mês" do plano mestre — ver `docs/evidence/NEX-218_INTEGRACAO_VISUAL_AGENDA.md`.
+
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — filtros Todos/Eu/prestador/Recursos, faixa lateral de
+      4px por cor do prestador, indicador por quantidade na vista Lista
+- [x] Testes concluídos — `npm run verify` completo, sem regressão nos testes
+      existentes da agenda; verificação visual real não foi possível neste ambiente
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados — com a decisão de arquitetura documentada acima
+- [~] Tarefa marcada no `TASKS.md` — marcada `[~]`
 
 ### NEX-219 — Testes e métricas de equipas/recursos
 
@@ -411,16 +450,25 @@ Implementar testes e métricas sem expandir o escopo para funcionalidades não a
 - Testes negativos de autorização e regressão de timezone por prestador.
 - `npm run verify` passa.
 
-**Segurança e privacidade**
+**Segurança e privacidade — nota**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+Achado real desta tarefa: `hasPermission` só está aplicado nas Server Actions de
+equipa (NEX-217) e no convite (NEX-212) — páginas mais antigas (Financeiro, Agenda)
+ainda não verificam role nenhuma, assunção de dona única herdada de antes deste EPIC.
+Um `receptionist`/`provider` autenticado hoje ainda navega livremente para
+`/dashboard/financeiro`. Risco residual real, documentado em
+`docs/evidence/NEX-219_TESTES_METRICAS_EQUIPAS_RECURSOS.md`, não resolvido nesta
+tarefa (retrofit de autorização em páginas antigas é maior do que "escrever testes").
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — `src/features/team/domain/metrics.ts` (utilização/
+      resumo de equipa); mapeamento de cobertura de testes já existente vs. nova
+- [x] Testes concluídos — `team-metrics.test.ts` (5 testes reais) e
+      `team-member-lifecycle.test.ts` (assert_not_last_owner, desativação, isolamento
+      tenant — escritos, execução real pendente do CI); `npm run verify` completo
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados — com os dois gaps residuais documentados
+      (autorização não retrofitada em páginas antigas; "conflitos evitados" sem
+      instrumentação real para medir)
+- [~] Tarefa marcada no `TASKS.md` — marcada `[~]`
