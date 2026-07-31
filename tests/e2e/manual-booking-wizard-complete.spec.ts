@@ -224,24 +224,13 @@ test.describe('manual booking wizard complete flow (NEX-205) @critical', () => {
     ).toBeDisabled();
     await page.getByRole('button', { name: 'Continuar' }).click();
 
-    // Step 3 — Data e horário: pick a day on a later month, not today. Real bug found
-    // while writing this test (documented in docs/evidence/NEX-205_*.md, not fixed here
-    // — it's in the core availability engine, well beyond this task's scope): when the
-    // min-notice-hours boundary (not the business's opening time) determines a day's
-    // first slot, that slot is anchored to the exact millisecond `Date.now()` was called
-    // — not rounded to the slot-interval grid. Two separate computeAvailableSlotsMs calls
-    // (the initial fetch here, and the recurrence conflict re-check below) each read
-    // `Date.now()` independently, so "today"'s slot(s) almost never match exactly between
-    // the two, and the copied time-of-day then also never lands on the clean,
-    // midnight-anchored grid used on other days — every occurrence of the series shows a
-    // false "Este horário já está ocupado." A day whose own opening time (not "now +
-    // notice") determines its first slot doesn't have this problem — its grid is stable
-    // and reproducible — so this test deliberately picks one via "Mês seguinte" instead
-    // of today's default day.
-    await page.getByRole('button', { name: 'Mês seguinte' }).click();
-    const laterDayButtons = page.locator('.calendar-day[data-has-slots="true"]');
-    await expect(laterDayButtons.first()).toBeVisible();
-    await laterDayButtons.first().click();
+    // Step 3 — Data e horário: today's default day, first available slot. Used to be
+    // impossible here (real bug, fixed in the same round: docs/10_RISK_REGISTER.md R13 —
+    // the min-notice-hours boundary wasn't rounded to the slot grid, so a recurring
+    // series' first occurrence, whenever it landed on "today", always showed a false
+    // "Este horário já está ocupado." on every occurrence). Left as today's own default
+    // slot deliberately, instead of navigating to a later month, so this test doubles as
+    // an end-to-end regression check for that fix.
     await page.locator('.public-slot-button').first().click();
     await page.getByRole('switch', { name: 'Ativar repetição' }).click();
     await page.getByLabel('Número de marcações (incluindo esta)').fill('3');
