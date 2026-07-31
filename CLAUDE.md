@@ -248,7 +248,6 @@ Conforme o escopo, implemente:
 - Não criar cadastro público da dona na primeira versão.
 - Não automatizar WhatsApp com API paga nesta versão.
 - Não emitir faturas fiscais; o financeiro é controlo interno.
-- Não adicionar equipas/comissões à interface da primeira vertical.
 - Não guardar rascunhos abandonados indefinidamente.
 - Não usar dados reais de produção em testes.
 - Não desativar RLS para “resolver” problemas.
