@@ -162,17 +162,17 @@ Implementar criar harness de regressão visual sem expandir o escopo para funcio
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só testes e workflow de CI.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. Mecânica provada localmente (16/16 capturas sem erro), mas sem baselines Linux reais ainda — só o CI pode gerá-las corretamente (nome do ficheiro de snapshot inclui a plataforma; uma baseline gerada localmente no Windows nunca seria usada na comparação Linux). Ver `docs/evidence/NEX-203_HARNESS_REGRESSAO_VISUAL.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída — `tests/e2e/visual-regression.spec.ts` + `.github/workflows/visual-regression.yml`
+- [ ] Testes concluídos — mecânica provada; baselines Linux reais pendentes de `workflow_dispatch` da dona
+- [x] Documentação atualizada
+- [ ] Critérios de aceite validados — falta baseline real para haver "regressão" a detetar
+- [ ] Tarefa marcada no `TASKS.md` — marcada `[~]`, não `[x]`
 
 ### NEX-204 — Corrigir specs E2E não críticas desatualizadas
 
@@ -204,17 +204,17 @@ Implementar corrigir specs e2e não críticas desatualizadas sem expandir o esco
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável ao trabalho de teste; a correção do bug de desconto não introduz entrada/privilégio novo, só corrige a conversão euro→cêntimos já esperada pela RPC.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável — a RPC `complete_appointment` (security definer, `0017_complete_appointment_discount.sql`) já validava/clampava o valor; o bug era só na camada de apresentação.
+- Registar risco residual ou decisão temporária. Bug real encontrado e corrigido (desconto fixo a 1/100 do valor pretendido) — ver `docs/evidence/NEX-204_CORRIGIR_SPECS_E2E_DESATUALIZADAS.md`. Nenhum risco residual conhecido.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`
 
 ### NEX-205 — E2E completo da criação manual
 
@@ -246,14 +246,14 @@ Implementar e2e completo da criação manual sem expandir o escopo para funciona
 
 **Segurança e privacidade**
 
-- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio.
-- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped.
-- Registar risco residual ou decisão temporária.
+- Rever threat model se a tarefa criar nova entrada, dado, integração ou privilégio. Não aplicável — só teste novo.
+- Confirmar RLS/autorização server-side quando houver recurso tenant-scoped. Não aplicável.
+- Registar risco residual ou decisão temporária. Bug real encontrado no motor de disponibilidade (`generateTimezoneAwareSlots`/`NEX-061`): a primeira vaga de "hoje", quando decidida por `min_notice_hours` em vez do horário de abertura, não é arredondada à grelha de `slot_interval_minutes` — fica ancorada ao milissegundo exato de `Date.now()`, o que quebra a verificação de conflitos de recorrência (`NEX-121`) sempre que a primeira ocorrência de uma série cai em "hoje". **Não corrigido** — altera o motor partilhado por todos os fluxos de marcação, risco maior do que esta tarefa justifica; candidato a tarefa própria futura. Ver `docs/evidence/NEX-205_E2E_COMPLETO_CRIACAO_MANUAL.md`.
 
 **Definition of Done**
 
-- [ ] Implementação concluída
-- [ ] Testes concluídos
-- [ ] Documentação atualizada
-- [ ] Critérios de aceite validados
-- [ ] Tarefa marcada no `TASKS.md`
+- [x] Implementação concluída
+- [x] Testes concluídos
+- [x] Documentação atualizada
+- [x] Critérios de aceite validados
+- [x] Tarefa marcada no `TASKS.md`

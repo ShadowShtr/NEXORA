@@ -80,8 +80,14 @@ export function AppointmentCompletionPanel({
 
   function currentDiscount(): Discount | null {
     if (discountType === null) return null;
-    const value = Number(discountValueInput);
-    if (!isValidDiscountValue(discountType, value)) return null;
+    // "Valor (€)" is a euro field like "Valor final (€)" — computeDiscountCents treats
+    // Discount.value as cents for the fixed type (mirrors complete_appointment's RPC), so
+    // it must go through the same euro->cents parsing as the final total, not a bare
+    // Number() (which previously read "5.00" as the integer 5, discounting 5 cents
+    // instead of 5 euros — a real under-discount bug, not just a stale test).
+    const value =
+      discountType === 'fixed' ? parseEurosToCents(discountValueInput) : Number(discountValueInput);
+    if (value === null || !isValidDiscountValue(discountType, value)) return null;
     return { type: discountType, value, reason: discountReason };
   }
 
@@ -125,10 +131,14 @@ export function AppointmentCompletionPanel({
       recomputeSuggestion(extras, null);
       return;
     }
-    const value = Number(nextValueInput);
-    const discount = isValidDiscountValue(nextType, value)
-      ? { type: nextType, value, reason: discountReason }
-      : null;
+    // Can't call currentDiscount() here — setDiscountType/setDiscountValueInput above
+    // haven't committed yet, so it would still read the previous render's state. Same
+    // euro->cents conversion as currentDiscount() for the 'fixed' type (see its comment).
+    const value = nextType === 'fixed' ? parseEurosToCents(nextValueInput) : Number(nextValueInput);
+    const discount =
+      value !== null && isValidDiscountValue(nextType, value)
+        ? { type: nextType, value, reason: discountReason }
+        : null;
     recomputeSuggestion(extras, discount);
   }
 
