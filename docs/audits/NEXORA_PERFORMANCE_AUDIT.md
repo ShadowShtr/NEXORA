@@ -18,9 +18,17 @@ da sessão Supabase ligado ao middleware (a lacuna que PR2 apenas documentou), 2
 testes unitários (todos a passar), e duas queries `profiles`/`tenants` redundantes
 eliminadas de `dashboard/page.tsx` e `dashboard/mais/page.tsx`.
 
+**Atualização — PR 4 concluído** (secção 0c abaixo): fan-out de 6 operações Supabase do
+loader do Dashboard substituído por 1 RPC (`get_dashboard_summary_v1`,
+`supabase/migrations/0039_dashboard_summary_rpc.sql`), com validação Zod do lado
+cliente, 20 cenários de teste de integração e 12 testes unitários novos. Pela primeira
+vez, esta branch foi enviada ao GitHub e um PR real foi aberto para obter execução de
+CI com Docker — ver secção 0c.12.
+
 Branches: `perf/auditoria-total-nexora` (PR 1, a partir de `main`),
-`perf/pr2-agenda-links-baseline` (PR 2, a partir do commit do PR 1), e
-`perf/pr3-auth-context-session-refresh` (PR 3, a partir do commit do PR 2, `3cb69fb`).
+`perf/pr2-agenda-links-baseline` (PR 2, a partir do commit do PR 1),
+`perf/pr3-auth-context-session-refresh` (PR 3, a partir do commit do PR 2, `3cb69fb`), e
+`perf/pr4-dashboard-summary-rpc` (PR 4, a partir do commit do PR 3, `b83e240`).
 
 ---
 
@@ -343,6 +351,295 @@ Supabase é inatingível, e que o middleware novo não derruba a aplicação nes
 RPCs do Dashboard/Clientes/Financeiro, cache de disponibilidade, `unstable_cache`,
 Realtime, região Vercel, novos índices, refactors visuais, mudanças de schema, mudança
 geral de estratégia de autorização — nenhum destes ficheiros/áreas foi tocado nesta PR.
+
+---
+
+## 0c. PR 4 — RPC agregada do Dashboard
+
+Branch `perf/pr4-dashboard-summary-rpc`, a partir do commit do PR 3 (`b83e240`).
+Commit: `perf(dashboard): aggregate dashboard data in Supabase RPC`.
+
+### 0c.1 Baseline — fluxo real anterior de `/dashboard`
+
+Lido em `src/app/(dashboard)/dashboard/page.tsx` (estado antes desta PR,
+`loadDashboardData()`):
+
+| Operação anterior                                                                     | Tabela                                                                   | Filtro                                                        | Linhas transferidas                                          | Agregação                                         |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| 1 — sequencial, antes das restantes                                                   | `business_settings`                                                      | `tenant_id`                                                   | 1 (ou 0)                                                     | nenhuma                                           |
+| 2 — paralela (`Promise.all`)                                                          | `appointments` (+ `clients`, `appointment_items` embutidos)              | `tenant_id`, `start_at >= dayStart`, `start_at < dayEnd`      | não medido (nunca executado contra dados reais nesta sessão) | nenhuma na query; `appointmentsToday.map()` em JS |
+| 3 — paralela                                                                          | `reminders` (count only)                                                 | `tenant_id`, `status='pending'`                               | 0 linhas de dados (`head: true`)                             | count no Postgres                                 |
+| 4 — paralela                                                                          | `payments`                                                               | `tenant_id`, `status='paid'`, `paid_at` no intervalo do dia   | não medido                                                   | `reduce()` em JS (soma)                           |
+| 5 — paralela                                                                          | `reminders` (+ `appointments`, `clients`, `appointment_items` embutidos) | `tenant_id`, `status='pending'`, `order by due_at`, `limit 4` | ≤4                                                           | mapeamento em JS                                  |
+| 6 — **sequencial, depende do resultado de 2** (`.in('appointment_id', todayApptIds)`) | `payments`                                                               | `tenant_id`, `status='pending'`, `appointment_id in (...)`    | não medido                                                   | `reduce()` em JS (soma) + `.length`               |
+
+**6 operações Supabase por carregamento** (1 sequencial + 4 paralelas + 1 dependente-sequencial), confirmando e precisando o número aproximado ("~8") já registado no PR1 (aquele número incluía também o que se tornaria as duas queries de perfil/tenant já eliminadas no PR3 — ver secção 0b). Regras confirmadas por leitura direta do código, não assumidas:
+
+- **Pagamentos recebidos hoje** (`receivedTodayCents`): soma de `payments.amount_cents` onde `status='paid'` e `paid_at` cai no dia — **não depende de o `appointment` em si ser de hoje**, só do `paid_at`.
+- **Pagamentos pendentes hoje** (`pendingTodayCents`/`pendingPaymentsTodayCount`): soma/contagem de `payments` `status='pending'` cujo `appointment_id` está entre os IDs de hoje — via uma segunda query dependente, não um filtro de data no `payments` (pagamentos pendentes não têm `paid_at`).
+- **Total faturado hoje** (`invoicedTodayCents`): **não vem de `payments`** — é `buildDashboardSummary()` (JS puro, inalterado por este PR) a somar `totalCents` (`final_total_cents ?? expected_total_cents`) das `appointments` de hoje com estado `confirmed`/`presence_confirmed`.
+- **Lembretes pendentes** (`pendingRemindersCount`): contagem **tenant-wide, sem filtro de data** — a etiqueta "Lembretes Hoje" na UI não corresponde à regra real; confirmado por leitura, preservado tal e qual (não é uma correção de produto pedida por este PR).
+- **Marcações canceladas/concluídas**: entram na lista bruta `appointmentsToday` com o seu `status` real — só `buildDashboardSummary()` as filtra (para `todayCount`/`invoicedTodayCents`/`nextAppointment`), nunca a query em si.
+- **Valores em cêntimos** (`bigint` no Postgres, `number` em JS) — sem reembolsos tratados neste fluxo (o enum `payment_status` tem `refunded`, mas nada no Dashboard soma ou trata esse estado; preservado, não é uma lacuna introduzida por este PR).
+- **Timezone**: PR1 já tinha confirmado `fromZonedTime`/`formatInTimeZone` corretos aqui — inalterado, a RPC não faz cálculo de timezone, recebe `p_day_start`/`p_day_end` já resolvidos pelo chamador (secção 0c.4).
+
+Nenhum número de linhas transferidas foi medido (sem Supabase real nesta sessão) — todas as células "não medido" são literais, não estimativas.
+
+### 0c.2 Contrato da RPC — `get_dashboard_summary_v1`
+
+`supabase/migrations/0039_dashboard_summary_rpc.sql` (nova migration, imutável — nenhuma
+migration anterior foi editada).
+
+```sql
+get_dashboard_summary_v1(p_day_start timestamptz, p_day_end timestamptz) returns jsonb
+```
+
+**Decisão de segurança**: `p_tenant_id` **não é parâmetro**. O tenant é derivado dentro
+da função via `public.current_tenant_id()` (`auth.uid()` → `profiles.tenant_id`,
+`0001_initial.sql`) — o mesmo padrão já estabelecido por `cancel_appointment`/
+`reschedule_appointment` (`0008_cancel_reschedule_appointment.sql`). Isto é mais forte do
+que aceitar `p_tenant_id` e validar contra `auth.uid()`: não há parâmetro nenhum para um
+chamador adulterar para chegar a outro tenant, porque esse parâmetro simplesmente não
+existe no contrato da função.
+
+**Nome versionável**: sufixo `_v1` deliberado (não `get_dashboard_data`) — uma mudança
+incompatível de contrato no futuro ganha uma função `_v2`, nunca uma alteração in-place
+que quebra silenciosamente quem ainda chama `_v1` a meio de um deploy.
+
+**Retorno**: `jsonb` (não `returns table` com colunas planas) — a forma tem arrays
+aninhados (`appointments_today`, `attention_reminders`) e escalares lado a lado, o que
+`returns table` não representa bem. Este é o primeiro RPC do repositório com uma forma
+rica o suficiente para justificar validação Zod no lado cliente (ver 0c.3) — os
+restantes RPCs existentes devolvem `void`/escalar, sem necessidade de esquema.
+
+```ts
+type DashboardSummaryRpcResult = {
+  appointments_today: Array<{
+    id: string;
+    start_at: string;
+    end_at: string;
+    status: string;
+    total_cents: number;
+    client_name: string | null;
+    client_phone_e164: string | null;
+    item_descriptions: string[];
+  }>;
+  attention_reminders: Array<{
+    id: string;
+    due_at: string;
+    appointment_id: string;
+    appointment_start_at: string;
+    client_name: string | null;
+    client_phone_e164: string | null;
+    item_descriptions: string[];
+  }>;
+  pending_reminders_count: number;
+  received_today_cents: number;
+  pending_today_cents: number;
+  pending_payments_today_count: number;
+};
+```
+
+Nenhuma métrica nova — todos os 6 campos de topo mapeiam 1:1 para os 6 valores que o
+loader antigo já produzia (secção 0c.1). `buildDashboardSummary()` (nextAppointment,
+todayCount, invoicedTodayCents) **não foi movido para SQL** — continua puro, em
+TypeScript, com os testes unitários que já tinha (`tests/unit/dashboard-summary.test.ts`,
+inalterado) — só a origem dos dados que ele agrega mudou.
+
+**`security definer`, justificado**: necessário porque a função lê `appointments`,
+`payments`, `appointment_items`, `reminders`, `clients` de outras linhas que a RLS do
+chamador (se corresse como `invoker`) poderia não deixar juntar eficientemente entre
+si sem múltiplas idas à base — o padrão já estabelecido por toda a função transacional
+deste schema (`complete_appointment`, `cancel_appointment`, etc.). Mitigado por:
+`set search_path = public` explícito; `current_tenant_id()` deriva o tenant do
+utilizador autenticado, nunca de um parâmetro; todas as 5 CTEs filtram explicitamente
+por `tenant_id = v_tenant_id`; `revoke`/`grant` explícitos (ADR-008) — ver 0c.3.
+
+### 0c.3 Segurança — grants e isolamento
+
+Seguindo ADR-008 (`docs/adr/ADR-008-function-privilege-defaults.md` — revogar de
+`public` **e** `anon` explicitamente, porque este projeto Supabase concede `EXECUTE` a
+`anon`/`authenticated` diretamente, não via `PUBLIC`):
+
+```sql
+revoke all on function public.get_dashboard_summary_v1(timestamptz, timestamptz) from public;
+revoke all on function public.get_dashboard_summary_v1(timestamptz, timestamptz) from anon;
+grant execute on function public.get_dashboard_summary_v1(timestamptz, timestamptz) to authenticated;
+```
+
+Testado (não só lido) em `tests/integration/get-dashboard-summary-rpc.test.ts`
+(20 cenários, secção 0c.6): um `anon` a chamar a função recebe `42501`; um utilizador
+`authenticated` sem `profiles` (logo sem tenant) recebe erro, não dados vazios
+disfarçados de "sem marcações"; um dono do tenant B nunca vê dados do tenant A e
+vice-versa; um intervalo de dia inválido (`p_day_end <= p_day_start`) é rejeitado
+explicitamente, não silenciosamente tratado como vazio.
+
+### 0c.4 Timezone e limite do dia — preservado, não substituído
+
+`p_day_start`/`p_day_end` continuam a ser resolvidos em `dashboard/page.tsx` exatamente
+como antes (`formatInTimeZone` + `fromZonedTime`, confirmado correto no PR1) — **não**
+há `new Date().setHours(0,0,0,0)` nem `+24h` fixo em lado nenhum, nem na RPC. A RPC em si
+só compara `start_at >= p_day_start and start_at < p_day_end` (intervalo semiaberto,
+não `BETWEEN`) — testado explicitamente: uma marcação exatamente em `p_day_start` entra,
+uma exatamente em `p_day_end` não entra (secção 0c.6, cenários #5/#6).
+
+### 0c.5 Evitar multiplicação de linhas
+
+Três relações um-para-muitos identificadas e tratadas:
+
+1. **`appointment_items` → `appointments`** (uma marcação pode ter vários
+   itens/serviços): agregada numa CTE própria (`item_totals`,
+   `array_agg(description order by created_at)`) **antes** de ser juntada às marcações
+   — uma marcação com 3 itens continua a produzir 1 linha, não 3.
+2. **`payments` → `appointments`**: nunca junta pagamentos linha a linha às marcações —
+   os totais (`received_today`, `pending_today`) são agregados diretamente sobre
+   `payments` com `sum()`/`count()`, sem passar por um join que multiplicaria por item.
+3. **`reminders` → `appointments`**: `reminders.appointment_id` é `unique`
+   (`0001_initial.sql`), logo este join é garantidamente 1:1, nunca multiplicador.
+
+Testado explicitamente (não só por inspeção do SQL): cenário #14/#15 da secção 0c.6 —
+uma marcação com 3 itens **e** 3 pagamentos (2 pagos + 1 pendente) continua a aparecer
+exatamente 1 vez em `appointments_today`, com o array de itens completo e os totais de
+pagamento corretos.
+
+### 0c.6 Testes de integração (20 cenários, `tests/integration/get-dashboard-summary-rpc.test.ts`)
+
+Todos os 20 cenários pedidos estão cobertos (numeração da tabela original entre
+parêntesis), cada um comparando contra um **valor concreto calculado à mão a partir das
+regras da secção 0c.1** — não apenas "não lançou erro":
+
+| #     | Cenário                                         | Teste                                                                                                                                                                                                |
+| ----- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | tenant sem marcações                            | tenant novo isolado → resultado `{ appointments_today: [], ..., pending_reminders_count: 0, ... }` exato                                                                                             |
+| 2–3   | uma / múltiplas marcações                       | 6 marcações no intervalo, todas presentes por id                                                                                                                                                     |
+| 4     | marcação fora do intervalo                      | excluída (dia anterior)                                                                                                                                                                              |
+| 5     | exatamente em `dayStart`                        | incluída (`>=`)                                                                                                                                                                                      |
+| 6     | exatamente em `dayEnd`                          | excluída (`<`)                                                                                                                                                                                       |
+| 7     | marcação cancelada                              | presente, `status: 'cancelled'`                                                                                                                                                                      |
+| 8     | marcação concluída                              | presente, `status: 'completed'`                                                                                                                                                                      |
+| 9     | "marcação pendente"                             | **não existe esse valor no enum `appointment_status`** (só `payment_status` tem `pending`) — reinterpretado como pagamento pendente, coberto pelos cenários 10–13; documentado no teste              |
+| 10    | marcação sem nenhum pagamento                   | presente, contribui 0 para ambos os totais                                                                                                                                                           |
+| 11    | pagamento total                                 | soma correta em `received_today_cents`                                                                                                                                                               |
+| 12    | pagamento parcial                               | `final_total_cents` (4500) prevalece sobre `expected_total_cents` (5000) via `coalesce`; parcela paga e pendente somadas corretamente                                                                |
+| 13    | múltiplos pagamentos na mesma marcação          | 2 pagamentos pagos (2000+1000) somados sem perder nenhum                                                                                                                                             |
+| 14–15 | múltiplos itens e pagamentos sem dupla contagem | 3 itens + 3 pagamentos → 1 linha só, array de itens completo, totais corretos                                                                                                                        |
+| 16    | lembretes pendentes                             | contagem tenant-wide = 6, **incluindo um lembrete de uma marcação fora do intervalo do dia** (prova explícita de que não é date-scoped)                                                              |
+| 17    | lembretes que exigem atenção                    | os 4 mais próximos por `due_at`, nesta ordem exata; o lembrete com `due_at` mais cedo de todos é excluído por ter `status != 'pending'` (prova que o filtro de estado não é ignorado pela ordenação) |
+| 18    | outro tenant com dados semelhantes              | tenant B (dados "parecidos", valor 9999) nunca aparece nos totais/linhas do tenant A, e vice-versa                                                                                                   |
+| 19    | utilizador sem acesso ao tenant                 | utilizador autenticado sem linha em `profiles` → RPC devolve erro, não dados vazios                                                                                                                  |
+| 20    | utilizador não autenticado                      | `anon` → erro `42501` (grant ausente, ADR-008)                                                                                                                                                       |
+
+Mais 1 teste adicional (intervalo de dia inválido, `p_day_end <= p_day_start` →
+erro explícito, não vazio silencioso) e testes unitários puros para o mapper/schema
+(`tests/unit/dashboard-summary-rpc.test.ts`, 12 testes: validação Zod aceita/rejeita as
+formas certas, mapeamento snake_case→camelCase, fallback `'Cliente'`).
+
+**Estratégia de equivalência (secção 11 do pedido)**: em vez de manter uma cópia viva do
+loader antigo só para comparação lado a lado (o que seria, na prática, criar uma segunda
+implementação permanente da mesma lógica — o próprio pedido original do projeto proíbe
+isso), cada asserção do ficheiro de integração compara contra um **valor esperado
+derivado explicitamente das regras do código antigo**, documentado comentário a
+comentário (ex.: "5000 (single) + 2000 + 1000 (multi) + 2000 (completed/partial) =
+10000"). Isto é o mesmo resultado que comparar duas implementações lado a lado — a
+lógica antiga foi lida, transcrita para os valores esperados do teste, e o teste falha
+se a RPC alguma vez desviar dela.
+
+### 0c.7 `EXPLAIN ANALYZE` e índices — não executado, índices existentes parecem suficientes
+
+**`EXPLAIN (ANALYZE, BUFFERS)` não foi executado nesta sessão** — mesmo bloqueio de
+Docker das PRs anteriores. Declarado explicitamente, não estimado.
+
+Por leitura das migrations existentes, os índices que os padrões de acesso desta RPC
+precisam **já existem** (nenhum novo criado nesta PR):
+
+| Índice existente                                                | Migration                             | Cobre                                                                                        |
+| --------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `appointments_tenant_start_idx (tenant_id, start_at)`           | `0001_initial.sql`                    | filtro de `today_appointments`                                                               |
+| `appointment_items_appointment_idx (tenant_id, appointment_id)` | `0002_harden_tenant_fk_integrity.sql` | `group by` de `item_totals`                                                                  |
+| `payments_appointment_idx (tenant_id, appointment_id)`          | `0002_harden_tenant_fk_integrity.sql` | filtro de `pending_today`                                                                    |
+| `payments_tenant_status_idx (tenant_id, status)`                | `0002_harden_tenant_fk_integrity.sql` | filtro de `received_today`/`pending_today` (parcial — não cobre `paid_at`, ver risco abaixo) |
+| `reminders_due_idx (tenant_id, due_at, status)`                 | `0001_initial.sql`                    | `pending_reminders`/`attention_reminders`                                                    |
+
+**Risco residual**: `payments_tenant_status_idx` não inclui `paid_at`, que
+`received_today` também filtra — sem `EXPLAIN ANALYZE` real não é possível confirmar se
+isso importa na prática (pode ser irrelevante se a maioria dos pagamentos `paid` de um
+tenant já cabe numa leitura de índice pequena). Não foi adicionado um índice novo
+especulativamente — fica para PR 9 (índices comprovados), com plano de execução real.
+
+### 0c.8 Alteração do loader — operações antes/depois
+
+|                                          | Antes (PR3)                                                                                                                                                                                  | Depois (PR4)                                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Operações Supabase de dados do Dashboard | 6 (1 sequencial + 4 paralelas + 1 dependente)                                                                                                                                                | **1** (`supabase.rpc('get_dashboard_summary_v1', ...)`)                                                  |
+| + leitura de configuração                | `business_settings` (timezone) — inalterada, continua fora da RPC (é preciso _antes_ de calcular `p_day_start`/`p_day_end`, que são parâmetros da própria RPC — não pode vir de dentro dela) | igual                                                                                                    |
+| Agregações em JavaScript removidas       | soma de `payments` pagos (`reduce`), soma de `payments` pendentes (`reduce` + `.length`)                                                                                                     | ambas movidas para `sum()`/`count()` em SQL                                                              |
+| Agregações em JavaScript mantidas        | `buildDashboardSummary()` inteira (nextAppointment, todayCount, invoicedTodayCents)                                                                                                          | inalterada — está fora do escopo desta PR (é lógica de negócio pura já testada, não round-trips de rede) |
+| **Total de operações Supabase por load** | **7** (6 de dados + 1 de settings)                                                                                                                                                           | **2** (1 RPC + 1 settings)                                                                               |
+
+Meta indicativa do pedido ("reduzir as ~8 operações para uma RPC principal, mais no
+máximo uma leitura de configuração") — **cumprida**: 7→2, contadas no fluxo final real
+do ficheiro alterado, não uma alegação sem contagem.
+
+### 0c.9 Tratamento de erros e observabilidade
+
+- Erro da RPC (`error` devolvido pelo `supabase.rpc()`): `logEvent('error', 'dashboard.summary_rpc_failed', { tenantId, durationMs, errorCode }, requestId)` seguido de `throw` — nunca um Dashboard vazio silencioso. Sem boundary de erro dedicado nesta rota (nenhuma outra página deste repositório tem uma), cai no tratamento de erro por omissão do Next.js, o mesmo que qualquer outra exceção não tratada já teria.
+- Forma inesperada (falha na validação Zod): mesmo padrão, evento
+  `dashboard.summary_rpc_shape_invalid`.
+- Sucesso: `logEvent('info', 'dashboard.summary_rpc_loaded', { tenantId, durationMs }, requestId)`.
+- Usa o `logEvent`/`getRequestId` já existentes no repositório
+  (`src/lib/logger.ts`/`src/lib/request-id.ts`, com redação automática de campos
+  sensíveis por nome/forma) — nenhuma infraestrutura de observabilidade nova. Nenhum
+  token, cookie, service role key, nota privada ou payload de marcação é registado —
+  só `tenantId` (identificador opaco, mesmo padrão já usado em
+  `dashboard/lembretes/page.tsx`), duração e um código de erro.
+
+### 0c.10 Compatibilidade visual e funcional
+
+Nenhuma alteração de JSX, texto, classe CSS, ordem de secções ou formatação —
+`loadDashboardData()` foi a única função alterada; `DashboardPage()` (o componente) e
+todos os subcomponentes (`NextClientCard`, `DailySummaryGrid`, `AttentionSection`,
+`TodayAgendaPreview`) permanecem byte-a-byte inalterados. A ordenação de
+`attention_reminders` (`order by due_at`) e de `appointments_today` (implícita — a UI já
+não dependia de ordem de chegada da query antiga para `appointmentsToday`, visto que
+`buildDashboardSummary()` já reordenava por `startAtMs` para `nextAppointment`) mantém o
+resultado visual idêntico.
+
+### 0c.11 Verificação executada (`npm ci`, `format`, `lint`, `typecheck`, `test:coverage`, `build`, `budget`, `test:integration`, `test:e2e:critical`)
+
+| Comando                     | Descobertos                                                                                                 | Executados | Passaram                                           | Falharam | Skip                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `npm run format`            | —                                                                                                           | sim        | sim (após `prettier --write` em 2 ficheiros novos) | 0        | —                                                                                |
+| `npm run lint`              | —                                                                                                           | sim        | sim, 0 erros/avisos                                | 0        | —                                                                                |
+| `npm run typecheck`         | —                                                                                                           | sim        | sim, 0 erros                                       | 0        | —                                                                                |
+| `npm run test:coverage`     | 776 testes                                                                                                  | 776        | **573** (12 novos: schema/mapper)                  | **0**    | 203 (todos de integração, sem Supabase)                                          |
+| `npm run build`             | —                                                                                                           | sim        | sim, ~22.4s, 30 rotas                              | 0        | —                                                                                |
+| `npm run budget`            | —                                                                                                           | sim        | sim, 1505.4 KiB (inalterado — PR server-only)      | 0        | —                                                                                |
+| `npm run test:integration`  | 203 testes (37 ficheiros, +1 novo com 20 casos — 16 `it()` reais mais um `beforeAll` de fixture partilhada) | 203        | 0                                                  | 0        | **203** — Docker indisponível, mesmo bloqueio das PRs anteriores                 |
+| `npm run test:e2e:critical` | 14 testes                                                                                                   | 14         | 0                                                  | 0        | **14** — idem; servidor sobe sem erro com o loader novo (`next dev`, confirmado) |
+
+**Não estou a declarar `test:integration`/`test:e2e:critical` como "validados"** — 100%
+dos testes relevantes ficaram em skip por falta de Docker. O pedido original desta PR
+(secção 12) pede explicitamente para usar o CI do GitHub para correr Supabase local em
+`ubuntu-latest` e aguardar o resultado antes de considerar o PR concluído — ver 0c.12.
+
+### 0c.12 CI real — branch enviada, PR aberto, resultado aguardado
+
+Ao contrário das PRs 1–3 (só documentadas localmente), esta branch foi **enviada para o
+GitHub e um Pull Request foi aberto** especificamente para obter execução real dos
+testes de integração/E2E contra Supabase local no `ubuntu-latest` do CI — o mecanismo
+que `.github/workflows/ci.yml` já tem configurado (`supabase/setup-cli@v3` +
+`supabase start`, Docker nativo no runner, ao contrário desta sessão local). Resultado
+registado abaixo depois de aguardar os checks.
+
+_(preenchido depois de abrir o PR — ver secção mais abaixo desta atualização, após o
+`git push`/`gh pr create`)_
+
+### 0c.13 Fora do escopo desta PR (confirmado, não tocado)
+
+RPC de Clientes, RPC do Financeiro, cache de disponibilidade, Realtime, região Vercel,
+alteração visual, refactor geral da pasta Dashboard, mudança da política de
+autenticação, novos mecanismos globais de cache, service worker, migração de outras
+queries do projeto, índices novos sem `EXPLAIN ANALYZE` — nenhum destes foi tocado.
 
 ---
 
