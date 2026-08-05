@@ -1,6 +1,7 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { pt } from 'date-fns/locale/pt';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
@@ -140,8 +141,13 @@ async function loadAgendaData(
   };
 }
 
+// PR2 (auditoria de navegação, docs/audits/NEXORA_PERFORMANCE_AUDIT.md secção 3.4):
+// era `<a href={string}>`, um document navigation completo a cada clique. Devolve o
+// shape de href do next/link (pathname + query), não uma string interpolada — com
+// `typedRoutes: true` (next.config.ts) é essa a forma que o compilador consegue validar
+// contra as rotas reais.
 function navHref(view: CalendarView, dateKey: string) {
-  return `/dashboard/agenda?view=${view}&date=${dateKey}`;
+  return { pathname: '/dashboard/agenda', query: { view, date: dateKey } } as const;
 }
 
 // NEX-082: "Navegação eficiente e responsiva" across day/week/month (docs/02_UX_FLOWS.md,
@@ -187,25 +193,25 @@ export default async function AgendaPage({
       <div className="agenda-date-row">
         <AgendaDatePicker view={view} dateKey={dateKey} label={capitalize(rangeLabel)} />
         <nav className="agenda-date-nav" aria-label="Navegar datas">
-          <a
+          <Link
             href={navHref(view, previousDateKey)}
             className="nx-icon-button agenda-nav-icon-button"
             aria-label="Data anterior"
           >
             <ChevronLeft aria-hidden="true" />
-          </a>
+          </Link>
           {dateKey !== todayKey ? (
-            <a href={navHref(view, todayKey)} className="agenda-today-link">
+            <Link href={navHref(view, todayKey)} className="agenda-today-link">
               Hoje
-            </a>
+            </Link>
           ) : null}
-          <a
+          <Link
             href={navHref(view, nextDateKey)}
             className="nx-icon-button agenda-nav-icon-button"
             aria-label="Data seguinte"
           >
             <ChevronRight aria-hidden="true" />
-          </a>
+          </Link>
         </nav>
       </div>
 
@@ -214,30 +220,30 @@ export default async function AgendaPage({
         aria-label="Vista da agenda"
         className="nx-tabs nx-tabs-pill agenda-view-tabs"
       >
-        <a
+        <Link
           href={navHref('day', dateKey)}
           role="tab"
           aria-current={view === 'day' ? 'page' : undefined}
           className="nx-tab"
         >
           Dia
-        </a>
-        <a
+        </Link>
+        <Link
           href={navHref('week', dateKey)}
           role="tab"
           aria-current={view === 'week' ? 'page' : undefined}
           className="nx-tab"
         >
           Semana
-        </a>
-        <a
+        </Link>
+        <Link
           href={navHref('month', dateKey)}
           role="tab"
           aria-current={view === 'month' ? 'page' : undefined}
           className="nx-tab"
         >
           Lista
-        </a>
+        </Link>
       </div>
 
       <Card className="agenda-free-slots">

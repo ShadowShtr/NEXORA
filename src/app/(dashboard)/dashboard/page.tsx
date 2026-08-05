@@ -16,6 +16,8 @@ import {
 import { requireProfile } from '@/lib/auth/require-profile';
 import { createClient } from '@/lib/supabase/server';
 import { publicEnv } from '@/lib/env';
+import { logEvent } from '@/lib/logger';
+import { getRequestId } from '@/lib/request-id';
 import { publicBookingUrl } from '@/features/onboarding/domain/publish-step';
 import {
   APPOINTMENT_STATUS_LABELS,
@@ -28,9 +30,16 @@ import {
   type AppointmentSummary,
   type DashboardSummary,
 } from '@/features/dashboard/domain/summary';
+import {
+  dashboardSummaryRpcSchema,
+  mapAppointmentsToday,
+  mapAttentionReminders,
+} from '@/features/dashboard/domain/summary-rpc';
 
 const AGENDA_PREVIEW_LIMIT = 4;
-const ATTENTION_PREVIEW_LIMIT = 4;
+// The attention-reminders equivalent of this limit now lives in
+// supabase/migrations/0039_dashboard_summary_rpc.sql (`limit 4`, attention_reminders
+// CTE) — the RPC does the limiting in SQL now, not a `.slice()`/`.limit()` here.
 
 function formatEuros(cents: number) {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -78,6 +87,21 @@ type AttentionReminder = {
 // React Compiler purity rule forbids impure calls directly in render, since a component
 // must be safely re-callable. This is a plain async function the Server Component
 // calls once, not a component itself, so the rule doesn't apply to it.
+// PR3: this used to also fetch `profiles.display_name` and `tenants.slug` itself, two
+// redundant queries — both are already resolved by the caller's memoized auth context
+// (requireProfile(), which shares getAuthContext() with the layout above this page in
+// the same request), so this function only fetches what it alone needs. See
+// docs/audits/NEXORA_PERFORMANCE_AUDIT.md (PR3 update, "duplicações removidas").
+//
+// PR4: the appointments/reminders-count/payments-paid/attention-reminders fan-out (4
+// parallel Supabase calls + a 5th dependent one for today's pending payments, 5
+// operations total) is now one call to get_dashboard_summary_v1 (supabase/migrations/
+// 0039_dashboard_summary_rpc.sql) — same values, same rules, moved to Postgres. See
+// docs/audits/NEXORA_PERFORMANCE_AUDIT.md (PR4 update) for the full before/after and
+// the equivalence tests. buildDashboardSummary() itself (nextAppointment selection,
+// todayCount, invoicedTodayCents) is untouched — it's pure JS aggregation over
+// appointmentsToday that was already unit-tested and has nothing to do with how many
+// round trips fetched that array.
 async function loadDashboardData(tenantId: string) {
   const supabase = await createClient();
 
@@ -98,111 +122,79 @@ async function loadDashboardData(tenantId: string) {
   const dayStartIso = dayStart.toISOString();
   const dayEndIso = dayEnd.toISOString();
 
-  const [
-    { data: profileRow },
-    { data: tenantRow },
-    { data: appointmentRows },
-    { count: pendingRemindersCount },
-    { data: paymentRows },
-    { data: attentionReminderRows },
-  ] = await Promise.all([
-    supabase.from('profiles').select('display_name').eq('tenant_id', tenantId).maybeSingle(),
-    supabase.from('tenants').select('slug').eq('id', tenantId).single(),
-    supabase
-      .from('appointments')
-      .select(
-        'id, start_at, end_at, status, expected_total_cents, final_total_cents, clients(name, phone_e164), appointment_items(description)',
-      )
-      .eq('tenant_id', tenantId)
-      .gte('start_at', dayStartIso)
-      .lt('start_at', dayEndIso)
-      .order('start_at'),
-    supabase
-      .from('reminders')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('status', 'pending'),
-    supabase
-      .from('payments')
-      .select('amount_cents')
-      .eq('tenant_id', tenantId)
-      .eq('status', 'paid')
-      .gte('paid_at', dayStartIso)
-      .lt('paid_at', dayEndIso),
-    supabase
-      .from('reminders')
-      .select(
-        'id, due_at, appointments(id, start_at, clients(name, phone_e164), appointment_items(description))',
-      )
-      .eq('tenant_id', tenantId)
-      .eq('status', 'pending')
-      .order('due_at')
-      .limit(ATTENTION_PREVIEW_LIMIT),
-  ]);
-
-  const appointmentsToday: AppointmentSummary[] = (appointmentRows ?? []).map((row) => {
-    const client = Array.isArray(row.clients) ? row.clients[0] : row.clients;
-    return {
-      id: row.id,
-      clientName: client?.name ?? 'Cliente',
-      clientPhoneE164: client?.phone_e164 ?? null,
-      startAtMs: new Date(row.start_at).getTime(),
-      endAtMs: new Date(row.end_at).getTime(),
-      status: row.status,
-      itemDescriptions: (row.appointment_items ?? []).map((item) => item.description),
-      totalCents: row.final_total_cents ?? row.expected_total_cents,
-    };
+  const rpcStartedAtMs = Date.now();
+  const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_summary_v1', {
+    p_day_start: dayStartIso,
+    p_day_end: dayEndIso,
   });
+  const rpcDurationMs = Date.now() - rpcStartedAtMs;
 
-  const todayApptIds = appointmentsToday.map((appointment) => appointment.id);
-  const { data: pendingPaymentRows } =
-    todayApptIds.length > 0
-      ? await supabase
-          .from('payments')
-          .select('amount_cents')
-          .eq('tenant_id', tenantId)
-          .eq('status', 'pending')
-          .in('appointment_id', todayApptIds)
-      : { data: [] };
+  // Section 15/16 of this PR's brief: an RPC error or an unexpected shape must never
+  // silently fall back to an empty Dashboard — that would look like "no appointments
+  // today" instead of "something is broken". Logged (tenantId + duration + outcome
+  // only — no SQL, no row contents, matching this codebase's existing logEvent()
+  // convention, e.g. dashboard/lembretes/page.tsx) and re-thrown, same as any other
+  // unhandled error in this codebase (no bespoke Dashboard error boundary exists —
+  // Next's default error UI takes over, consistent with every other page here).
+  if (rpcError) {
+    logEvent(
+      'error',
+      'dashboard.summary_rpc_failed',
+      { tenantId, durationMs: rpcDurationMs, errorCode: rpcError.code ?? 'unknown' },
+      await getRequestId(),
+    );
+    throw new Error('Failed to load dashboard summary');
+  }
 
-  const receivedTodayCents = (paymentRows ?? []).reduce((sum, row) => sum + row.amount_cents, 0);
-  const pendingTodayCents = (pendingPaymentRows ?? []).reduce(
-    (sum, row) => sum + row.amount_cents,
-    0,
+  const parsed = dashboardSummaryRpcSchema.safeParse(rpcData);
+  if (!parsed.success) {
+    logEvent(
+      'error',
+      'dashboard.summary_rpc_shape_invalid',
+      { tenantId, durationMs: rpcDurationMs },
+      await getRequestId(),
+    );
+    throw new Error('Unexpected dashboard summary shape');
+  }
+
+  logEvent(
+    'info',
+    'dashboard.summary_rpc_loaded',
+    { tenantId, durationMs: rpcDurationMs },
+    await getRequestId(),
   );
+
+  const appointmentsToday: AppointmentSummary[] = mapAppointmentsToday(
+    parsed.data.appointments_today,
+  );
+  const rawAttentionReminders = mapAttentionReminders(parsed.data.attention_reminders);
 
   const summary = buildDashboardSummary(
     appointmentsToday,
-    pendingRemindersCount ?? 0,
-    receivedTodayCents,
-    pendingTodayCents,
+    parsed.data.pending_reminders_count,
+    parsed.data.received_today_cents,
+    parsed.data.pending_today_cents,
     nowMs,
-    (pendingPaymentRows ?? []).length,
+    parsed.data.pending_payments_today_count,
   );
 
-  const attentionReminders: AttentionReminder[] = (attentionReminderRows ?? []).map((row) => {
-    const appointment = Array.isArray(row.appointments) ? row.appointments[0] : row.appointments;
-    const client = appointment
-      ? Array.isArray(appointment.clients)
-        ? appointment.clients[0]
-        : appointment.clients
-      : null;
+  const attentionReminders: AttentionReminder[] = rawAttentionReminders.map((reminder) => {
     const whatsappHref =
-      client?.phone_e164 && appointment
+      reminder.clientPhoneE164 && reminder.startAtMs !== null
         ? buildWhatsappDeepLink(
-            client.phone_e164,
+            reminder.clientPhoneE164,
             buildAppointmentReminderMessage(
-              client.name ?? 'Cliente',
-              formatInTimeZone(appointment.start_at, timezone, 'HH:mm'),
+              reminder.clientName,
+              formatInTimeZone(reminder.startAtMs, timezone, 'HH:mm'),
             ),
           )
         : null;
     return {
-      id: row.id,
-      appointmentId: appointment?.id ?? null,
-      clientName: client?.name ?? 'Cliente',
-      startAtMs: appointment ? new Date(appointment.start_at).getTime() : null,
-      itemDescriptions: (appointment?.appointment_items ?? []).map((item) => item.description),
+      id: reminder.id,
+      appointmentId: reminder.appointmentId,
+      clientName: reminder.clientName,
+      startAtMs: reminder.startAtMs,
+      itemDescriptions: reminder.itemDescriptions,
       whatsappHref,
     };
   });
@@ -211,8 +203,6 @@ async function loadDashboardData(tenantId: string) {
     summary,
     timezone,
     nowMs,
-    ownerName: profileRow?.display_name ?? '',
-    tenantSlug: tenantRow?.slug ?? '',
     appointmentsToday,
     attentionReminders,
   };
@@ -498,8 +488,8 @@ function TodayAgendaPreview({
 // add button on this page (never was), so the reference's "hide the FAB" rule is
 // already true by construction.
 export default async function DashboardPage() {
-  const { tenantId } = await requireProfile();
-  const { summary, timezone, nowMs, ownerName, tenantSlug, appointmentsToday, attentionReminders } =
+  const { tenantId, displayName, tenantSlug } = await requireProfile();
+  const { summary, timezone, nowMs, appointmentsToday, attentionReminders } =
     await loadDashboardData(tenantId);
   const publicUrl = tenantSlug ? publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantSlug) : null;
 
@@ -508,7 +498,7 @@ export default async function DashboardPage() {
       <header className="home-header">
         <div>
           <h1 className="home-greeting">
-            Olá{ownerName ? `, ${firstName(ownerName)}` : ''}!{' '}
+            Olá{displayName ? `, ${firstName(displayName)}` : ''}!{' '}
             <span className="home-greeting-emoji">👋</span>
           </h1>
           <p className="home-date">

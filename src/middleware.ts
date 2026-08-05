@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { publicEnv } from '@/lib/env';
 
 // NEX-164 correction to NEX-153: this file is deliberately named `middleware.ts`
 // again, not `proxy.ts` — Next.js 16.2.10's Turbopack *production* build silently
@@ -72,7 +74,7 @@ function buildCsp(nonce: string): string {
   return directives.join('; ');
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const nonce = crypto.randomUUID().replace(/-/g, '');
   const csp = buildCsp(nonce);
 
@@ -85,11 +87,68 @@ export function middleware(request: NextRequest) {
   // reporting an issue ("what's the id at the top of your network tab?").
   const requestId = crypto.randomUUID();
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set('x-request-id', requestId);
+  // Re-read from `request.headers` (rather than cloning it once, up front) every time
+  // a response is built: `supabase.auth.getUser()` below can rewrite `request`'s
+  // cookies via `setAll` before a refreshed-session response is built, and only a
+  // fresh read picks up that rewrite. A one-time clone taken before the Supabase call
+  // would carry the pre-refresh cookies forward instead.
+  function requestHeadersWithNonce() {
+    const headers = new Headers(request.headers);
+    headers.set('x-nonce', nonce);
+    headers.set('x-request-id', requestId);
+    return headers;
+  }
 
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  // PR3 (docs/audits/NEXORA_PERFORMANCE_AUDIT.md, PR3 update): this used to be the
+  // "root proxy" the comment in src/lib/supabase/server.ts wrongly claimed already
+  // refreshed sessions (PR1 finding, corrected as a comment-only fix in PR2). It
+  // actually does now. `response` is `let`, not `const`, because @supabase/ssr's
+  // `setAll` below — invoked only when `getUser()` finds an expired access token and
+  // successfully refreshes it — needs to attach the new session cookies to a response
+  // built from the *post-mutation* request, not the one built here before any cookie
+  // exists to attach. This is the official @supabase/ssr pattern for Next.js
+  // middleware: never discard/replace this response after `setAll` has written to it,
+  // and always return the exact same object your custom headers below get applied to.
+  let response = NextResponse.next({ request: { headers: requestHeadersWithNonce() } });
+
+  const supabase = createServerClient(
+    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll(cookiesToSet) {
+          // Mutate the *request*'s cookies first so Server Components rendered later
+          // in this same request see the refreshed session immediately (not one
+          // request behind) — `requestHeadersWithNonce()` below reads `request.headers`
+          // fresh, which reflects this mutation.
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request: { headers: requestHeadersWithNonce() } });
+          // Then mirror the same cookies onto the *response* so the browser actually
+          // receives the refreshed session — mutating `request.cookies` alone never
+          // reaches the client.
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  // getUser() (not getClaims()) deliberately: this is the one call that can round-trip
+  // to the Auth server and actually use the refresh token to mint a new access token
+  // when the current one has expired — getClaims() only decodes whatever JWT is
+  // already sitting in the cookie, it can never refresh anything on its own. The
+  // returned user is intentionally unused here: this middleware's job is only to keep
+  // the session cookie fresh, not to gate routes — authorization stays exactly where
+  // it already was, in requireProfile()/getOptionalProfile() (now backed by
+  // src/lib/auth/get-auth-context.ts), so this PR doesn't duplicate authorization logic
+  // into a second place. An expired-and-unrefreshable (or altogether absent) session
+  // simply means `getUser()` resolves with no user and no cookies are rewritten —
+  // requireProfile() then sees no valid claims on its own next call and redirects,
+  // same as before this PR.
+  await supabase.auth.getUser();
+
   response.headers.set('Content-Security-Policy', csp);
   response.headers.set('x-request-id', requestId);
 
