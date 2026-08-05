@@ -12,8 +12,15 @@ para `next/link`, comentário desatualizado de `server.ts` corrigido, teste Play
 anti-regressão adicionado, e a baseline deixou de ser puramente estática — `build`,
 `test:coverage` e `budget` foram efetivamente executados, com números reais.
 
-Branches: `perf/auditoria-total-nexora` (PR 1, a partir de `main`) e
-`perf/pr2-agenda-links-baseline` (PR 2, a partir do commit do PR 1).
+**Atualização — PR 3 concluído** (secção 0b abaixo): contexto de autenticação
+centralizado e memoizado por request (`src/lib/auth/get-auth-context.ts`), refresh real
+da sessão Supabase ligado ao middleware (a lacuna que PR2 apenas documentou), 27 novos
+testes unitários (todos a passar), e duas queries `profiles`/`tenants` redundantes
+eliminadas de `dashboard/page.tsx` e `dashboard/mais/page.tsx`.
+
+Branches: `perf/auditoria-total-nexora` (PR 1, a partir de `main`),
+`perf/pr2-agenda-links-baseline` (PR 2, a partir do commit do PR 1), e
+`perf/pr3-auth-context-session-refresh` (PR 3, a partir do commit do PR 2, `3cb69fb`).
 
 ---
 
@@ -114,6 +121,228 @@ continuam presentes na resposta, confirmando que a correção do comentário em 
 são TTFB de servidor local sem rede real e **não substituem** as medições de navegação
 click-to-content pedidas (que exigem sessão autenticada + Supabase real) — são incluídos
 só porque são reais e verificáveis, não uma alegação de "navegação medida".
+
+---
+
+## 0b. PR 3 — Contexto autenticado memoizado e refresh real da sessão
+
+Branch `perf/pr3-auth-context-session-refresh`, a partir do commit do PR 2 (`3cb69fb`).
+
+### 0b.1 Baseline — todos os usos de autenticação/perfil/tenant (antes da alteração)
+
+Levantamento exaustivo por grep sobre `src/**/*.{ts,tsx}`, um call site por linha
+(ficheiros com múltiplas ocorrências são múltiplas funções exportadas distintas — cada
+Server Action/Route Handler é invocado como um pedido HTTP separado do Next.js, nunca
+dois dentro do mesmo pedido; verificado por leitura direta em `detail-actions.ts`,
+`catalog/actions.ts` e `api/financeiro/export/route.ts`, os três com mais ocorrências).
+
+| Padrão                                                    | Ficheiros distintos                                                         | Ocorrências totais                                        | Observação                                                                           |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `requireProfile()`                                        | 46                                                                          | ~90                                                       | 1 chamada por função exportada (page, layout, Server Action ou Route Handler GET)    |
+| `getOptionalProfile()`                                    | 3 (`login/page.tsx`, `b/[slug]/page.tsx`, `require-profile.ts` — definição) | 2 chamadas reais (as restantes são menções em comentário) |                                                                                      |
+| `auth.getClaims()` direto (fora de `require-profile.ts`)  | 0                                                                           | 0                                                         | Todas as leituras de claims passam por `requireProfile()`/`getOptionalProfile()`     |
+| `auth.getUser()` direto                                   | 0 (fora de `src/middleware.ts`, novo nesta PR)                              | —                                                         |                                                                                      |
+| `.from('profiles')` direto (fora de `require-profile.ts`) | 2 (`dashboard/page.tsx`, `dashboard/mais/page.tsx`)                         | 2                                                         | Ambas redundantes — mesmo dado que `requireProfile()` já resolve; removidas nesta PR |
+| `.from('tenants')` só para obter `slug`                   | 2 (os mesmos dois ficheiros)                                                | 2                                                         | Idem — removidas                                                                     |
+
+**Duplicação real no mesmo request** (a única forma que importa para `cache()`: dois
+call sites que renderizam na mesma árvore React do mesmo pedido HTTP) — confirmada por
+leitura de `src/app/(dashboard)/layout.tsx` + cada `page.tsx` sob
+`(dashboard)/dashboard/**`, e de `src/app/(onboarding)/layout.tsx` +
+`(onboarding)/onboarding/page.tsx`:
+
+| Rota                                                                                                                                                        | Layout chama `requireProfile()`                          | Page chama `requireProfile()`                                      | Queries de identidade/perfil por request (antes)      | Depois (PR3)                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `/dashboard`                                                                                                                                                | sim                                                      | sim, +2 queries próprias (`profiles.display_name`, `tenants.slug`) | 2× getClaims + 3× profiles + 1× tenants = 6 operações | 1× getClaims + 1× profiles (com `tenants(slug)` embutido) = 2 operações               |
+| `/dashboard/agenda`                                                                                                                                         | sim                                                      | sim                                                                | 2× getClaims + 2× profiles = 4                        | 2                                                                                     |
+| `/dashboard/agenda/[id]`, `/agenda/nova`, `/clientes`, `/clientes/[id]`, `/definicoes/*`, `/financeiro`, `/financeiro/pendentes`, `/lembretes`, `/servicos` | sim                                                      | sim                                                                | 4                                                     | 2                                                                                     |
+| `/dashboard/mais`                                                                                                                                           | sim                                                      | sim, +2 queries próprias (mesmo padrão do dashboard)               | 6                                                     | 2                                                                                     |
+| `/onboarding`                                                                                                                                               | sim                                                      | sim                                                                | 4                                                     | 2                                                                                     |
+| Server Actions (`features/**/actions.ts`), Route Handlers (`api/**/route.ts`)                                                                               | não aplicável (não há layout a montante no mesmo pedido) | 1 chamada, já era 1                                                | 1 operação (getClaims+profiles)                       | 1 (sem mudança — nunca havia duplicação aqui; `cache()` não tem nada para deduplicar) |
+
+Todas as 18 rotas `page.tsx` sob `(dashboard)/dashboard/**` seguem o padrão de 4→2 (ou
+6→2 nas duas com queries próprias redundantes). Esta tabela substitui a necessidade de
+listar as 46 linhas uma a uma — o padrão é idêntico em todas exceto as duas assinaladas.
+
+### 0b.2 Comportamento documentado por cenário (estático — ver ressalva abaixo)
+
+Lido diretamente em `src/lib/auth/get-auth-context.ts` e
+`src/lib/auth/require-profile.ts` (não observado em runtime — ver "Bloqueio de
+ambiente" no PR2, inalterado nesta PR: sem Docker, sem Supabase real, nenhum destes
+cenários foi exercitado contra um servidor real):
+
+| Cenário                                    | `getAuthContext()`                                                                                                                                                                                                                                  | `requireProfile()`                                  | `getOptionalProfile()` |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------- |
+| Não autenticado (sem claims válidas)       | `{ status: 'unauthenticated' }`                                                                                                                                                                                                                     | `redirect('/login')`                                | `null`                 |
+| Autenticado, sem `profiles` correspondente | `{ status: 'no_profile', userId }`                                                                                                                                                                                                                  | `signOut()` + `redirect('/login?error=no_profile')` | `null` (sem signOut)   |
+| Autenticado, com perfil e tenant válidos   | `{ status: 'ok', profile }`                                                                                                                                                                                                                         | `{ userId, tenantId, tenantSlug, displayName }`     | idem                   |
+| Perfil de outro tenant                     | Não aplicável a este código — `tenant_id` vem sempre do próprio `profiles` do `userId` autenticado (`eq('user_id', userId)`), nunca de um parâmetro externo; não há caminho para um utilizador resolver o `tenant_id` de outro através desta função | —                                                   | —                      |
+| Sessão expirada, refresh token válido      | Depende do middleware (secção 0b.3) — `getUser()` no middleware tenta o refresh antes de `requireProfile()` correr; `requireProfile()` em si não tenta refrescar nada, só lê as claims já presentes no pedido                                       | —                                                   | —                      |
+| Refresh token inválido/revogado            | `getUser()` no middleware não escreve cookies novos (nada para `setAll`); a claims check em `getAuthContext()` vê a sessão como inválida/ausente, mesmo fluxo que "não autenticado"                                                                 | `redirect('/login')`                                | `null`                 |
+
+**Não afirmo que nenhum destes cenários foi validado em runtime.** A tabela documenta o
+que o código faz, lido linha a linha — não o que foi observado a acontecer contra um
+Supabase real. Os 27 testes unitários novos (secção 0b.4) verificam os 4 primeiros
+cenários com um cliente Supabase mockado — uma verificação real, mas de lógica, não de
+comportamento end-to-end.
+
+### 0b.3 `getAuthContext()` — contexto memoizado por request
+
+Novo ficheiro `src/lib/auth/get-auth-context.ts`. Resolve identidade (claims) + perfil +
+tenant slug numa única função, memoizada com `cache()` do React:
+
+- **Não é cache partilhado nem persistente** — `cache()` do React memoiza apenas dentro
+  do ciclo de vida de uma única árvore de render (para Server Components) ou de uma
+  única invocação de Server Action/Route Handler; um novo pedido HTTP começa sempre com
+  memoização vazia. Isto foi verificado, não assumido — ver 0b.5.
+- **Pura, sem efeitos secundários**: nenhum `redirect()`/`signOut()` dentro da função
+  memoizada. Um resultado memoizado pode, em teoria, ser devolvido de novo sem a função
+  voltar a correr — repetir um efeito secundário nesse cenário seria incorreto. Os
+  efeitos ficam em `requireProfile()` (que interpreta o resultado e decide redirecionar
+  ou terminar a sessão).
+- **`tenantSlug` resolvido na mesma query** (`profiles` com `tenants(slug)` embutido),
+  não numa segunda ida à base — precisamente porque `dashboard/page.tsx` e
+  `dashboard/mais/page.tsx` já faziam essa segunda query redundantemente.
+- **`requireProfile()`/`getOptionalProfile()` mantêm as assinaturas anteriores**
+  (`{ userId, tenantId, displayName }`, agora com `tenantSlug` adicional — aditivo, não
+  quebra nenhum dos ~90 call sites existentes) e o comportamento exato de antes
+  (mesmos redirects, mesmo `signOut()` no caso "sem perfil"). Nenhuma substituição
+  global foi feita — os únicos ficheiros de consumo alterados são os dois que tinham
+  queries redundantes (`dashboard/page.tsx`, `dashboard/mais/page.tsx`); os outros ~44
+  continuam a chamar `requireProfile()` exatamente como antes.
+
+### 0b.4 Testes unitários novos (27, todos a passar)
+
+- **`tests/unit/get-auth-context.test.ts`** (17 testes): os 6 status/branches de
+  `getAuthContext()` (não autenticado, claims sem payload, sem perfil, erro Supabase no
+  `.maybeSingle()`, sucesso completo, normalização do relacionamento `tenants` como
+  array-ou-objeto — PostgREST pode devolver qualquer um dos dois — fallback para string
+  vazia/`null`), contagem exata de chamadas ao cliente mockado por invocação
+  (`getClaims` 1×, `.from('profiles')` 1×), confirmação de que `signOut()` nunca é
+  chamado dentro de `getAuthContext()`, e os redirects/`signOut()` de `requireProfile()`
+  e o comportamento sem-redirect de `getOptionalProfile()`.
+- **`tests/unit/middleware.test.ts`** (10 testes): CSP presente com nonce válido,
+  `x-request-id` presente e com formato UUID, `Cache-Control: no-store` em todos os
+  prefixos de `NO_STORE_PATHS` e ausente fora deles, o mesmo nonce a chegar tanto ao
+  cabeçalho CSP quanto ao cabeçalho de pedido reencaminhado (via
+  `x-middleware-request-x-nonce`, mecanismo do próprio Next.js para expor cabeçalhos de
+  pedido reencaminhados numa resposta inspecionável em teste), leitura de cookies a
+  partir do pedido, e — o teste central desta PR — que quando `getUser()` decide
+  atualizar a sessão (chama `setAll`), o cookie novo chega ao `Set-Cookie` da resposta
+  **e** CSP/nonce/request-id/no-store continuam todos presentes (a regressão exata que
+  uma reimplementação ingénua, a descartar a resposta depois do `setAll`, cometeria).
+  `@supabase/ssr` é mockado — documentado explicitamente no cabeçalho do ficheiro como o
+  limite do teste: prova a canalização do middleware, não que a troca real de
+  refresh-token do Supabase funciona (isso exige Supabase real).
+- **`tests/unit/require-profile.test.ts`** (pré-existente, NEX-135): 1 teste teve de ser
+  atualizado (o `tenantSlug` aditivo quebrou uma igualdade exata) — corrigido, não
+  revertido.
+
+### 0b.5 Deduplicação entre chamadas — o que É e o que NÃO é provado
+
+Antes de escrever os testes, testei empiricamente (não assumi) se `cache()` do React
+dedupe fora de uma renderização real do Next.js:
+
+```ts
+const fn = cache(async () => {
+  calls++;
+  return calls;
+});
+await fn();
+await fn();
+// resultado: calls === 2
+```
+
+**Resultado: `calls` chega a 2, não 1** — fora do dispatcher de pedido que o
+Next.js configura internamente durante uma renderização real, `cache()` não memoiza
+nada. Isto significa que **nenhum teste Vitest pode provar deduplicação entre
+chamadas** — só pode provar a forma/correção de cada chamada isolada (o que os 17
+testes de `get-auth-context.test.ts` fazem). A prova real de deduplicação exige
+renderizar através de um servidor Next.js real (dev ou `next start`) com Supabase por
+trás — bloqueado nesta sessão pela mesma ausência de Docker documentada no PR2.
+
+Isto **não é uma lacuna nova introduzida por esta PR** — o único outro uso de `cache()`
+no repositório antes desta PR (`loadPublicProfile` em `src/app/b/[slug]/page.tsx`,
+NEX-PUBLIC-404-001) tinha exatamente a mesma lacuna, nunca antes documentada: nenhum
+teste, unitário ou de outro tipo, alguma vez provou que o seu `cache()` dedupe. Esta PR
+não piora essa situação — apenas a torna explícita, pela primeira vez, para ambos os
+usos.
+
+**Não foi adicionada instrumentação de produção nova** (sem `Server-Timing`, sem
+contadores, sem rotas de depuração) especificamente para tentar contornar este bloqueio
+— avaliei um contador exportado só-para-testes e uma rota de depuração dedicada, e
+descartei ambos: exigiriam nova superfície em produção (uma rota, ou lógica condicional
+por ambiente) só para tornar testável uma alegação que, mesmo com essa instrumentação,
+continuaria a exigir um servidor Next.js real para ser exercitada — não uma
+simplificação, uma complexidade nova sem prova adicional real nesta sessão. Registado
+como risco residual (secção "O que não foi validado").
+
+### 0b.6 Refresh real da sessão — `src/middleware.ts`
+
+O middleware passou a:
+
+1. Construir o cliente Supabase server (`createServerClient` de `@supabase/ssr`) com
+   `cookies.getAll` ligado a `request.cookies.getAll()`.
+2. Em `cookies.setAll` (chamado por `@supabase/ssr` quando `getUser()` encontra um
+   access token expirado e o refresca com sucesso): escrever as cookies tanto em
+   `request.cookies` (para que Server Components mais adiante no mesmo pedido já vejam
+   a sessão atualizada) como reconstruir `response` a partir desse `request` mutado
+   (para que o browser receba as cookies novas via `Set-Cookie`).
+3. Chamar `await supabase.auth.getUser()` — deliberadamente `getUser()`, não
+   `getClaims()`: só `getUser()` faz o round-trip ao servidor de Auth que pode
+   efetivamente usar o refresh token. O resultado é intencionalmente descartado — o
+   middleware só mantém a sessão fresca, não decide autorização (isso continua em
+   `requireProfile()`/`getOptionalProfile()`, agora sobre `getAuthContext()`), para não
+   duplicar a lógica de autorização num segundo sítio.
+4. Só depois de `getUser()` resolver, aplicar CSP/nonce/`x-request-id`/`no-store` — no
+   mesmo objeto `response` que pode já ter sido reconstruído pelo passo 2, nunca um
+   objeto novo a substituí-lo.
+
+**Corrige a lacuna que o PR2 apenas documentou**: o comentário em
+`src/lib/supabase/server.ts` ("the root proxy refreshes sessions") tinha sido corrigido
+no PR2 só como texto — o middleware, de facto, não fazia nada disso até agora. Este PR
+implementa o que o comentário original presumia.
+
+Todas as verificações da secção 4 do pedido original desta PR foram confirmadas — por
+leitura de código e pelos 10 testes de `middleware.test.ts`, não em runtime real:
+cookies atualizadas chegam à resposta final; CSP, nonce, `x-request-id` e `no-store`
+continuam presentes mesmo quando `setAll` reconstrói a resposta; o matcher continua a
+excluir `_next/static`, `_next/image`, `favicon.ico`, `icons/` e `sw.js`.
+
+### 0b.7 Verificação executável (`npm ci`, `format`, `lint`, `typecheck`, `test:coverage`, `build`, `budget`, `test:integration`, `test:e2e:critical`)
+
+| Comando                     | Resultado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run format`            | 2 ficheiros novos precisaram de `prettier --write` (os dois ficheiros de teste); limpo depois                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `npm run lint`              | OK, zero erros/avisos                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `npm run typecheck`         | OK, zero erros                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `npm run test:coverage`     | **561 testes passaram** (534 do PR2 + 27 novos), 0 falhas, 187 skipped (integração, sem Supabase). Cobertura subiu para **92.79% statements, 81.88% branches, 94.16% functions, 93.81% lines**. `src/lib/auth/*` não aparece na tabela de cobertura do reporter `text` — esse reporter só lista diretórios com alguma linha por cobrir, o que implica 100% nesses dois ficheiros (confirmado indiretamente, não por uma métrica explícita por-ficheiro que o reporter tenha impresso). `middleware.ts`: 96.66% statements / 70% branches / 100% functions / 100% lines — o ramo não coberto (`isDev` a `false`, código pré-existente do PR2/anterior) não foi tocado por esta PR |
+| `npm run build`             | OK, ~18.4s, 30 rotas, mesma contagem de chunks/tamanho do PR2 (1505.4 KiB total, maior chunk 276.8 KiB) — esperado, esta PR é só server-side, zero JS novo enviado ao browser                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `npm run budget`            | OK, dentro do orçamento (inalterado do PR2)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `npm run test:integration`  | **187 testes, todos skipped** — mesmo bloqueio de Docker do PR2, inalterado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `npm run test:e2e:critical` | **14 testes, todos skipped**, mesmo motivo — servidor sobe sem erro com o middleware novo (`next dev` e `next start`, ambos testados manualmente)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+Smoke tests manuais adicionais (fora da suite, contra `next start` com env fictício,
+Supabase inalcançável de propósito): `/login` → 200; `/dashboard` e `/dashboard/agenda`
+sem sessão → 307 para `/login` em 19–36ms, sem exceção não tratada nos logs do servidor
+— confirma que `supabase.auth.getUser()` do `@supabase/ssr` real (não mockado, desta
+vez) resolve graciosamente (`{ user: null }`) em vez de rejeitar quando o host do
+Supabase é inatingível, e que o middleware novo não derruba a aplicação nesse cenário.
+
+### 0b.8 Duplicações removidas
+
+- `dashboard/page.tsx`: removida a query `profiles.select('display_name')` e a query
+  `tenants.select('slug')` de `loadDashboardData()` — ambas substituídas pelos valores
+  já resolvidos por `requireProfile()`.
+- `dashboard/mais/page.tsx`: mesma remoção em `loadMoreData()`.
+- Em ambos os casos, o dado devolvido é idêntico ao anterior (mesmas colunas, mesmo
+  fallback para `''`) — só a origem mudou.
+
+### 0b.9 Fora do escopo desta PR (confirmado, não tocado)
+
+RPCs do Dashboard/Clientes/Financeiro, cache de disponibilidade, `unstable_cache`,
+Realtime, região Vercel, novos índices, refactors visuais, mudanças de schema, mudança
+geral de estratégia de autorização — nenhum destes ficheiros/áreas foi tocado nesta PR.
 
 ---
 
@@ -228,12 +457,23 @@ por fazer. Ver secção 0 e "O que não foi validado" abaixo.
 
 ## 2. Matriz de ficheiros — `docs/audits/NEXORA_FILE_AUDIT.csv`
 
-**Confirmação: todos os 632 ficheiros listados por `git ls-files` foram classificados** —
-o CSV tem 633 linhas (1 cabeçalho + 632 ficheiros), gerado por um script Node
-(`node audit-nexora.mjs`, cópia arquivada nesta secção) que **abre e lê o conteúdo de
-cada ficheiro de texto rastreado** para derivar os sinais reportados. Ficheiros binários
-(`.png` — 4 no repo) são marcados `estado=revisto (binario/gerado)` com justificação
-explícita na coluna `responsabilidade`, nunca marcados "revisto" sem essa nota.
+**Confirmação (estado no PR 1): todos os 632 ficheiros listados por `git ls-files` foram
+classificados** — o CSV tinha 633 linhas (1 cabeçalho + 632 ficheiros), gerado por um
+script Node (`node audit-nexora.mjs`, cópia arquivada nesta secção) que **abre e lê o
+conteúdo de cada ficheiro de texto rastreado** para derivar os sinais reportados.
+Ficheiros binários (`.png` — 4 no repo) são marcados `estado=revisto (binario/gerado)`
+com justificação explícita na coluna `responsabilidade`, nunca marcados "revisto" sem
+essa nota.
+
+**Atualização manual — PR 3**: 3 ficheiros novos (`src/lib/auth/get-auth-context.ts`,
+`tests/unit/get-auth-context.test.ts`, `tests/unit/middleware.test.ts`) foram
+adicionados ao fim do CSV manualmente (não pelo script — regenerar o script apagaria as
+colunas qualitativas preenchidas manualmente nas secções 3 e PR2/PR3), e as linhas de 5
+ficheiros alterados (`require-profile.ts`, `middleware.ts`, `dashboard/page.tsx`,
+`dashboard/mais/page.tsx`) foram atualizadas nas colunas `responsabilidade`,
+`acao_recomendada`, `prioridade` e `estado`. O CSV tem agora 636 linhas (1 cabeçalho +
+635 ficheiros) — a contagem `git ls-files` real sobe de 632 para 635 depois do commit
+do PR 3.
 
 ### Metodologia — o que é automatizado vs. avaliado manualmente
 
@@ -400,7 +640,28 @@ nesta sessão — fica para antes de PR 23 (gates adicionais).
 
 Esta secção existe porque o pedido original proíbe declarar "otimizado" sem evidência —
 o inverso também se aplica: não declarar "auditado" o que não foi de facto medido.
-Atualizada depois do PR 2 — riscado o que deixou de ser verdade, mantido o resto.
+Atualizada depois do PR 2 e do PR 3 — riscado o que deixou de ser verdade, mantido o
+resto.
+
+**Novo no PR 3:**
+
+- **Nenhum teste prova deduplicação real entre chamadas de `requireProfile()`/
+  `getAuthContext()` no mesmo pedido** — verificado empiricamente (secção 0b.5) que
+  `cache()` do React não memoiza fora de uma renderização real do Next.js; só um
+  servidor real (bloqueado por falta de Docker, mesma causa do PR2) pode provar isto. Os
+  27 testes novos provam correção por chamada isolada, não deduplicação entre chamadas.
+- **O refresh de sessão do middleware nunca foi exercitado contra um Supabase Auth
+  real** — os 10 testes de `middleware.test.ts` mockam `@supabase/ssr` inteiramente;
+  provam que a canalização de cookies/headers do middleware está correta, não que a
+  troca real de refresh-token do Supabase funciona, nem que um refresh token
+  inválido/revogado é de facto rejeitado por um servidor real.
+- **Os cenários "sessão expirada com refresh válido" e "refresh token inválido" da
+  secção 0b.2 são inferidos por leitura de código, não observados** — mesma ressalva
+  geral de ambiente do PR1/PR2.
+- **A tabela de duplicação por rota (secção 0b.1) é uma contagem estática de call
+  sites**, não uma contagem de queries reais capturada via `Server-Timing` ou logs de
+  Postgres — o pedido original permite explicitamente "por análise ou instrumentação"
+  para este PR especificamente, e a análise estática é o que foi entregue.
 
 - ~~Nenhum comando de build/teste foi executado~~ — **corrigido no PR 2**: `npm ci`,
   `format`, `lint`, `typecheck`, `test:coverage`, `build`, `budget`, `test:integration` e

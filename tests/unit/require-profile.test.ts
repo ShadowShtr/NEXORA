@@ -53,13 +53,21 @@ describe('requireProfile (NEX-135: authorization)', () => {
   it('returns the tenant-scoped identity for a valid session with a profile, without redirecting', async () => {
     getClaimsMock.mockResolvedValue({ data: { claims: { sub: 'user-1' } } });
     maybeSingleMock.mockResolvedValue({
-      data: { user_id: 'user-1', tenant_id: 'tenant-1', display_name: 'Owner' },
+      data: {
+        user_id: 'user-1',
+        tenant_id: 'tenant-1',
+        display_name: 'Owner',
+        // PR3: tenantSlug now comes from the same query (embedded `tenants(slug)`
+        // relation) — src/lib/auth/get-auth-context.ts.
+        tenants: { slug: 'owner-salon' },
+      },
     });
     const { requireProfile } = await import('@/lib/auth/require-profile');
 
     await expect(requireProfile()).resolves.toEqual({
       userId: 'user-1',
       tenantId: 'tenant-1',
+      tenantSlug: 'owner-salon',
       displayName: 'Owner',
     });
     expect(redirectMock).not.toHaveBeenCalled();

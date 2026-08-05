@@ -10,17 +10,15 @@ import { InstallAppCard } from '@/features/shell/InstallAppCard';
 
 const APP_VERSION = '0.1.0';
 
+// PR3: used to also fetch `profiles.display_name` and `tenants.slug` itself, two
+// redundant queries — both already resolved by the caller's memoized auth context
+// (requireProfile(), shares getAuthContext() with the dashboard layout in the same
+// request). See docs/audits/NEXORA_PERFORMANCE_AUDIT.md (PR3 update, "duplicações
+// removidas").
 async function loadMoreData(tenantId: string) {
   const supabase = await createClient();
 
-  const [
-    { data: profileRow },
-    { data: tenantRow },
-    { count: pendingRemindersCount },
-    { count: pendingPaymentsCount },
-  ] = await Promise.all([
-    supabase.from('profiles').select('display_name').eq('tenant_id', tenantId).maybeSingle(),
-    supabase.from('tenants').select('slug').eq('id', tenantId).single(),
+  const [{ count: pendingRemindersCount }, { count: pendingPaymentsCount }] = await Promise.all([
     supabase
       .from('reminders')
       .select('id', { count: 'exact', head: true })
@@ -34,8 +32,6 @@ async function loadMoreData(tenantId: string) {
   ]);
 
   return {
-    displayName: profileRow?.display_name ?? '',
-    tenantSlug: tenantRow?.slug ?? '',
     pendingRemindersCount: pendingRemindersCount ?? 0,
     pendingPaymentsCount: pendingPaymentsCount ?? 0,
   };
@@ -56,9 +52,8 @@ async function loadMoreData(tenantId: string) {
 // help center, feedback form, or support contact exists anywhere in this app to link
 // to.
 export default async function MaisPage() {
-  const { tenantId } = await requireProfile();
-  const { displayName, tenantSlug, pendingRemindersCount, pendingPaymentsCount } =
-    await loadMoreData(tenantId);
+  const { tenantId, displayName, tenantSlug } = await requireProfile();
+  const { pendingRemindersCount, pendingPaymentsCount } = await loadMoreData(tenantId);
 
   const publicUrl = tenantSlug ? publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantSlug) : null;
 

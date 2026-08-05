@@ -78,6 +78,11 @@ type AttentionReminder = {
 // React Compiler purity rule forbids impure calls directly in render, since a component
 // must be safely re-callable. This is a plain async function the Server Component
 // calls once, not a component itself, so the rule doesn't apply to it.
+// PR3: this used to also fetch `profiles.display_name` and `tenants.slug` itself, two
+// redundant queries — both are already resolved by the caller's memoized auth context
+// (requireProfile(), which shares getAuthContext() with the layout above this page in
+// the same request), so this function only fetches what it alone needs. See
+// docs/audits/NEXORA_PERFORMANCE_AUDIT.md (PR3 update, "duplicações removidas").
 async function loadDashboardData(tenantId: string) {
   const supabase = await createClient();
 
@@ -99,15 +104,11 @@ async function loadDashboardData(tenantId: string) {
   const dayEndIso = dayEnd.toISOString();
 
   const [
-    { data: profileRow },
-    { data: tenantRow },
     { data: appointmentRows },
     { count: pendingRemindersCount },
     { data: paymentRows },
     { data: attentionReminderRows },
   ] = await Promise.all([
-    supabase.from('profiles').select('display_name').eq('tenant_id', tenantId).maybeSingle(),
-    supabase.from('tenants').select('slug').eq('id', tenantId).single(),
     supabase
       .from('appointments')
       .select(
@@ -211,8 +212,6 @@ async function loadDashboardData(tenantId: string) {
     summary,
     timezone,
     nowMs,
-    ownerName: profileRow?.display_name ?? '',
-    tenantSlug: tenantRow?.slug ?? '',
     appointmentsToday,
     attentionReminders,
   };
@@ -498,8 +497,8 @@ function TodayAgendaPreview({
 // add button on this page (never was), so the reference's "hide the FAB" rule is
 // already true by construction.
 export default async function DashboardPage() {
-  const { tenantId } = await requireProfile();
-  const { summary, timezone, nowMs, ownerName, tenantSlug, appointmentsToday, attentionReminders } =
+  const { tenantId, displayName, tenantSlug } = await requireProfile();
+  const { summary, timezone, nowMs, appointmentsToday, attentionReminders } =
     await loadDashboardData(tenantId);
   const publicUrl = tenantSlug ? publicBookingUrl(publicEnv.NEXT_PUBLIC_APP_URL, tenantSlug) : null;
 
@@ -508,7 +507,7 @@ export default async function DashboardPage() {
       <header className="home-header">
         <div>
           <h1 className="home-greeting">
-            Olá{ownerName ? `, ${firstName(ownerName)}` : ''}!{' '}
+            Olá{displayName ? `, ${firstName(displayName)}` : ''}!{' '}
             <span className="home-greeting-emoji">👋</span>
           </h1>
           <p className="home-date">
