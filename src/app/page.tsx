@@ -1,20 +1,13 @@
-import Link from 'next/link';
-import { CalendarDays, Sparkles } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { redirect } from 'next/navigation';
 
+// The public marketing landing (hero, "Entrar na área da profissional") is being
+// dropped as the entry point per explicit product decision: the dona's own workflow
+// only ever lands here to get to her account, so the marketing copy was pure friction.
+// Delegating straight to /login rather than duplicating its logic here: LoginPage
+// already checks getOptionalProfile() and bounces an already-signed-in visitor
+// through to /dashboard, so a returning, still-logged-in dona also skips the form.
+// The dedicated public landing (nnexora.pt marketing site) is EPIC-32/NEX-341,
+// tracked separately — this route currently has no other consumer to preserve.
 export default function HomePage() {
-  return (
-    <main className="shell landing">
-      <Card className="hero">
-        <span className="eyebrow">
-          <Sparkles aria-hidden="true" /> Agenda simples e elegante
-        </span>
-        <h1>NEXORA</h1>
-        <p>Uma base inteligente para marcações, clientes e recebimentos.</p>
-        <Link className="button link-button" href="/login">
-          <CalendarDays aria-hidden="true" /> Entrar na área da profissional
-        </Link>
-      </Card>
-    </main>
-  );
+  redirect('/login');
 }
